@@ -26,6 +26,43 @@ model User {
   companyId         String?
 }
 
+model Profile {
+  id          String  @id @default(uuid())
+  userId      String  @unique
+  fullName    String
+  phone       String?
+  bio         String?
+  location    String?
+  avatarUrl   String?
+  coverUrl    String?
+  resumeUrl   String?
+  linkedInUrl String?
+  websiteUrl  String?
+  skills      Skill[]
+}
+
+model Skill {
+  id              String  @id @default(uuid())
+  skillName       String  @db.VarChar(255)
+  experienceYears Float
+  profile         Profile @relation(fields: [profileId], references: [id])
+  profileId       String
+}
+
+model Preference {
+  id                String   @id @default(uuid())
+  profile           Profile  @relation(fields: [profileId], references: [id])
+  profileId         String
+  jobType           JobType  @default(FULL_TIME)
+  expectedSalary    Float?
+  preferredLocation String?
+  remoteWork        Boolean  @default(false)
+  industry          String?
+  workExperience    String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
 enum UserRole {
   JOB_SEEKER
   EMPLOYER
@@ -35,4 +72,14 @@ enum UserRole {
 enum ProfileVisibility {
   PUBLIC
   PRIVATE
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  FREELANCE
+}
+
 }
