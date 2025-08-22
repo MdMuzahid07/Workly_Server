@@ -24,11 +24,13 @@ model User {
   profileId         String?           @unique
   profileVisibility ProfileVisibility @default(PUBLIC)
   companyId         String?
+  lastLogin         DateTime?
+  deletedAt         DateTime?
 }
 
 model Profile {
-  id          String  @id @default(uuid())
-  userId      String  @unique
+  id          String       @id @default(uuid())
+  userId      String       @unique
   fullName    String
   phone       String?
   bio         String?
@@ -39,6 +41,7 @@ model Profile {
   linkedInUrl String?
   websiteUrl  String?
   skills      Skill[]
+  Preference  Preference[]
 }
 
 model Skill {
@@ -80,6 +83,4 @@ enum JobType {
   CONTRACT
   INTERNSHIP
   FREELANCE
-}
-
 }
