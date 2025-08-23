@@ -24,8 +24,12 @@ model User {
   profileId         String?           @unique
   profileVisibility ProfileVisibility @default(PUBLIC)
   companyId         String?
+  company           Company?          @relation(fields: [companyId], references: [id])
+  profile           Profile?          @relation(fields: [profileId], references: [id])
   lastLogin         DateTime?
   deletedAt         DateTime?
+  Job               Job[]
+  savedJobs         SavedJob[]
 }
 
 model Profile {
@@ -42,6 +46,7 @@ model Profile {
   websiteUrl  String?
   skills      Skill[]
   Preference  Preference[]
+  User        User?
 }
 
 model Skill {
@@ -50,6 +55,8 @@ model Skill {
   experienceYears Float
   profile         Profile @relation(fields: [profileId], references: [id])
   profileId       String
+  Job             Job?    @relation(fields: [jobId], references: [id])
+  jobId           String?
 }
 
 model Preference {
@@ -86,9 +93,8 @@ model Company {
   deletedAt    DateTime?
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
-  // employees  
-  // jobs        
   Job          Job[]
+  employees    User[]
 }
 
 model SocialLink {
@@ -100,38 +106,41 @@ model SocialLink {
 }
 
 model Job {
-  id                    String    @id @default(uuid())
+  id                    String         @id @default(uuid())
   title                 String
   slug                  String
   discipline            String
   requirements          String
-  jobType               JobType   @default(FULL_TIME)
+  jobType               JobType        @default(FULL_TIME)
   location              String
   experienceLevel       String
-  isRemote              Boolean   @default(false)
+  isRemote              Boolean        @default(false)
   salaryMin             Float?
   salaryMax             Float?
   currency              String?
   contactEmail          String?
   applicationDeadline   DateTime?
   maxApplications       Int?
-  autoCloseApplications Boolean   @default(false)
-  isActive              Boolean   @default(true)
-  isFeatured            Boolean   @default(false)
+  autoCloseApplications Boolean        @default(false)
+  isActive              Boolean        @default(true)
+  isFeatured            Boolean        @default(false)
   expiresAt             DateTime?
-  viewCount             Int       @default(0)
-  applyCount            Int       @default(0)
+  viewCount             Int            @default(0)
+  applyCount            Int            @default(0)
   deletedAt             DateTime?
-  // skillsRequired 
+  skillsRequired        Skill[]
   benefits              String
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
   companyId             String
-  company               Company   @relation(fields: [companyId], references: [id])
+  company               Company        @relation(fields: [companyId], references: [id])
   postedById            String
-  // applications          Application[]
+  applications          Application[]
   // savedByUsers          
-  // notifications
+  notifications         Notification[]
+  User                  User?          @relation(fields: [userId], references: [id])
+  userId                String?
+  SavedJob              SavedJob[]
 }
 
 model Notification {
@@ -148,6 +157,8 @@ model Notification {
   metadata      Json?
   createdAt     DateTime         @default(now())
   userId        String
+  Job           Job?             @relation(fields: [jobId], references: [id])
+  Application   Application?     @relation(fields: [applicationId], references: [id])
 }
 
 model Application {
@@ -168,7 +179,8 @@ model Application {
   applicantId            String
   jobId                  String
   userId                 String
-  // notifications       
+  notifications          Notification[]
+  Job                    Job                    @relation(fields: [jobId], references: [id])
 }
 
 model SavedJob {
@@ -178,6 +190,8 @@ model SavedJob {
   folderName String?
   notes      String?
   createdAt  DateTime @default(now())
+  job        Job      @relation(fields: [jobId], references: [id])
+  User       User     @relation(fields: [userId], references: [id])
 }
 
 model AuditLog {
