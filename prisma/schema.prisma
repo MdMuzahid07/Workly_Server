@@ -171,6 +171,28 @@ model Application {
   // notifications       
 }
 
+model SavedJob {
+  id         String   @id @default(uuid())
+  userId     String
+  jobId      String
+  folderName String?
+  notes      String?
+  createdAt  DateTime @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  entityType String
+  entityId   String
+  action     String
+  oldValues  Json
+  newValues  Json
+  userId     String
+  ipAddress  String
+  userAgent  String
+  createdAt  DateTime @default(now())
+}
+
 //! =============================== enums ===============================>
 
 enum UserRole {
