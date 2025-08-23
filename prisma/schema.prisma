@@ -88,6 +88,7 @@ model Company {
   updatedAt    DateTime     @updatedAt
   // employees  
   // jobs        
+  Job          Job[]
 }
 
 model SocialLink {
@@ -96,6 +97,41 @@ model SocialLink {
   url       String
   company   Company @relation(fields: [companyId], references: [id])
   companyId String
+}
+
+model Job {
+  id                    String    @id @default(uuid())
+  title                 String
+  slug                  String
+  discipline            String
+  requirements          String
+  jobType               JobType   @default(FULL_TIME)
+  location              String
+  experienceLevel       String
+  isRemote              Boolean   @default(false)
+  salaryMin             Float?
+  salaryMax             Float?
+  currency              String?
+  contactEmail          String?
+  applicationDeadline   DateTime?
+  maxApplications       Int?
+  autoCloseApplications Boolean   @default(false)
+  isActive              Boolean   @default(true)
+  isFeatured            Boolean   @default(false)
+  expiresAt             DateTime?
+  viewCount             Int       @default(0)
+  applyCount            Int       @default(0)
+  deletedAt             DateTime?
+  // skillsRequired 
+  benefits              String
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  companyId             String
+  company               Company   @relation(fields: [companyId], references: [id])
+  postedById            String
+  // applications          Application[]
+  // savedByUsers          
+  // notifications
 }
 
 //! =============================== enums ===============================>
