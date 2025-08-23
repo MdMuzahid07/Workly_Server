@@ -150,6 +150,27 @@ model Notification {
   userId        String
 }
 
+model Application {
+  id                     String                 @id @default(uuid())
+  status                 ApplicationStatus      @default(SUBMITTED)
+  coverLetter            String?
+  preferredContactMethod PreferredContactMethod @default(email)
+  rejectionReason        String?
+  statusChangedBy        String?
+  statusChangedAt        DateTime?
+  applicantData          Json
+  folderName             String?
+  interviewScheduledAt   DateTime?
+  interviewNotes         String?
+  withdrawnAt            DateTime?
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  applicantId            String
+  jobId                  String
+  userId                 String
+  // notifications       
+}
+
 //! =============================== enums ===============================>
 
 enum UserRole {
@@ -181,4 +202,21 @@ enum NotificationType {
   SYSTEM_ANNOUNCEMENT
   PROFILE_INCOMPLETE
   INTERVIEW_SCHEDULED
+}
+
+enum ApplicationStatus {
+  SUBMITTED
+  REVIEWING
+  SHORTLISTED
+  INTERVIEWED
+  REJECTED
+  OFFERED
+  ACCEPTED
+  WITHDRAWN
+}
+
+enum PreferredContactMethod {
+  email
+  phone
+  both
 }
