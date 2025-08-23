@@ -193,6 +193,24 @@ model AuditLog {
   createdAt  DateTime @default(now())
 }
 
+model rateLimit {
+  id          String   @id @default(uuid())
+  identifier  String
+  endpoint    String
+  resets      DateTime
+  windowStart DateTime
+}
+
+model VerificationToken {
+  id        String    @id @default(uuid())
+  token     String    @unique
+  type      TokenType
+  usersId   String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
 //! =============================== enums ===============================>
 
 enum UserRole {
@@ -241,4 +259,11 @@ enum PreferredContactMethod {
   email
   phone
   both
+}
+
+enum TokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+  TWO_FACTOR_AUTH
+  LOGIN_MAGIC_LINK
 }
