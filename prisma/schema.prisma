@@ -134,6 +134,22 @@ model Job {
   // notifications
 }
 
+model Notification {
+  id            String           @id @default(uuid())
+  type          NotificationType
+  title         String
+  message       String
+  isRead        Boolean          @default(false)
+  jobId         String?
+  applicationId String?
+  sentVia       String[]
+  emailSentAt   DateTime?
+  pushSentAt    DateTime?
+  metadata      Json?
+  createdAt     DateTime         @default(now())
+  userId        String
+}
+
 //! =============================== enums ===============================>
 
 enum UserRole {
@@ -153,4 +169,16 @@ enum JobType {
   CONTRACT
   INTERNSHIP
   FREELANCE
+}
+
+enum NotificationType {
+  APPLICATION_RECEIVED
+  APPLICATION_STATUS_CHANGE
+  NEW_JOB_MATCH
+  JOB_EXPIRING
+  JOB_CLOSED
+  MESSAGE_RECEIVED
+  SYSTEM_ANNOUNCEMENT
+  PROFILE_INCOMPLETE
+  INTERVIEW_SCHEDULED
 }
