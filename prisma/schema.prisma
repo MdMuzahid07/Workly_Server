@@ -66,6 +66,40 @@ model Preference {
   updatedAt         DateTime @updatedAt
 }
 
+model Company {
+  id           String       @id @default(uuid())
+  name         String       @unique
+  slug         String
+  description  String?
+  websiteUrl   String?
+  logoUrl      String?
+  coverUrl     String?
+  location     String?
+  industry     String?
+  size         String?
+  contactEmail String?
+  contactPhone String?
+  isVerified   Boolean      @default(false)
+  verifiedAt   DateTime?
+  SocialLink   SocialLink[]
+  benefits     String
+  deletedAt    DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  // employees  
+  // jobs        
+}
+
+model SocialLink {
+  id        String  @id @default(uuid())
+  platform  String
+  url       String
+  company   Company @relation(fields: [companyId], references: [id])
+  companyId String
+}
+
+//! =============================== enums ===============================>
+
 enum UserRole {
   JOB_SEEKER
   EMPLOYER
