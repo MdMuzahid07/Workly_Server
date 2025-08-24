@@ -1,6 +1,30 @@
 import type { NextFunction, Request, Response } from "express";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const globalErrorHandler = (error: any, req: Request, res: Response, next: NextFunction) => {};
+interface IError extends Error {
+  statusCode?: number;
+  path?: string[];
+  message: string;
+}
+
+const globalErrorHandler = (
+  error: IError,
+  req: Request,
+  res: Response,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  //@ts-ignore
+  next: NextFunction,
+) => {
+  const statusCode = error.statusCode || 500;
+  const message = error.message || "Something went wrong!";
+
+  res.status(statusCode).json({
+    success: false,
+    message,
+    errorSources: {
+      path: error.path || req.originalUrl,
+      message: error.message,
+    },
+  });
+};
 
 export default globalErrorHandler;

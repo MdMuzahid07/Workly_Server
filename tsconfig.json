@@ -38,6 +38,6 @@
     "moduleDetection": "force",
     "skipLibCheck": true
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "src/types/env.d.ts"],
   "exclude": ["node_modules", "dist"]
 }

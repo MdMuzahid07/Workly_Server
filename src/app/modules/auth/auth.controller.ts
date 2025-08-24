@@ -11,15 +11,18 @@ const login: RequestHandler = async (req, res) => {
   res.status(200).json(result);
 };
 
+//@ts-ignore
 const logout: RequestHandler = async (req, res) => {
   const result = await authService.logout();
   res.status(200).json(result);
 };
 
+//@ts-ignore
 const refresh: RequestHandler = async (req, res) => {
   const result = await authService.refresh();
   res.status(200).json(result);
 };
+//@ts-ignore
 
 const forgotPassword: RequestHandler = async (req, res) => {
   const result = await authService.forgotPassword(req.body);
