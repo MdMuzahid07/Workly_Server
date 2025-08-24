@@ -8,11 +8,11 @@ const login = async (payload: any) => {
 };
 
 const logout = async () => {
-  console.log('logout');
+  console.log("logout");
 };
 
 const refresh = async () => {
-  console.log('refresh');
+  console.log("refresh");
 };
 
 const forgotPassword = async (payload: any) => {
