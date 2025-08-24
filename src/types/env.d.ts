@@ -8,5 +8,6 @@ declare namespace NodeJS {
     JWT_REFRESH_SECRET: string;
     JWT_REFRESH_EXPIRES_IN: string;
     JWT_ALGORITHM: string;
+    ENVIRONMENT: "development" | "production";
   }
 }

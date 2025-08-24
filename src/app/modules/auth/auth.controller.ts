@@ -1,9 +1,32 @@
 import type { RequestHandler } from "express";
+import httpStatus from "http-status";
+import config from "../../../config/index.js";
+import sendApiResponse from "../../../utils/sendApiResponse.js";
 import authService from "./auth.service.js";
 
 const register: RequestHandler = async (req, res) => {
   const result = await authService.register(req.body);
-  res.status(201).json(result);
+
+  const refreshToken = result.refreshToken;
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: config.environment === "production" ? true : false,
+    sameSite: "strict",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: "User registered successfully",
+    data: {
+      fullName: result.safeUser.fullName,
+      email: result.safeUser.email,
+      role: result.safeUser.role,
+      isVerified: result.safeUser.isVerified,
+      accessToken: result.accessToken,
+    },
+  });
 };
 
 const login: RequestHandler = async (req, res) => {

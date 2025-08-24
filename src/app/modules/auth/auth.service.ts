@@ -1,11 +1,12 @@
 import bcrypt from "bcrypt";
 import httpStatus from "http-status";
 import config from "../../../config/index.js";
+import generateJsonWebToken from "../../../utils/generateJsonWebToken.js";
 import prisma from "../../../utils/prismaClient.js";
 import AppError from "../../error/AppError.js";
 
 const register = async (payload: any) => {
-  const isExits = await prisma.user.find({
+  const isExits = await prisma.user.findUnique({
     where: {
       email: payload.email,
     },
@@ -32,7 +33,26 @@ const register = async (payload: any) => {
     throw new AppError(httpStatus.BAD_REQUEST, "Failed to create user");
   }
 
-  console.log(payload);
+  const jwtPayload = {
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+    fullName: user.fullName,
+    phone: user.phone,
+    isVerified: user.isVerified,
+    isActive: user.isActive,
+  };
+
+  const accessToken = generateJsonWebToken(jwtPayload, "access");
+  const refreshToken = generateJsonWebToken(jwtPayload, "refresh");
+
+  const { passwordHash: _, ...safeUser } = user;
+
+  return {
+    safeUser,
+    accessToken,
+    refreshToken,
+  };
 };
 
 const login = async (payload: any) => {
