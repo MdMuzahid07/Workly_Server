@@ -1,5 +1,21 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import httpStatus from "http-status";
+import prisma from "../../../utils/prismaClient.js";
+import AppError from "../../error/AppError.js";
+
 const register = async (payload: any) => {
+  const isExits = await prisma.user.find({
+    where: {
+      email: payload.email,
+    },
+  });
+
+  if (isExits) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `User already exists with ${payload.email} this email`,
+    );
+  }
+
   console.log(payload);
 };
 
