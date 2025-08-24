@@ -20,7 +20,6 @@ const register: RequestHandler = async (req, res) => {
     success: true,
     message: "User registered successfully",
     data: {
-      fullName: result.safeUser.fullName,
       email: result.safeUser.email,
       role: result.safeUser.role,
       isVerified: result.safeUser.isVerified,

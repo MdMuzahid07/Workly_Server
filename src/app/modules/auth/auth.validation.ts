@@ -1,12 +1,6 @@
 import z from "zod";
 
 const register = z.object({
-  fullName: z
-    .string()
-    .min(3, { message: "Full name is required" })
-    .max(250, { message: "Full name is too long" })
-    .toLowerCase()
-    .trim(),
   email: z
     .string({ message: "Invalid email address" })
     .min(1, { message: "Email is required" })

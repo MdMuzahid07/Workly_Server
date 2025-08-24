@@ -1,10 +1,12 @@
 import express from "express";
+import requestValidator from "../../middleware/requestValidator.js";
 import authController from "./auth.controller.js";
+import authValidation from "./auth.validation.js";
 
 const router = express.Router();
 
 router
-  .post("/register", authController.register)
+  .post("/register", requestValidator(authValidation.register), authController.register)
   .post("/login", authController.login)
   .post("/logout", authController.logout)
   .post("/refresh", authController.refresh)
