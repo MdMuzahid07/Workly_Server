@@ -1,5 +1,6 @@
 import cors from "cors";
-import express, { type Application, type NextFunction, type Request, type Response } from "express";
+import express, { type Application, type Request, type Response } from "express";
+import apiNotFound from "./app/middleware/apiNotFound.js";
 import globalErrorHandler from "./app/middleware/globalErrorHandler.js";
 
 const app: Application = express();
@@ -9,21 +10,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
 app.use("/", (_req: Request, res: Response) => {
-  res.send("ph healthcare server 🚀🚀");
+  res.send("workly_Job server 🚀🚀");
 });
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-//@ts-ignore
-app.use((req: Request, res: Response, next: NextFunction) => {
-  res.status(404).json({
-    success: false,
-    message: "API not found!",
-    error: {
-      path: req.originalUrl,
-      message: "you requested path not found",
-    },
-  });
-});
+app.use(apiNotFound);
 
 app.use(globalErrorHandler);
 
