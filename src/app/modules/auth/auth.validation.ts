@@ -1,5 +1,4 @@
 import z from "zod";
-import { UserRole } from "../../../generated/prisma/index.js";
 
 const register = z.object({
   fullName: z
@@ -16,7 +15,6 @@ const register = z.object({
     .string()
     .min(6, { message: "Password must be at least 6 characters long" })
     .max(32, { message: "Password can't be more than 32 characters long" }),
-  role: z.enum(UserRole).optional().default(UserRole.JOB_SEEKER),
   phone: z
     .string()
     .min(10, { message: "Phone number must be at least 10 characters long" })

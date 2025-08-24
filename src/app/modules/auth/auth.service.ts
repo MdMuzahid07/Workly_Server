@@ -1,4 +1,6 @@
+import bcrypt from "bcrypt";
 import httpStatus from "http-status";
+import config from "../../../config/index.js";
 import prisma from "../../../utils/prismaClient.js";
 import AppError from "../../error/AppError.js";
 
@@ -14,6 +16,20 @@ const register = async (payload: any) => {
       httpStatus.BAD_REQUEST,
       `User already exists with ${payload.email} this email`,
     );
+  }
+
+  const passwordHash = await bcrypt.hash(payload.password, config.bcrypt_salt_rounds);
+
+  const user = await prisma.user.create({
+    data: {
+      fullName: payload.fullName,
+      email: payload.email,
+      passwordHash: passwordHash,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Failed to create user");
   }
 
   console.log(payload);
