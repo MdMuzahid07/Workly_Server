@@ -25,6 +25,8 @@ const register = async (payload: any) => {
     data: {
       email: payload.email,
       passwordHash: passwordHash,
+      fullName: payload.fullName,
+      phone: payload.phone,
     },
   });
 
@@ -86,10 +88,12 @@ const login = async (payload: any) => {
 
   const accessToken = generateJsonWebToken(jwtPayload, "access");
   const refreshToken = generateJsonWebToken(jwtPayload, "refresh");
+  const { passwordHash: _, ...safeUser } = isExits;
 
   return {
     accessToken,
     refreshToken,
+    safeUser,
   };
 };
 

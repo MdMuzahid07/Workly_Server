@@ -21,8 +21,9 @@ const register: RequestHandler = asyncHandler(async (req, res) => {
     success: true,
     message: "User registered successfully",
     data: {
+      fullName: result.safeUser.fullName,
+      phone: result.safeUser.phone,
       email: result.safeUser.email,
-      role: result.safeUser.role,
       isVerified: result.safeUser.isVerified,
       accessToken: result.accessToken,
     },
@@ -45,6 +46,9 @@ const login: RequestHandler = asyncHandler(async (req, res) => {
     success: true,
     message: "User registered successfully",
     data: {
+      fullName: result.safeUser.fullName,
+      email: result.safeUser.email,
+      phone: result.safeUser.phone,
       accessToken: result.accessToken,
     },
   });
