@@ -53,7 +53,44 @@ const register = async (payload: any) => {
 };
 
 const login = async (payload: any) => {
-  console.log(payload);
+  const isExits = await prisma.user.findFirst({
+    where: {
+      email: payload.email,
+    },
+  });
+
+  if (!isExits || !isExits?.isActive) {
+    throw new AppError(httpStatus.BAD_REQUEST, `User not found with ${payload.email} this email`);
+  }
+
+  const isPasswordMatch = await bcrypt.compare(payload.password, isExits.passwordHash);
+
+  if (!isPasswordMatch) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid credentials");
+  }
+
+  if (!isExits.isVerified) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Please verify your email address before logging in",
+    );
+  }
+
+  const jwtPayload = {
+    userId: isExits.id,
+    email: isExits.email,
+    role: isExits.role,
+    isVerified: isExits.isVerified,
+    isActive: isExits.isActive,
+  };
+
+  const accessToken = generateJsonWebToken(jwtPayload, "access");
+  const refreshToken = generateJsonWebToken(jwtPayload, "refresh");
+
+  return {
+    accessToken,
+    refreshToken,
+  };
 };
 
 const logout = async () => {
