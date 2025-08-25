@@ -9,9 +9,7 @@ const requestValidator = (schema: ZodObject<ZodRawShape>) => {
     next: NextFunction,
   ) => {
     try {
-      await schema.parseAsync({
-        body: req.body,
-      });
+      await schema.parseAsync(req.body);
 
       return next();
     } catch (error) {
