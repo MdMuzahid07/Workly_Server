@@ -1,10 +1,11 @@
 import type { RequestHandler } from "express";
 import httpStatus from "http-status";
 import config from "../../../config/index.js";
+import asyncHandler from "../../../utils/asyncHandler.js";
 import sendApiResponse from "../../../utils/sendApiResponse.js";
 import authService from "./auth.service.js";
 
-const register: RequestHandler = async (req, res) => {
+const register: RequestHandler = asyncHandler(async (req, res) => {
   const result = await authService.register(req.body);
 
   const refreshToken = result.refreshToken;
@@ -26,7 +27,7 @@ const register: RequestHandler = async (req, res) => {
       accessToken: result.accessToken,
     },
   });
-};
+});
 
 const login: RequestHandler = async (req, res) => {
   const result = await authService.login(req.body);
