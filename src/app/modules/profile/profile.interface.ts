@@ -1,46 +1,28 @@
-// import type { Job, JobType, User } from "../../../generated/prisma/index.js";
+import type { JobType } from "../../../generated/prisma/index.js";
 
-// export interface Profile {
-//   id: string;
-//   userId: string;
-//   bio?: string | null;
-//   location?: string | null;
-//   avatarUrl?: string | null;
-//   coverUrl?: string | null;
-//   resumeUrl?: string | null;
-//   linkedInUrl?: string | null;
-//   websiteUrl?: string | null;
+export type ISkill = {
+  skillName: string;
+  experienceYears: number;
+};
 
-//   skills?: Skill[];
-//   preferences?: Preference[];
-//   user?: User | null;
-// }
+export type IPreference = {
+  jobType?: JobType;
+  expectedSalary?: number;
+  preferredLocation?: string;
+  remoteWork?: boolean;
+  industry?: string;
+  workExperience?: string;
+};
 
-// // Skill schema
-// export interface Skill {
-//   id: string;
-//   skillName: string;
-//   experienceYears: number;
-
-//   profileId: string;
-//   profile: Profile;
-
-//   jobId?: string | null;
-//   job?: Job | null;
-// }
-
-// // Preference schema
-// export interface Preference {
-//   id: string;
-//   profileId: string;
-//   profile: Profile;
-
-//   jobType: JobType;
-//   expectedSalary?: number | null;
-//   preferredLocation?: string | null;
-//   remoteWork: boolean;
-//   industry?: string | null;
-//   workExperience?: string | null;
-//   createdAt: Date;
-//   updatedAt: Date;
-// }
+export type IProfile = {
+  userId: string;
+  bio?: string;
+  location?: string;
+  avatarUrl?: string;
+  coverUrl?: string;
+  resumeUrl?: string;
+  linkedInUrl?: string;
+  websiteUrl?: string;
+  skills?: ISkill[];
+  preference?: IPreference;
+};
