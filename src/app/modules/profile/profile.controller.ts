@@ -9,6 +9,7 @@ const createProfile = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,
+
     message: "Profile created successfully",
     data: result,
   });
