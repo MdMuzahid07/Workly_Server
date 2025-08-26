@@ -55,8 +55,23 @@ const login: RequestHandler = asyncHandler(async (req, res) => {
 });
 //@ts-ignore
 const logout: RequestHandler = async (req, res) => {
-  const result = await authService.logout();
-  res.status(200).json(result);
+  // await authService.logout();
+
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: config.environment === "production" ? true : false,
+    sameSite: "strict",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+  res.setHeader("Pragma", "no-cache");
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: "User registered successfully",
+  });
 };
 
 //@ts-ignore

@@ -27,6 +27,9 @@ const register = async (payload: any) => {
       passwordHash: passwordHash,
       fullName: payload.fullName,
       phone: payload.phone,
+      //! need to remove this two line before production
+      isActive: true,
+      isVerified: true,
     },
   });
 
@@ -97,9 +100,7 @@ const login = async (payload: any) => {
   };
 };
 
-const logout = async () => {
-  console.log("logout");
-};
+const logout = async () => {};
 
 const refresh = async () => {
   console.log("refresh");

@@ -57,9 +57,10 @@ model Profile {
   linkedInUrl String? @db.VarChar(500)
   websiteUrl  String? @db.VarChar(500)
 
-  skills      Skill[]
-  preferences Preference[]
-  user        User?
+  skills       Skill[]
+  preferences  Preference? @relation(fields: [preferenceId], references: [id])
+  user         User?
+  preferenceId String?
 
   @@index([userId])
   @@map("profiles")
@@ -83,17 +84,17 @@ model Skill {
 }
 
 model Preference {
-  id                String   @id @default(uuid())
-  profile           Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  id                String    @id @default(uuid())
   profileId         String
-  jobType           JobType  @default(FULL_TIME)
+  jobType           JobType   @default(FULL_TIME)
   expectedSalary    Int?
-  preferredLocation String?  @db.VarChar(255)
-  remoteWork        Boolean  @default(false)
-  industry          String?  @db.VarChar(100)
-  workExperience    String?  @db.VarChar(100)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  preferredLocation String?   @db.VarChar(255)
+  remoteWork        Boolean   @default(false)
+  industry          String?   @db.VarChar(100)
+  workExperience    String?   @db.VarChar(100)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  Profile           Profile[]
 
   @@index([profileId])
   @@map("preferences")
