@@ -21,6 +21,8 @@ const authValidator = (...requiredRoles: string[]) => {
         role: string;
       };
 
+      console.log(verifiedUser);
+
       if (!verifiedUser) {
         throw new AppError(httpStatus.BAD_REQUEST, "Invalid token");
       }

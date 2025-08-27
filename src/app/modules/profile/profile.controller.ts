@@ -15,7 +15,21 @@ const createProfile = asyncHandler(async (req, res) => {
   });
 });
 
+const myProfile = asyncHandler(async (req, res) => {
+  const userId = req.user.userId;
+
+  const result = await profileService.myProfile(userId);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "My profile fetched successfully",
+    data: result,
+  });
+});
+
 const profileController = {
   createProfile,
+  myProfile,
 };
 export default profileController;

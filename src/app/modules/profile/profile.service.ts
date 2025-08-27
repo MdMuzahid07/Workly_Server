@@ -38,28 +38,27 @@ const createProfile = async (payload: IProfile) => {
       },
     });
 
-    if (!userProfile) {
-      throw new AppError(httpStatus.BAD_REQUEST, "Failed to create profile");
-    }
+    await transactor.user.update({
+      where: {
+        id: payload.userId,
+      },
+      data: {
+        profileId: userProfile.id,
+      },
+    });
 
-    let skillSet;
     if (payload.skills?.length) {
-      skillSet = await transactor.skill.createMany({
+      await transactor.skill.createMany({
         data: payload.skills?.map((skill: ISkill) => ({
           skillName: skill.skillName,
           profileId: userProfile.id,
           experienceYears: skill.experienceYears,
         })),
       });
-
-      if (!skillSet) {
-        throw new AppError(httpStatus.BAD_REQUEST, "Failed to create profile");
-      }
     }
 
-    let userPreference;
     if (payload.preference) {
-      userPreference = await transactor.preference.create({
+      await transactor.preference.create({
         data: {
           profileId: userProfile.id,
           jobType: payload.preference.jobType || "FULL_TIME",
@@ -71,17 +70,38 @@ const createProfile = async (payload: IProfile) => {
         },
       });
     }
-    if (!userPreference) {
-      throw new AppError(httpStatus.BAD_REQUEST, "Failed to create profile");
-    }
 
-    return { userProfile, skillSet, userPreference };
+    return userProfile;
   });
 
   return result;
 };
 
-const myProfile = async () => {};
+const myProfile = async (userId: string) => {
+  if (!userId) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+  }
+
+  const result = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    include: {
+      profile: {
+        include: {
+          skills: true,
+          preference: true,
+        },
+      },
+    },
+  });
+
+  if (!result) {
+    throw new AppError(httpStatus.NOT_FOUND, "Profile not found");
+  }
+
+  return result;
+};
 
 const profileService = {
   createProfile,
