@@ -23,7 +23,21 @@ const myProfile = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "My profile fetched successfully",
+    message: "Profile fetched successfully",
+    data: result,
+  });
+});
+
+const updateMyProfile = asyncHandler(async (req, res) => {
+  const userId = req.user.userId;
+  const payload = req.body;
+
+  const result = await profileService.updateMyProfile(userId, payload);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Profile updated successfully",
     data: result,
   });
 });
@@ -31,5 +45,6 @@ const myProfile = asyncHandler(async (req, res) => {
 const profileController = {
   createProfile,
   myProfile,
+  updateMyProfile,
 };
 export default profileController;
