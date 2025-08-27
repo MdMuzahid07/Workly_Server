@@ -51,7 +51,6 @@ const preferenceSchema = z.object({
 });
 
 const createProfile = z.object({
-  userId: z.string().uuid({ message: "Invalid user ID format" }),
   bio: z.string().optional().nullable(),
   location: z
     .string()
