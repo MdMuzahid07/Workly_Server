@@ -14,6 +14,16 @@ const createProfile = async (payload: IProfile) => {
     throw new AppError(httpStatus.BAD_REQUEST, `User not found to create profile`);
   }
 
+  const isProfileExists = await prisma.profile.findUnique({
+    where: {
+      userId: payload.userId,
+    },
+  });
+
+  if (isProfileExists) {
+    throw new AppError(httpStatus.BAD_REQUEST, `User already has a profile`);
+  }
+
   const result = await prisma.$transaction(async (transactor) => {
     const userProfile = await transactor.profile.create({
       data: {
