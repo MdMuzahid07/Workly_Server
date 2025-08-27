@@ -148,6 +148,9 @@ const updateMyProfile = async (
 
     if (payload.skills?.length) {
       await transactor.skill.updateMany({
+        where: {
+          profileId: userProfile.id,
+        },
         data: payload.skills?.map((skill: ISkill) => ({
           skillName: skill.skillName,
           profileId: userProfile.id,

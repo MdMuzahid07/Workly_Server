@@ -19,7 +19,7 @@ router
     profileController.myProfile,
   )
   .patch(
-    "/update-profile",
+    "/update",
     authValidator(UserRole.ADMIN, UserRole.JOB_SEEKER, UserRole.EMPLOYER),
     requestValidator(profileValidation.updateProfile),
     profileController.updateMyProfile,

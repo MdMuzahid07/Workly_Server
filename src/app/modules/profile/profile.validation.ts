@@ -89,14 +89,12 @@ const createProfile = z.object({
 const updateProfile = createProfile
   .partial()
   .extend({
-    userId: z.string({ message: "Invalid user ID format" }),
     skills: z.array(skillSchema).min(1, { message: "At least one skill is required" }).optional(),
     preference: preferenceSchema.optional().nullable(),
   })
   .refine(
     (data) => {
-      const { userId, ...rest } = data;
-      return Object.keys(rest).length > 0;
+      return Object.keys(data).length > 0;
     },
     { message: "At least one field must be provided for update" },
   );
