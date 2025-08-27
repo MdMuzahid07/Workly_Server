@@ -81,8 +81,11 @@ const createProfile = async (payload: IProfile) => {
   return result;
 };
 
+const myProfile = async () => {};
+
 const profileService = {
   createProfile,
+  myProfile,
 };
 
 export default profileService;
