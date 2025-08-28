@@ -146,25 +146,65 @@ const updateMyProfile = async (
       },
     });
 
-    if (payload.skills?.length) {
-      await transactor.skill.updateMany({
+    if (payload.skills !== undefined && payload.skills.length > 0) {
+      const currentSkillIds = payload.skills
+        .filter((skill): skill is ISkill & { id: string } => !!skill.id)
+        .map((skill: ISkill) => skill.id);
+
+      await transactor.skill.deleteMany({
         where: {
           profileId: userProfile.id,
+          NOT: {
+            id: {
+              in: currentSkillIds,
+            },
+          },
         },
-        data: payload.skills?.map((skill: ISkill) => ({
-          skillName: skill.skillName,
-          profileId: userProfile.id,
-          experienceYears: skill.experienceYears,
-        })),
       });
+
+      for (const skill of payload.skills) {
+        if (skill.id) {
+          await transactor.skill.upsert({
+            where: {
+              id: skill.id,
+            },
+            update: {
+              skillName: skill.skillName,
+              experienceYears: skill.experienceYears,
+            },
+            create: {
+              skillName: skill.skillName,
+              experienceYears: skill.experienceYears,
+              profileId: userProfile.id,
+            },
+          });
+        } else {
+          await transactor.skill.create({
+            data: {
+              skillName: skill.skillName,
+              experienceYears: skill.experienceYears,
+              profileId: userProfile.id,
+            },
+          });
+        }
+      }
     }
 
     if (payload.preference) {
-      await transactor.preference.update({
+      await transactor.preference.upsert({
         where: {
           profileId: userProfile.id,
         },
-        data: {
+        update: {
+          jobType: payload.preference.jobType || "FULL_TIME",
+          expectedSalary: payload.preference.expectedSalary || 0,
+          preferredLocation: payload.preference.preferredLocation || "",
+          remoteWork: payload.preference.remoteWork || false,
+          industry: payload.preference.industry || "",
+          workExperience: payload.preference.workExperience || "",
+        },
+        create: {
+          profileId: userProfile.id,
           jobType: payload.preference.jobType || "FULL_TIME",
           expectedSalary: payload.preference.expectedSalary || 0,
           preferredLocation: payload.preference.preferredLocation || "",

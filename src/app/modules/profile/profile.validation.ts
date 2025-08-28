@@ -89,7 +89,7 @@ const createProfile = z.object({
 const updateProfile = createProfile
   .partial()
   .extend({
-    skills: z.array(skillSchema).min(1, { message: "At least one skill is required" }).optional(),
+    skills: z.array(skillSchema).or(z.array(skillSchema).max(0)).optional(),
     preference: preferenceSchema.optional().nullable(),
   })
   .refine(

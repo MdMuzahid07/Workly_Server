@@ -3,6 +3,7 @@ import type { JobType } from "../../../generated/prisma/index.js";
 export type ISkill = {
   skillName: string;
   experienceYears: number;
+  id: string;
 };
 
 export type IPreference = {
