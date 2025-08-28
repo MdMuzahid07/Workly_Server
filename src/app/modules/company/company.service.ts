@@ -44,6 +44,16 @@ const createCompany = async (userId: string, payload: Company) => {
   if (isCompanyWithSameName) {
     throw new AppError(httpStatus.BAD_REQUEST, `Company with same name already exists`);
   }
+
+  const isSlugExists = await prisma.company.findUnique({
+    where: {
+      slug: payload.slug,
+    },
+  });
+
+  if (isSlugExists) {
+    throw new AppError(httpStatus.BAD_REQUEST, `Company with same slug already exists`);
+  }
 };
 
 const companyService = {
