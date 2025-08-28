@@ -20,10 +20,10 @@ router
     profileController.myProfile,
   )
   .patch(
-    "/update",
+    "/update-profile",
     authValidator(UserRole.ADMIN, UserRole.JOB_SEEKER, UserRole.EMPLOYER),
     requestValidator(profileValidation.updateProfile),
-    profileController.updateMyProfile,
+    profileController.updateProfile,
   );
 
 const profileRoute = router;

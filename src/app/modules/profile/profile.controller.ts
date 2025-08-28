@@ -29,7 +29,7 @@ const myProfile = asyncHandler(async (req, res) => {
   });
 });
 
-const updateMyProfile = asyncHandler(async (req, res) => {
+const updateProfile = asyncHandler(async (req, res) => {
   const userId = req.user.userId;
   const payload = req.body;
 
@@ -46,6 +46,6 @@ const updateMyProfile = asyncHandler(async (req, res) => {
 const profileController = {
   createProfile,
   myProfile,
-  updateMyProfile,
+  updateProfile,
 };
 export default profileController;
