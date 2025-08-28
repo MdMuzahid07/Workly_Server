@@ -10,6 +10,7 @@ const router = express.Router();
 router
   .post(
     "/create-profile",
+    authValidator(UserRole.ADMIN, UserRole.JOB_SEEKER, UserRole.EMPLOYER),
     requestValidator(profileValidation.createProfile),
     profileController.createProfile,
   )

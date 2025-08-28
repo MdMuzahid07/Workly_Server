@@ -334,6 +334,7 @@ enum JobType {
   CONTRACT
   INTERNSHIP
   FREELANCE
+  REMOTE
 }
 
 enum NotificationType {

@@ -4,7 +4,8 @@ import sendApiResponse from "../../../utils/sendApiResponse.js";
 import profileService from "./profile.service.js";
 
 const createProfile = asyncHandler(async (req, res) => {
-  const result = await profileService.createProfile(req.body);
+  const userId = req.user.userId;
+  const result = await profileService.createProfile(userId, req.body);
 
   sendApiResponse(res, {
     statusCode: httpStatus.CREATED,

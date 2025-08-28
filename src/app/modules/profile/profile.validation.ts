@@ -1,4 +1,4 @@
-import { z } from "zod";
+import z from "zod";
 
 const skillSchema = z.object({
   skillName: z
@@ -14,8 +14,9 @@ const skillSchema = z.object({
 });
 
 const preferenceSchema = z.object({
-  jobType: z.enum(["FULL_TIME", "PART_TIME", "CONTRACT", "INTERNSHIP", "FREELANCE"], {
-    message: "Job type must be one of: FULL_TIME, PART_TIME, CONTRACT, INTERNSHIP, FREELANCE",
+  jobType: z.enum(["FULL_TIME", "PART_TIME", "CONTRACT", "INTERNSHIP", "FREELANCE", "REMOTE"], {
+    message:
+      "Job type must be one of: FULL_TIME, PART_TIME, CONTRACT, INTERNSHIP, FREELANCE,REMOTE",
   }),
   expectedSalary: z
     .number({
@@ -89,7 +90,7 @@ const createProfile = z.object({
 const updateProfile = createProfile
   .partial()
   .extend({
-    skills: z.array(skillSchema).or(z.array(skillSchema).max(0)).optional(),
+    skills: z.array(skillSchema).optional(),
     preference: preferenceSchema.optional().nullable(),
   })
   .refine(

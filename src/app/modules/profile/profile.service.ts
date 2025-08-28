@@ -4,10 +4,10 @@ import prisma from "../../../utils/prismaClient.js";
 import AppError from "../../error/AppError.js";
 import type { IPreference, IProfile, ISkill } from "./profile.interface.js";
 
-const createProfile = async (payload: IProfile) => {
+const createProfile = async (userId: string, payload: IProfile) => {
   const isUserExits = await prisma.user.findUnique({
     where: {
-      id: payload.userId,
+      id: userId,
     },
   });
 
@@ -21,7 +21,7 @@ const createProfile = async (payload: IProfile) => {
 
   const isProfileExists = await prisma.profile.findUnique({
     where: {
-      userId: payload.userId,
+      userId: userId,
     },
   });
 
@@ -32,7 +32,7 @@ const createProfile = async (payload: IProfile) => {
   const result = await prisma.$transaction(async (transactor) => {
     const userProfile = await transactor.profile.create({
       data: {
-        userId: payload.userId,
+        userId: userId,
         bio: payload.bio || "",
         location: payload.location || "",
         avatarUrl: payload.avatarUrl || "",
@@ -45,7 +45,7 @@ const createProfile = async (payload: IProfile) => {
 
     await transactor.user.update({
       where: {
-        id: payload.userId,
+        id: userId,
       },
       data: {
         profileId: userProfile.id,
