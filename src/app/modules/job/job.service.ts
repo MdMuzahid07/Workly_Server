@@ -25,15 +25,16 @@ const createJob = async (userId: string, payload: Job & { skillsRequired: JobSki
     throw new AppError(httpStatus.BAD_REQUEST, `User not verified`);
   }
 
-  if (isUserExits.role !== "ADMIN" && isUserExits.role !== "EMPLOYER") {
+  const allowedRoles = ["ADMIN", "EMPLOYER", "SUPER_ADMIN"];
+  if (!allowedRoles.includes(isUserExits.role)) {
     throw new AppError(httpStatus.FORBIDDEN, "Only employers and admins can create jobs");
   }
 
-  if (isUserExits.role === "EMPLOYER" || isUserExits.role === "ADMIN") {
-    if (!isUserExits.companyId || isUserExits.companyId !== payload.companyId) {
+  if (isUserExits.role !== "SUPER_ADMIN") {
+    if (!isUserExits.company || isUserExits.companyId !== payload.companyId) {
       throw new AppError(
         httpStatus.FORBIDDEN,
-        "You are not authorized to create jobs for this company",
+        "You are not authorized to post jobs for this company",
       );
     }
   }
@@ -51,7 +52,7 @@ const createJob = async (userId: string, payload: Job & { skillsRequired: JobSki
   }
 
   const existingJob = await prisma.job.findFirst({
-    where: { jobType: payload.jobType, title: payload.title },
+    where: { jobType: payload.jobType, title: payload.title, companyId: payload.companyId },
   });
 
   if (existingJob) {
@@ -76,7 +77,6 @@ const createJob = async (userId: string, payload: Job & { skillsRequired: JobSki
       await transactor.jobSkill.createMany({
         data: skillsRequired.map((skill) => ({
           jobId: job.id,
-          skillId: skill.id,
           experienceYears: skill.experienceYears,
           skillName: skill.skillName,
           isRequired: skill.isRequired,

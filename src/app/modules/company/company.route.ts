@@ -9,7 +9,7 @@ const router = express.Router();
 
 router.post(
   "/new-company",
-  authValidator(UserRole.EMPLOYER),
+  authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
   requestValidator(companyValidation.createCompany),
   companyController.createCompany,
 );

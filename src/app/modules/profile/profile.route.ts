@@ -10,18 +10,18 @@ const router = express.Router();
 router
   .post(
     "/create-profile",
-    authValidator(UserRole.ADMIN, UserRole.JOB_SEEKER, UserRole.EMPLOYER),
+    authValidator(UserRole.ADMIN, UserRole.JOB_SEEKER, UserRole.EMPLOYER, UserRole.SUPER_ADMIN),
     requestValidator(profileValidation.createProfile),
     profileController.createProfile,
   )
   .get(
     "/profile",
-    authValidator(UserRole.ADMIN, UserRole.JOB_SEEKER, UserRole.EMPLOYER),
+    authValidator(UserRole.ADMIN, UserRole.JOB_SEEKER, UserRole.EMPLOYER, UserRole.SUPER_ADMIN),
     profileController.myProfile,
   )
   .patch(
     "/update-profile",
-    authValidator(UserRole.ADMIN, UserRole.JOB_SEEKER, UserRole.EMPLOYER),
+    authValidator(UserRole.ADMIN, UserRole.JOB_SEEKER, UserRole.EMPLOYER, UserRole.SUPER_ADMIN),
     requestValidator(profileValidation.updateProfile),
     profileController.updateProfile,
   );
