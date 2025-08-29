@@ -49,6 +49,27 @@ const createJob = async (userId: string, payload: Job) => {
   if (!isCompanyExists) {
     throw new AppError(httpStatus.BAD_REQUEST, "Company not found or not verified");
   }
+
+  const existingJob = await prisma.job.findFirst({
+    where: { jobType: payload.jobType, title: payload.title },
+  });
+
+  if (existingJob) {
+    throw new AppError(
+      httpStatus.CONFLICT,
+      "A job with this title already exists. Please choose a different title.",
+    );
+  }
+
+  const result = await prisma.job.create({
+    data: {
+      ...payload,
+      postedById: userId,
+      companyId: payload.companyId,
+    },
+  });
+
+  return result;
 };
 
 const jobService = {

@@ -2,6 +2,7 @@ import httpStatus from "http-status";
 import type { Benefits, Company, SocialLink } from "../../../generated/prisma/index.js";
 import prisma from "../../../utils/prismaClient.js";
 import AppError from "../../error/AppError.js";
+import generateUniqueSlug from "../../../utils/generateUniqueSlug.js";
 
 const createCompany = async (
   userId: string,
@@ -55,10 +56,13 @@ const createCompany = async (
 
   const { socialLinks, benefits: companyBenefits, ...companyData } = payload;
 
+  const slug = await generateUniqueSlug(companyData.name, "company");
+
   const result = await prisma.$transaction(async (transactor) => {
     const company = await transactor.company.create({
       data: {
         ...companyData,
+        slug,
       },
     });
 
