@@ -359,6 +359,7 @@ enum UserRole {
   JOB_SEEKER
   EMPLOYER
   ADMIN
+  SUPER_ADMIN
 }
 
 enum ProfileVisibility {
