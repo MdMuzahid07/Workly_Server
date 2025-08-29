@@ -56,10 +56,7 @@ const createJob = async (userId: string, payload: Job & { skillsRequired: JobSki
   });
 
   if (existingJob) {
-    throw new AppError(
-      httpStatus.CONFLICT,
-      "A job with this title already exists. Please choose a different title.",
-    );
+    throw new AppError(httpStatus.CONFLICT, "This job is already posted for this company");
   }
 
   const { skillsRequired, ...rest } = payload;
@@ -91,7 +88,7 @@ const createJob = async (userId: string, payload: Job & { skillsRequired: JobSki
         id: job.id,
       },
       include: {
-        skillsRequired: true,
+        JobSkill: true,
         postedBy: {
           select: {
             id: true,
