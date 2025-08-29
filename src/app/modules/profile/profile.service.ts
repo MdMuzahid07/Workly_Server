@@ -99,6 +99,9 @@ const myProfile = async (userId: string) => {
         },
       },
       company: true,
+      jobsPosted: true,
+      applications: true,
+      savedJobs: true,
     },
   });
 
