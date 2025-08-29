@@ -17,8 +17,22 @@ const createJob = asyncHandler(async (req, res) => {
   });
 });
 
+const getJobs = asyncHandler(async (req, res) => {
+  const filters = req.query;
+
+  const result = await jobService.getJobs(filters);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Jobs fetched successfully",
+    data: result,
+  });
+});
+
 const jobController = {
   createJob,
+  getJobs,
 };
 
 export default jobController;

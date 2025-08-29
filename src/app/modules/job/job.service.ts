@@ -108,8 +108,32 @@ const createJob = async (userId: string, payload: Job & { skillsRequired: JobSki
   return result;
 };
 
+const getJobs = async (filters: any) => {
+  const result = await prisma.job.findMany({
+    where: {
+      ...filters,
+    },
+    include: {
+      JobSkill: true,
+      postedBy: {
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          phone: true,
+          role: true,
+        },
+      },
+      company: true,
+    },
+  });
+
+  return result;
+};
+
 const jobService = {
   createJob,
+  getJobs,
 };
 
 export default jobService;
