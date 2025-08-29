@@ -108,10 +108,10 @@ const createJob = async (userId: string, payload: Job & { skillsRequired: JobSki
   return result;
 };
 
-const getJobs = async (filters: any) => {
+const getJobs = async (query: any) => {
   const result = await prisma.job.findMany({
     where: {
-      ...filters,
+      ...query,
     },
     include: {
       JobSkill: true,

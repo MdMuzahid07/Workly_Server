@@ -14,11 +14,7 @@ router
     requestValidator(jobValidation.createJob),
     jobController.createJob,
   )
-  .get(
-    "/jobs",
-    authValidator(UserRole.ADMIN, UserRole.EMPLOYER, UserRole.JOB_SEEKER, UserRole.SUPER_ADMIN),
-    jobController.getJobs,
-  );
+  .get("/jobs", jobController.getJobs);
 
 const jobRoute = router;
 export default jobRoute;
