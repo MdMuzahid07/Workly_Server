@@ -1,9 +1,9 @@
 import httpStatus from "http-status";
-import { type Job } from "../../../generated/prisma/index.js";
+import { type Job, type JobSkill } from "../../../generated/prisma/index.js";
 import prisma from "../../../utils/prismaClient.js";
 import AppError from "../../error/AppError.js";
 
-const createJob = async (userId: string, payload: Job) => {
+const createJob = async (userId: string, payload: Job & { skillsRequired: JobSkill[] }) => {
   if (!userId) {
     throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
   }
@@ -61,12 +61,51 @@ const createJob = async (userId: string, payload: Job) => {
     );
   }
 
-  const result = await prisma.job.create({
-    data: {
-      ...payload,
-      postedById: userId,
-      companyId: payload.companyId,
-    },
+  const { skillsRequired, ...rest } = payload;
+
+  const result = await prisma.$transaction(async (transactor) => {
+    const job = await transactor.job.create({
+      data: {
+        ...rest,
+        postedById: userId,
+        companyId: rest.companyId,
+      },
+    });
+
+    if (skillsRequired && skillsRequired.length > 0) {
+      await transactor.jobSkill.createMany({
+        data: skillsRequired.map((skill) => ({
+          jobId: job.id,
+          skillId: skill.id,
+          experienceYears: skill.experienceYears,
+          skillName: skill.skillName,
+          isRequired: skill.isRequired,
+          priority: skill.priority,
+          description: skill.description,
+        })),
+      });
+    }
+
+    const updatedJob = await transactor.job.findUnique({
+      where: {
+        id: job.id,
+      },
+      include: {
+        skillsRequired: true,
+        postedBy: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true,
+            role: true,
+          },
+        },
+        company: true,
+      },
+    });
+
+    return updatedJob;
   });
 
   return result;

@@ -31,7 +31,6 @@ model User {
   lastLogin         DateTime?
   deletedAt         DateTime?
 
-  // Relations
   jobsPosted         Job[]               @relation("JobPoster")
   savedJobs          SavedJob[]
   applications       Application[]
@@ -72,12 +71,10 @@ model Skill {
 
   profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
   profileId String
-
-  job   Job?    @relation(fields: [jobId], references: [id], onDelete: SetNull)
-  jobId String?
+  Job       Job?    @relation(fields: [jobId], references: [id])
+  jobId     String?
 
   @@index([profileId])
-  @@index([jobId])
   @@index([skillName])
   @@map("skills")
 }
@@ -140,10 +137,14 @@ model Benefits {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId String?
+  jobId     String?
+
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  job     Job?     @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@index([companyId])
+  @@index([jobId])
   @@index([category])
   @@map("benefits")
 }
@@ -189,13 +190,14 @@ model Job {
   companyId  String
   postedById String
 
-  // Relations
   skillsRequired Skill[]
   company        Company        @relation(fields: [companyId], references: [id], onDelete: Restrict)
   postedBy       User           @relation("JobPoster", fields: [postedById], references: [id], onDelete: Restrict)
   applications   Application[]
   notifications  Notification[] @relation("JobNotifications")
   savedByUsers   SavedJob[]
+  JobSkill       JobSkill[]
+  Benefits       Benefits[]
 
   @@index([isActive, expiresAt, deletedAt])
   @@index([companyId])
@@ -206,6 +208,26 @@ model Job {
   @@index([deletedAt])
   @@index([slug])
   @@map("jobs")
+}
+
+model JobSkill {
+  id              String           @id @default(uuid())
+  skillName       String           @db.VarChar(100)
+  experienceYears Float
+  isRequired      Boolean          @default(true)
+  priority        JobSkillPriority @default(HIGH)
+  description     String?          @db.Text
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  job   Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId String
+
+  @@index([jobId])
+  @@index([skillName])
+  @@index([isRequired])
+  @@index([priority])
+  @@map("job_skills")
 }
 
 model Notification {
@@ -223,7 +245,6 @@ model Notification {
   createdAt     DateTime         @default(now())
   userId        String
 
-  // Relations
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   job         Job?         @relation("JobNotifications", fields: [jobId], references: [id], onDelete: SetNull)
   application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
@@ -252,7 +273,6 @@ model Application {
   applicantId            String
   jobId                  String
 
-  // Relations
   applicant     User           @relation(fields: [applicantId], references: [id], onDelete: Cascade)
   job           Job            @relation(fields: [jobId], references: [id], onDelete: Cascade)
   notifications Notification[]
@@ -353,6 +373,13 @@ enum JobType {
   INTERNSHIP
   FREELANCE
   REMOTE
+}
+
+enum JobSkillPriority {
+  HIGH
+  MEDIUM
+  LOW
+  GOOD_TO_HAVE
 }
 
 enum NotificationType {
