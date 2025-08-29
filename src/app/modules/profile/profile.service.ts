@@ -98,6 +98,7 @@ const myProfile = async (userId: string) => {
           preference: true,
         },
       },
+      company: true,
     },
   });
 
@@ -129,8 +130,6 @@ const updateMyProfile = async (
   if (isUserExits && !isUserExits?.isVerified) {
     throw new AppError(httpStatus.BAD_REQUEST, `User not verified`);
   }
-
-  console.log(payload);
 
   const result = await prisma.$transaction(async (transactor) => {
     const userProfile = await transactor.profile.update({
