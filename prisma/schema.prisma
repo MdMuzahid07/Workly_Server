@@ -114,7 +114,6 @@ model Company {
   contactPhone String?   @db.VarChar(50)
   isVerified   Boolean   @default(false)
   verifiedAt   DateTime?
-  benefits     Json      @default("[]")
   deletedAt    DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -122,12 +121,31 @@ model Company {
   socialLinks SocialLink[]
   jobs        Job[]
   employees   User[]
+  benefits    Benefits[]
 
   @@index([slug])
   @@index([industry])
   @@index([isVerified, deletedAt])
   @@index([deletedAt])
   @@map("companies")
+}
+
+model Benefits {
+  id          String   @id @default(uuid())
+  title       String   @db.VarChar(255)
+  description String?  @db.Text
+  category    String?  @db.VarChar(100)
+  icon        String?  @db.VarChar(100)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([category])
+  @@map("benefits")
 }
 
 model SocialLink {

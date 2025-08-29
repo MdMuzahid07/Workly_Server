@@ -1,9 +1,12 @@
 import httpStatus from "http-status";
-import type { Company, SocialLink } from "../../../generated/prisma/index.js";
+import type { Benefits, Company, SocialLink } from "../../../generated/prisma/index.js";
 import prisma from "../../../utils/prismaClient.js";
 import AppError from "../../error/AppError.js";
 
-const createCompany = async (userId: string, payload: Company & { socialLinks: SocialLink[] }) => {
+const createCompany = async (
+  userId: string,
+  payload: Company & { socialLinks: SocialLink[]; benefits: Benefits[] },
+) => {
   if (!userId) {
     throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
   }
@@ -50,13 +53,12 @@ const createCompany = async (userId: string, payload: Company & { socialLinks: S
     throw new AppError(httpStatus.BAD_REQUEST, `Company with same slug already exists`);
   }
 
-  const { socialLinks, ...companyData } = payload;
+  const { socialLinks, benefits: companyBenefits, ...companyData } = payload;
 
   const result = await prisma.$transaction(async (transactor) => {
     const company = await transactor.company.create({
       data: {
         ...companyData,
-        benefits: payload.benefits || [],
       },
     });
 
@@ -79,16 +81,20 @@ const createCompany = async (userId: string, payload: Company & { socialLinks: S
       });
     }
 
-    const companyWithSocialLinks = await prisma.company.findUnique({
-      where: {
-        id: company.id,
-      },
-      include: {
-        socialLinks: true,
-      },
-    });
+    if (companyBenefits && companyBenefits.length > 0) {
+      await transactor.benefits.createMany({
+        data: companyBenefits.map((benefit: Benefits) => ({
+          title: benefit.title,
+          description: benefit.description,
+          category: benefit.category,
+          icon: benefit.icon,
+          isActive: benefit.isActive ?? true,
+          companyId: company.id,
+        })),
+      });
+    }
 
-    return companyWithSocialLinks;
+    return company;
   });
 
   return result;

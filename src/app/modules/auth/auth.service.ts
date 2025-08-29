@@ -27,6 +27,7 @@ const register = async (payload: any) => {
       passwordHash: passwordHash,
       fullName: payload.fullName,
       phone: payload.phone,
+      role: payload.role,
       //! need to remove this two line before production
       isActive: true,
       isVerified: true,
