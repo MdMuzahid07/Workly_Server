@@ -43,9 +43,61 @@ const updateProfile = asyncHandler(async (req, res) => {
   });
 });
 
+const saveJob = asyncHandler(async (req, res) => {
+  const userId = req.user.userId;
+  const { jobId } = req.body;
+
+  const result = await profileService.saveJobs(userId, jobId);
+
+  const statusCode = result.action === "saved" ? httpStatus.CREATED : httpStatus.OK;
+
+  sendApiResponse(res, {
+    statusCode,
+    success: true,
+    message: result.message,
+    data: {
+      action: result.action,
+      savedJob: result.savedJob,
+    },
+  });
+});
+
+const getSavedJobs = asyncHandler(async (req, res) => {
+  const userId = req.user.userId;
+  const query = req.query;
+
+  const result = await profileService.getSavedJobs(userId, query);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Saved jobs fetched successfully",
+    data: result.savedJobs,
+    meta: result.meta,
+  });
+});
+
+const updateSavedJob = asyncHandler(async (req, res) => {
+  const userId = req.user.userId;
+  const { jobId } = req.params;
+  const payload = req.body;
+
+  const result = await profileService.updateSavedJob(userId, jobId as string, payload);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Saved job updated successfully",
+    data: result,
+  });
+});
+
 const profileController = {
   createProfile,
   myProfile,
   updateProfile,
+  saveJob,
+  getSavedJobs,
+  updateSavedJob,
 };
 export default profileController;

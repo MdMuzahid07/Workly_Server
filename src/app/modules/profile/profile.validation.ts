@@ -100,9 +100,30 @@ const updateProfile = createProfile
     { message: "At least one field must be provided for update" },
   );
 
+const saveJob = z.object({
+  jobId: z.string().min(1, { message: "Job ID is required" }),
+});
+
+const updateSavedJob = z
+  .object({
+    folderName: z
+      .string()
+      .max(100, { message: "Folder name cannot exceed 100 characters" })
+      .optional(),
+    notes: z.string().max(1000, { message: "Notes cannot exceed 1000 characters" }).optional(),
+  })
+  .refine(
+    (data) => {
+      return data.folderName !== undefined || data.notes !== undefined;
+    },
+    { message: "At least one field (folderName or notes) must be provided" },
+  );
+
 const profileValidation = {
   createProfile,
   updateProfile,
+  saveJob,
+  updateSavedJob,
 };
 
 export default profileValidation;

@@ -24,6 +24,24 @@ router
     authValidator(UserRole.ADMIN, UserRole.JOB_SEEKER, UserRole.EMPLOYER, UserRole.SUPER_ADMIN),
     requestValidator(profileValidation.updateProfile),
     profileController.updateProfile,
+  )
+  .post(
+    "/save-job",
+    authValidator(UserRole.JOB_SEEKER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+    requestValidator(profileValidation.saveJob),
+    profileController.saveJob,
+  )
+  .get(
+    "/saved-jobs",
+    authValidator(UserRole.JOB_SEEKER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+    profileController.getSavedJobs,
+  )
+
+  .patch(
+    "/saved-jobs/:jobId",
+    authValidator(UserRole.JOB_SEEKER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+    requestValidator(profileValidation.updateSavedJob),
+    profileController.updateSavedJob,
   );
 
 const profileRoute = router;

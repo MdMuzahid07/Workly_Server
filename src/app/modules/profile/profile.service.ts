@@ -225,10 +225,234 @@ const updateMyProfile = async (
   return result;
 };
 
+const saveJobs = async (userId: string, jobId: string) => {
+  if (!userId) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+  }
+
+  const isUserExits = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+  });
+
+  if (!isUserExits || !isUserExits?.isActive) {
+    throw new AppError(httpStatus.BAD_REQUEST, `User not found`);
+  }
+
+  if (isUserExits && !isUserExits?.isVerified) {
+    throw new AppError(httpStatus.BAD_REQUEST, `User not verified`);
+  }
+
+  const jobExists = await prisma.job.findUnique({
+    where: {
+      id: jobId,
+      isActive: true,
+      deletedAt: null,
+    },
+  });
+
+  if (!jobExists) {
+    throw new AppError(httpStatus.NOT_FOUND, "Job not found");
+  }
+
+  const existingSavedJob = await prisma.savedJob.findUnique({
+    where: {
+      userId_jobId: {
+        userId: userId,
+        jobId: jobId,
+      },
+    },
+  });
+
+  if (existingSavedJob) {
+    await prisma.savedJob.delete({
+      where: {
+        userId_jobId: {
+          userId: userId,
+          jobId: jobId,
+        },
+      },
+    });
+
+    return {
+      action: "unsaved",
+      message: "Job removed from saved jobs",
+      savedJob: null,
+    };
+  } else {
+    const result = await prisma.savedJob.create({
+      data: {
+        userId: userId,
+        jobId: jobId,
+      },
+      include: {
+        job: {
+          include: {
+            company: true,
+            JobSkill: true,
+          },
+        },
+      },
+    });
+
+    return {
+      action: "saved",
+      message: "Job saved successfully",
+      savedJob: result,
+    };
+  }
+};
+
+const getSavedJobs = async (userId: string, query: any = {}) => {
+  if (!userId) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+  }
+
+  const isUserExits = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+  });
+
+  if (!isUserExits || !isUserExits?.isActive) {
+    throw new AppError(httpStatus.BAD_REQUEST, `User not found`);
+  }
+
+  const { page = 1, limit = 10, folderName } = query;
+  const skip = (Number(page) - 1) * Number(limit);
+
+  const whereClause: any = {
+    userId: userId,
+    job: {
+      isActive: true,
+      deletedAt: null,
+    },
+  };
+
+  if (folderName) {
+    whereClause.folderName = folderName;
+  }
+
+  const [savedJobs, total] = await Promise.all([
+    prisma.savedJob.findMany({
+      where: whereClause,
+      include: {
+        job: {
+          include: {
+            company: true,
+            JobSkill: true,
+            postedBy: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+      skip,
+      take: Number(limit),
+      orderBy: {
+        createdAt: "desc",
+      },
+    }),
+    prisma.savedJob.count({
+      where: whereClause,
+    }),
+  ]);
+
+  return {
+    savedJobs,
+    meta: {
+      page: Number(page),
+      limit: Number(limit),
+      total,
+      totalPages: Math.ceil(total / Number(limit)),
+    },
+  };
+};
+
+const updateSavedJob = async (
+  userId: string,
+  jobId: string,
+  payload: { folderName?: string; notes?: string },
+) => {
+  if (!userId) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+  }
+
+  if (!jobId) {
+    throw new Error("Job ID is required");
+  }
+
+  const isUserExits = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+  });
+
+  if (!isUserExits || !isUserExits?.isActive) {
+    throw new AppError(httpStatus.BAD_REQUEST, `User not found`);
+  }
+
+  const savedJob = await prisma.savedJob.findUnique({
+    where: {
+      userId_jobId: {
+        userId: userId,
+        jobId: jobId,
+      },
+    },
+  });
+
+  if (!savedJob) {
+    throw new AppError(httpStatus.NOT_FOUND, "Saved job not found");
+  }
+
+  const updateData: any = {};
+  if (payload.folderName !== undefined) {
+    updateData.folderName = payload.folderName;
+  }
+  if (payload.notes !== undefined) {
+    updateData.notes = payload.notes;
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "No valid fields provided. Please provide 'folderName' or 'notes' to update.",
+    );
+  }
+
+  const result = await prisma.savedJob.update({
+    where: {
+      userId_jobId: {
+        userId: userId,
+        jobId: jobId,
+      },
+    },
+    data: updateData,
+    include: {
+      job: {
+        include: {
+          company: true,
+          JobSkill: true,
+        },
+      },
+    },
+  });
+
+  return result;
+};
+
 const profileService = {
   createProfile,
   myProfile,
   updateMyProfile,
+  saveJobs,
+  getSavedJobs,
+  updateSavedJob,
 };
 
 export default profileService;
