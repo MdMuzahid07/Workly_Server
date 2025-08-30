@@ -30,9 +30,23 @@ const getJobs = asyncHandler(async (req, res) => {
   });
 });
 
+const getJobById = asyncHandler(async (req, res) => {
+  const { jobId } = req.params;
+
+  const result = await jobService.getJobById(jobId as string);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Jobs fetched successfully using id",
+    data: result,
+  });
+});
+
 const jobController = {
   createJob,
   getJobs,
+  getJobById,
 };
 
 export default jobController;

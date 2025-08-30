@@ -131,9 +131,33 @@ const getJobs = async (query: any) => {
   return result;
 };
 
+const getJobById = async (jobId: string) => {
+  const result = await prisma.job.findUnique({
+    where: {
+      id: jobId,
+    },
+    include: {
+      JobSkill: true,
+      postedBy: {
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          phone: true,
+          role: true,
+        },
+      },
+      company: true,
+    },
+  });
+
+  return result;
+};
+
 const jobService = {
   createJob,
   getJobs,
+  getJobById,
 };
 
 export default jobService;

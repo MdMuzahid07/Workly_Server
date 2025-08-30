@@ -16,5 +16,7 @@ router
   )
   .get("/jobs", jobController.getJobs);
 
+router.get("/job/:id", jobController.getJobById);
+
 const jobRoute = router;
 export default jobRoute;
