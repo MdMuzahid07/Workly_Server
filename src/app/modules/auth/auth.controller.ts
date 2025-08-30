@@ -19,7 +19,7 @@ const register: RequestHandler = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,
-    message: "User registered successfully",
+    message: "User registered successfully. Please check your email to verify your account.",
     data: {
       fullName: result.safeUser.fullName,
       phone: result.safeUser.phone,
@@ -91,15 +91,27 @@ const resetPassword: RequestHandler = async (req, res) => {
   res.status(200).json(result);
 };
 
-const verifyEmail: RequestHandler = async (req, res) => {
+const verifyEmail: RequestHandler = asyncHandler(async (req, res) => {
   const result = await authService.verifyEmail(req.body);
-  res.status(200).json(result);
-};
 
-const resendVerificationEmail: RequestHandler = async (req, res) => {
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.message,
+    data: result.user,
+  });
+});
+
+const resendVerificationEmail: RequestHandler = asyncHandler(async (req, res) => {
   const result = await authService.resendVerificationEmail(req.body);
-  res.status(200).json(result);
-};
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.message,
+    data: { email: result.email },
+  });
+});
 
 const authController = {
   register,

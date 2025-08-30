@@ -9,5 +9,10 @@ declare namespace NodeJS {
     JWT_REFRESH_EXPIRES_IN: string;
     JWT_ALGORITHM: string;
     ENVIRONMENT: "development" | "production";
+    SMTP_HOST: string;
+    SMTP_PORT: string;
+    SMTP_USER: string;
+    SMTP_PASS: string;
+    FRONTEND_URL: string;
   }
 }

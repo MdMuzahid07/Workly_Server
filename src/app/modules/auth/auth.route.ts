@@ -12,8 +12,12 @@ router
   .post("/refresh", authController.refresh)
   .post("/forgot-password", authController.forgotPassword)
   .post("/reset-password", authController.resetPassword)
-  .post("/verify-email", authController.verifyEmail)
-  .post("/resend-verification-email", authController.resendVerificationEmail);
+  .post("/verify-email", requestValidator(authValidation.verifyEmail), authController.verifyEmail)
+  .post(
+    "/resend-verification-email",
+    requestValidator(authValidation.resendVerificationEmail),
+    authController.resendVerificationEmail,
+  );
 
 const authRoute = router;
 

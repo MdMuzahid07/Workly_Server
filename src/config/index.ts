@@ -13,4 +13,13 @@ export default {
   jwt_refresh_expires_in: process.env.JWT_REFRESH_EXPIRES_IN!,
   jwt_algorithm: process.env.JWT_ALGORITHM || "HS256",
   environment: process.env.ENVIRONMENT || "development",
+  // Email configuration
+  smtp: {
+    host: process.env.SMTP_HOST || "smtp.gmail.com",
+    port: parseInt(process.env.SMTP_PORT || "587"),
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+  // Frontend URL for verification links
+  frontend_url: process.env.FRONTEND_URL || "http://localhost:3000",
 };

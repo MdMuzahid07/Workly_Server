@@ -16,8 +16,21 @@ const register = z.object({
     .optional(),
 });
 
+const verifyEmail = z.object({
+  token: z.string().min(1, { message: "Verification token is required" }),
+});
+
+const resendVerificationEmail = z.object({
+  email: z
+    .string({ message: "Invalid email address" })
+    .min(1, { message: "Email is required" })
+    .max(250, { message: "Email is too long" }),
+});
+
 const authValidation = {
   register,
+  verifyEmail,
+  resendVerificationEmail,
 };
 
 export default authValidation;
