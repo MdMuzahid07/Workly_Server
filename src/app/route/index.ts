@@ -1,4 +1,5 @@
 import express from "express";
+import applicationRoute from "../modules/application/application.route.js";
 import authRoute from "../modules/auth/auth.route.js";
 import companyRoute from "../modules/company/company.route.js";
 import jobRoute from "../modules/job/job.route.js";
@@ -22,6 +23,10 @@ const routeConfigs = [
   {
     path: "/job",
     route: jobRoute,
+  },
+  {
+    path: "/application",
+    route: applicationRoute,
   },
 ];
 

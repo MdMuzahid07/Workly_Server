@@ -263,7 +263,7 @@ model Application {
   rejectionReason        String?                @db.Text
   statusChangedBy        String?
   statusChangedAt        DateTime?
-  applicantData          Json
+  applicantData          String?                @default("")
   folderName             String?                @db.VarChar(100)
   interviewScheduledAt   DateTime?
   interviewNotes         String?                @db.Text
