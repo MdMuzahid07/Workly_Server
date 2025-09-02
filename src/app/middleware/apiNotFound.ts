@@ -12,7 +12,7 @@ const apiNotFound = (
     error: {
       path: req.originalUrl,
       method: req.method,
-      message: "Your requested path not found",
+      message: "Your requested endpoint does not exists on this server",
     },
   });
 };
