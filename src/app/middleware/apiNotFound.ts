@@ -11,7 +11,8 @@ const apiNotFound = (
     message: "API not found!",
     error: {
       path: req.originalUrl,
-      message: "you requested path not found",
+      method: req.method,
+      message: "Your requested path not found",
     },
   });
 };
