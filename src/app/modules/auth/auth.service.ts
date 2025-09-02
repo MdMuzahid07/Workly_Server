@@ -140,18 +140,41 @@ const forgotPassword = async (payload: any) => {
     throw new AppError(httpStatus.BAD_REQUEST, "Email is required");
   }
 
+  const normalizedEmail = email.toLowerCase().trim();
+
   const isUserExists = await prisma.user.findUnique({
     where: {
-      email: email.toLowerCase().trim(),
+      email: normalizedEmail,
     },
   });
 
-  if (!isUserExists || !isUserExists.isActive) {
-    throw new AppError(httpStatus.BAD_REQUEST, "User not found with this email");
+  const standardMessage =
+    "If an account with that email exists, we've sent password reset instructions";
+
+  if (!isUserExists || !isUserExists.isActive || !isUserExists.isVerified) {
+    return {
+      message: standardMessage,
+      data: null,
+    };
   }
 
-  if (!isUserExists.isVerified) {
-    throw new AppError(httpStatus.BAD_REQUEST, "User not found!");
+  // =========== Rate limiting check ==========>
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  const recentResetAttempts = await prisma.verificationToken.count({
+    where: {
+      userId: isUserExists.id,
+      type: "PASSWORD_RESET",
+      createdAt: { gte: oneHourAgo },
+    },
+  });
+
+  if (recentResetAttempts >= 5) {
+    console.log(`Rate limit exceeded for password reset`);
+
+    return {
+      message: standardMessage,
+      data: null,
+    };
   }
 
   await prisma.verificationToken.deleteMany({
@@ -163,7 +186,6 @@ const forgotPassword = async (payload: any) => {
   });
 
   const resetToken = generateVerificationToken();
-
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
   await prisma.verificationToken.create({
@@ -179,19 +201,31 @@ const forgotPassword = async (payload: any) => {
 
   try {
     await sendPasswordResetEmail(isUserExists.email, isUserExists.fullName, resetUrl);
+    console.log(`Password reset email sent successfully `);
   } catch (error) {
-    console.log(error, "password reset email send error");
+    console.error(`Password reset email send error => ${error}`);
 
     await prisma.verificationToken.deleteMany({
       where: {
+        token: resetToken,
         userId: isUserExists.id,
         type: "PASSWORD_RESET",
         usedAt: null,
       },
     });
 
-    throw new AppError(httpStatus.BAD_REQUEST, "Failed to send password reset email");
+    throw new AppError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      "Failed to send password reset email. Please try again later.",
+    );
   }
+
+  return {
+    message: standardMessage,
+    data: {
+      email: normalizedEmail,
+    },
+  };
 };
 
 const resetPassword = async (payload: any) => {

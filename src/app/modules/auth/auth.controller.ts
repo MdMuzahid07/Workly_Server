@@ -83,7 +83,13 @@ const refresh: RequestHandler = async (req, res) => {
 
 const forgotPassword: RequestHandler = async (req, res) => {
   const result = await authService.forgotPassword(req.body);
-  res.status(200).json(result);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.message,
+    data: result.data || null,
+  });
 };
 
 const resetPassword: RequestHandler = async (req, res) => {
