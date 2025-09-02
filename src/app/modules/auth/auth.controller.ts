@@ -54,7 +54,7 @@ const login: RequestHandler = asyncHandler(async (req, res) => {
   });
 });
 //@ts-ignore
-const logout: RequestHandler = async (req, res) => {
+const logout: RequestHandler = asyncHandler(async (req, res) => {
   // await authService.logout();
 
   res.clearCookie("refreshToken", {
@@ -72,16 +72,16 @@ const logout: RequestHandler = async (req, res) => {
     success: true,
     message: "User registered successfully",
   });
-};
+});
 
 //@ts-ignore
-const refresh: RequestHandler = async (req, res) => {
+const refresh: RequestHandler = asyncHandler(async (req, res) => {
   const result = await authService.refresh();
   res.status(200).json(result);
-};
+});
 //@ts-ignore
 
-const forgotPassword: RequestHandler = async (req, res) => {
+const forgotPassword: RequestHandler = asyncHandler(async (req, res) => {
   const result = await authService.forgotPassword(req.body);
 
   sendApiResponse(res, {
@@ -90,12 +90,17 @@ const forgotPassword: RequestHandler = async (req, res) => {
     message: result.message,
     data: result.data || null,
   });
-};
+});
 
-const resetPassword: RequestHandler = async (req, res) => {
-  const result = await authService.resetPassword(req.body);
-  res.status(200).json(result);
-};
+const resetPassword: RequestHandler = asyncHandler(async (req, res) => {
+  await authService.resetPassword(req.body);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Password reset successfully",
+  });
+});
 
 const verifyEmail: RequestHandler = asyncHandler(async (req, res) => {
   const result = await authService.verifyEmail(req.body);

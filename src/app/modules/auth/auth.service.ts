@@ -292,6 +292,26 @@ const resetPassword = async (payload: any) => {
   if (isSamePassword) {
     throw new AppError(httpStatus.BAD_REQUEST, "New password must be different from your old one");
   }
+
+  const newPasswordHash = await bcrypt.hash(newPassword, Number(config.bcrypt_salt_rounds));
+
+  const result = await prisma.$transaction(async (transactor) => {
+    await transactor.user.update({
+      where: { id: resetTokenRecord.user.id },
+      data: {
+        passwordHash: newPasswordHash,
+      },
+    });
+
+    await transactor.verificationToken.update({
+      where: { id: resetTokenRecord.id },
+      data: {
+        usedAt: new Date(),
+      },
+    });
+  });
+
+  return result;
 };
 
 const verifyEmail = async (payload: any) => {
