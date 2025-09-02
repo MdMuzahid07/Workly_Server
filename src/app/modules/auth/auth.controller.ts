@@ -77,10 +77,11 @@ const logout: RequestHandler = asyncHandler(async (req, res) => {
 
 const refresh: RequestHandler = asyncHandler(async (req, res) => {
   const refreshToken = req.cookies.refreshToken;
+  console.log(refreshToken, "refreshtoken ");
   const result = await authService.refresh(refreshToken);
 
   sendApiResponse(res, {
-    statusCode: httpStatus.CREATED,
+    statusCode: httpStatus.OK,
     success: true,
     message: "Token refresh successfully",
     data: {
