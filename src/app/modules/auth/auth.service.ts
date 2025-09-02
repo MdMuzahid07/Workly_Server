@@ -1,8 +1,11 @@
 import bcrypt from "bcrypt";
 import httpStatus from "http-status";
 import config from "../../../config/index.js";
-import { sendPasswordResetEmail } from "../../../template/passwordResetEmail.js";
-import { sendResendVerificationEmail, sendVerificationEmail } from "../../../utils/emailService.js";
+import {
+  sendPasswordResetEmail,
+  sendResendVerificationEmail,
+  sendVerificationEmail,
+} from "../../../utils/emailService.js";
 import generateJsonWebToken from "../../../utils/generateJsonWebToken.js";
 import generateVerificationToken from "../../../utils/generateVerificationToken.js";
 import prisma from "../../../utils/prismaClient.js";
