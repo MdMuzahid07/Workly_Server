@@ -232,7 +232,49 @@ const forgotPassword = async (payload: any) => {
 };
 
 const resetPassword = async (payload: any) => {
-  console.log(payload);
+  const { token, newPassword, confirmPassword } = payload;
+
+  if (!token) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Token is required");
+  }
+
+  if (!newPassword) {
+    throw new AppError(httpStatus.BAD_REQUEST, "New password is required");
+  }
+
+  if (!confirmPassword) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Confirm password is required");
+  }
+
+  if (newPassword.length < 8) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Password must be at least 8 characters long");
+  }
+
+  // =========== Find and validate reset token ============>
+
+  const resetTokenRecord = await prisma.verificationToken.findUnique({
+    where: { token: token.trim() },
+    include: { user: true },
+  });
+
+  if (!resetTokenRecord || resetTokenRecord.type !== "PASSWORD_RESET") {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid or expired password reset token");
+  }
+
+  // ======== Checking reset token expiry ========>
+  if (resetTokenRecord.expiresAt < new Date()) {
+    // ====== Cleaning up expired token =====>
+    await prisma.verificationToken.delete({
+      where: {
+        id: resetTokenRecord.id,
+      },
+    });
+
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Password reset token has expired, please request a new one",
+    );
+  }
 };
 
 const verifyEmail = async (payload: any) => {
