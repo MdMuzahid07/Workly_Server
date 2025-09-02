@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import httpStatus from "http-status";
+import jwt from "jsonwebtoken";
 import config from "../../../config/index.js";
 import {
   sendPasswordResetEmail,
@@ -132,8 +133,47 @@ const login = async (payload: any) => {
 // logout functionality added to the controller
 const logout = async () => {};
 
-const refresh = async () => {
-  console.log("refresh");
+const refresh = async (refreshToken: string) => {
+  if (!refreshToken) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Refresh token is required");
+  }
+
+  let decodedRefreshToken: any;
+  try {
+    decodedRefreshToken = jwt.verify(refreshToken, config.jwt_refresh_secret);
+  } catch (error) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Invalid refresh token");
+  }
+
+  const isUserExists = await prisma.user.findUnique({
+    where: {
+      id: decodedRefreshToken.userId,
+    },
+  });
+
+  if (!isUserExists || !isUserExists.isActive) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "User not found");
+  }
+
+  if (!isUserExists.isVerified) {
+    throw new AppError(
+      httpStatus.UNAUTHORIZED,
+      "Please verify your email address before logging in",
+    );
+  }
+
+  const jwtPayload = {
+    userId: isUserExists.id,
+    email: isUserExists.email,
+    role: isUserExists.role,
+    isVerified: isUserExists.isVerified,
+    isActive: isUserExists.isActive,
+  };
+
+  const newAccessToken = generateJsonWebToken(jwtPayload, "access");
+  return {
+    accessToken: newAccessToken,
+  };
 };
 
 const forgotPassword = async (payload: any) => {

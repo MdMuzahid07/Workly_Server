@@ -53,6 +53,7 @@ const login: RequestHandler = asyncHandler(async (req, res) => {
     },
   });
 });
+
 //@ts-ignore
 const logout: RequestHandler = asyncHandler(async (req, res) => {
   // await authService.logout();
@@ -74,12 +75,19 @@ const logout: RequestHandler = asyncHandler(async (req, res) => {
   });
 });
 
-//@ts-ignore
 const refresh: RequestHandler = asyncHandler(async (req, res) => {
-  const result = await authService.refresh();
-  res.status(200).json(result);
+  const refreshToken = req.cookies.refreshToken;
+  const result = await authService.refresh(refreshToken);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: "Token refresh successfully",
+    data: {
+      accessToken: result.accessToken,
+    },
+  });
 });
-//@ts-ignore
 
 const forgotPassword: RequestHandler = asyncHandler(async (req, res) => {
   const payload = req.body;
