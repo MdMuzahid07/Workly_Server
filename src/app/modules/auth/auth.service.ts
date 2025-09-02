@@ -275,6 +275,23 @@ const resetPassword = async (payload: any) => {
       "Password reset token has expired, please request a new one",
     );
   }
+
+  if (resetTokenRecord.usedAt) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Password reset token has already been used");
+  }
+
+  if (!resetTokenRecord.user || !resetTokenRecord.user.isActive) {
+    throw new AppError(httpStatus.BAD_REQUEST, "User not found");
+  }
+
+  if (newPassword !== confirmPassword) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Passwords do not match");
+  }
+
+  const isSamePassword = await bcrypt.compare(newPassword, resetTokenRecord.user.passwordHash);
+  if (isSamePassword) {
+    throw new AppError(httpStatus.BAD_REQUEST, "New password must be different from your old one");
+  }
 };
 
 const verifyEmail = async (payload: any) => {
