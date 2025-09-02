@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import httpStatus from "http-status";
 import config from "../../../config/index.js";
+import { sendPasswordResetEmail } from "../../../template/passwordResetEmail.js";
 import { sendResendVerificationEmail, sendVerificationEmail } from "../../../utils/emailService.js";
 import generateJsonWebToken from "../../../utils/generateJsonWebToken.js";
 import generateVerificationToken from "../../../utils/generateVerificationToken.js";
@@ -145,8 +146,51 @@ const forgotPassword = async (payload: any) => {
     },
   });
 
-  if (!isUserExists || !isUserExists.isActive || !isUserExists.isVerified) {
+  if (!isUserExists || !isUserExists.isActive) {
     throw new AppError(httpStatus.BAD_REQUEST, "User not found with this email");
+  }
+
+  if (!isUserExists.isVerified) {
+    throw new AppError(httpStatus.BAD_REQUEST, "User not found!");
+  }
+
+  await prisma.verificationToken.deleteMany({
+    where: {
+      userId: isUserExists.id,
+      type: "PASSWORD_RESET",
+      usedAt: null,
+    },
+  });
+
+  const resetToken = generateVerificationToken();
+
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+  await prisma.verificationToken.create({
+    data: {
+      token: resetToken,
+      type: "PASSWORD_RESET",
+      userId: isUserExists.id,
+      expiresAt: expiresAt,
+    },
+  });
+
+  const resetUrl = `${config.frontend_url}/reset-password?token=${resetToken}`;
+
+  try {
+    await sendPasswordResetEmail(isUserExists.email, isUserExists.fullName, resetUrl);
+  } catch (error) {
+    console.log(error, "password reset email send error");
+
+    await prisma.verificationToken.deleteMany({
+      where: {
+        userId: isUserExists.id,
+        type: "PASSWORD_RESET",
+        usedAt: null,
+      },
+    });
+
+    throw new AppError(httpStatus.BAD_REQUEST, "Failed to send password reset email");
   }
 };
 
