@@ -139,7 +139,7 @@ const refresh = async () => {
 const forgotPassword = async (payload: any) => {
   const email = payload.email;
 
-  if (email) {
+  if (!email) {
     throw new AppError(httpStatus.BAD_REQUEST, "Email is required");
   }
 
@@ -155,6 +155,7 @@ const forgotPassword = async (payload: any) => {
     "If an account with that email exists, we've sent password reset instructions";
 
   if (!isUserExists || !isUserExists.isActive || !isUserExists.isVerified) {
+    console.log(`User not found with ${email} this email`);
     return {
       message: standardMessage,
       data: null,

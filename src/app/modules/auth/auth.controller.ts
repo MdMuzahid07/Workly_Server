@@ -82,7 +82,8 @@ const refresh: RequestHandler = asyncHandler(async (req, res) => {
 //@ts-ignore
 
 const forgotPassword: RequestHandler = asyncHandler(async (req, res) => {
-  const result = await authService.forgotPassword(req.body);
+  const payload = req.body;
+  const result = await authService.forgotPassword(payload);
 
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
@@ -93,7 +94,8 @@ const forgotPassword: RequestHandler = asyncHandler(async (req, res) => {
 });
 
 const resetPassword: RequestHandler = asyncHandler(async (req, res) => {
-  await authService.resetPassword(req.body);
+  const payload = req.body;
+  await authService.resetPassword(payload);
 
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
