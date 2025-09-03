@@ -304,6 +304,18 @@ const deleteJob = async (userId: string, jobId: string) => {
   if (isJobExists?.isActive) {
     throw new AppError(httpStatus.BAD_REQUEST, "Job is active, cannot delete");
   }
+
+  const result = await prisma.job.update({
+    where: {
+      id: jobId,
+    },
+    data: {
+      deletedAt: new Date(),
+      updatedAt: new Date(),
+    },
+  });
+
+  return result;
 };
 
 const jobService = {
