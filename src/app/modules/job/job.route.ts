@@ -16,13 +16,19 @@ router
   )
   .get("/jobs", jobController.getJobs);
 
-router.get("/job/:id", jobController.getJobById);
+router.get("/job/:jobId", jobController.getJobById);
 
 router.patch(
-  "/update/:id",
+  "/update/:jobId",
   authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
   requestValidator(jobValidation.updateJob),
   jobController.updateJob,
+);
+
+router.delete(
+  "/delete/:jobId",
+  authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  jobController.deleteJob,
 );
 
 const jobRoute = router;
