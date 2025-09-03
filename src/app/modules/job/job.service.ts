@@ -267,11 +267,51 @@ const updateJob = async (
   return result;
 };
 
+const deleteJob = async (userId: string, jobId: string) => {
+  if (!userId) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+  }
+
+  const isUserExits = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+  });
+
+  if (!isUserExits || !isUserExits?.isActive) {
+    throw new AppError(httpStatus.BAD_REQUEST, `User not found`);
+  }
+
+  if (isUserExits && !isUserExits?.isVerified) {
+    throw new AppError(httpStatus.BAD_REQUEST, `User not verified`);
+  }
+
+  const isJobExists = await prisma.job.findUnique({
+    where: {
+      id: jobId,
+      deletedAt: null,
+    },
+  });
+
+  if (!isJobExists) {
+    throw new AppError(httpStatus.NOT_FOUND, "Job not found");
+  }
+
+  if (isJobExists.postedById !== userId && isJobExists.companyId !== isUserExits.companyId) {
+    throw new AppError(httpStatus.FORBIDDEN, "You are not authorized to delete this job");
+  }
+
+  if (isJobExists?.isActive) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Job is active, cannot delete");
+  }
+};
+
 const jobService = {
   createJob,
   getJobs,
   getJobById,
   updateJob,
+  deleteJob,
 };
 
 export default jobService;

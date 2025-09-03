@@ -16,3 +16,4 @@ coverage
 *.pid
 *.orig  
 /src/generated/prisma
+.vercel
