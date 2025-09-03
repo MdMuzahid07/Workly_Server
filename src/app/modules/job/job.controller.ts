@@ -58,11 +58,25 @@ const updateJob = asyncHandler(async (req, res) => {
   });
 });
 
+const deleteJob = asyncHandler(async (req, res) => {
+  const { jobId } = req.params;
+  const userId = req.user.userId;
+
+  await jobService.deleteJob(userId, jobId as string);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Job deleted successfully",
+  });
+});
+
 const jobController = {
   createJob,
   getJobs,
   getJobById,
   updateJob,
+  deleteJob,
 };
 
 export default jobController;
