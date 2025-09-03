@@ -154,10 +154,124 @@ const getJobById = async (jobId: string) => {
   return result;
 };
 
+const updateJob = async (
+  userId: string,
+  jobId: string,
+  payload: Job & { skillsRequired: JobSkill[] },
+) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { company: true },
+  });
+
+  if (!user || !user.isActive || !user.isVerified) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "User not authorized");
+  }
+
+  const job = await prisma.job.findUnique({
+    where: { id: jobId, deletedAt: null },
+    include: { company: true },
+  });
+
+  if (!job) {
+    throw new AppError(httpStatus.NOT_FOUND, "Job not found");
+  }
+
+  const isUserCanUpdate = job.postedById === userId || user.companyId === job.companyId;
+
+  if (!isUserCanUpdate) {
+    throw new AppError(httpStatus.FORBIDDEN, "You are not authorized to update this job");
+  }
+
+  const { skillsRequired, ...jobData } = payload;
+
+  const result = await prisma.$transaction(async (transactor) => {
+    await transactor.job.update({
+      where: { id: jobId },
+      data: {
+        ...jobData,
+        updatedAt: new Date(),
+      },
+    });
+
+    if (skillsRequired !== undefined && skillsRequired.length >= 0) {
+      const currentSkillIds = skillsRequired
+        .filter((skill): skill is JobSkill & { id: string } => !!skill.id)
+        .map((skill: JobSkill) => skill.id);
+
+      await transactor.jobSkill.deleteMany({
+        where: {
+          jobId,
+          NOT: {
+            id: {
+              in: currentSkillIds,
+            },
+          },
+        },
+      });
+
+      for (const skill of skillsRequired) {
+        if (skill.id) {
+          await transactor.jobSkill.upsert({
+            where: {
+              id: skill.id,
+            },
+            update: {
+              skillName: skill.skillName,
+              experienceYears: skill.experienceYears,
+              isRequired: skill.isRequired ?? true,
+              priority: skill.priority ?? "HIGH",
+              description: skill.description,
+            },
+            create: {
+              jobId,
+              skillName: skill.skillName,
+              experienceYears: skill.experienceYears,
+              isRequired: skill.isRequired ?? true,
+              priority: skill.priority ?? "HIGH",
+              description: skill.description,
+            },
+          });
+        } else {
+          await transactor.jobSkill.create({
+            data: {
+              jobId,
+              skillName: skill.skillName,
+              experienceYears: skill.experienceYears,
+              isRequired: skill.isRequired ?? true,
+              priority: skill.priority ?? "HIGH",
+              description: skill.description,
+            },
+          });
+        }
+      }
+    }
+
+    return transactor.job.findUnique({
+      where: { id: jobId },
+      include: {
+        JobSkill: true,
+        company: true,
+        postedBy: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            role: true,
+          },
+        },
+      },
+    });
+  });
+
+  return result;
+};
+
 const jobService = {
   createJob,
   getJobs,
   getJobById,
+  updateJob,
 };
 
 export default jobService;
