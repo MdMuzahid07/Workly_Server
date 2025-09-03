@@ -43,10 +43,26 @@ const getJobById = asyncHandler(async (req, res) => {
   });
 });
 
+const updateJob = asyncHandler(async (req, res) => {
+  const { jobId } = req.params;
+  const userId = req.user.userId;
+  const payload = req.body;
+
+  const result = await jobService.updateJob(userId, jobId as string, payload);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Job updated successfully",
+    data: result,
+  });
+});
+
 const jobController = {
   createJob,
   getJobs,
   getJobById,
+  updateJob,
 };
 
 export default jobController;
