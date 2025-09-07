@@ -1,5 +1,5 @@
 import httpStatus from "http-status";
-import type { Benefits, Company, SocialLink } from "../../../generated/prisma/index.js";
+import type { Benefits, Company, SocialLink, UserRole } from "../../../generated/prisma/index.js";
 import generateUniqueSlug from "../../../utils/generateUniqueSlug.js";
 import prisma from "../../../utils/prismaClient.js";
 import AppError from "../../error/AppError.js";
@@ -312,10 +312,51 @@ const updateCompanyById = async (
   return result;
 };
 
+const addEmployee = async (
+  companyId: string,
+  adminId: string,
+  employeeEmail: string,
+  role: UserRole,
+) => {
+  const admin = await prisma.user.findUnique({
+    where: { id: adminId, isActive: true },
+    include: { company: true },
+  });
+
+  if (
+    !admin ||
+    admin.companyId !== companyId ||
+    (admin.role !== "ADMIN" && admin.role !== "SUPER_ADMIN")
+  ) {
+    throw new AppError(httpStatus.FORBIDDEN, "Not authorized to add employees");
+  }
+
+  const employee = await prisma.user.findUnique({
+    where: { email: employeeEmail, isActive: true },
+  });
+
+  if (!employee) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  if (employee.companyId) {
+    throw new AppError(httpStatus.BAD_REQUEST, "User already belongs to a company");
+  }
+
+  return await prisma.user.update({
+    where: { id: employee.id },
+    data: {
+      companyId,
+      role: role as UserRole,
+    },
+  });
+};
+
 const companyService = {
   createCompany,
   getCompanyBySlug,
   deleteCompanyById,
   updateCompanyById,
+  addEmployee,
 };
 export default companyService;
