@@ -352,11 +352,43 @@ const addEmployee = async (
   });
 };
 
+const removeEmployee = async (companyId: string, adminId: string, employeeId: string) => {
+  const admin = await prisma.user.findUnique({
+    where: { id: adminId, isActive: true },
+    include: { company: true },
+  });
+
+  if (
+    !admin ||
+    admin.companyId !== companyId ||
+    (admin.role !== "ADMIN" && admin.role !== "SUPER_ADMIN")
+  ) {
+    throw new AppError(httpStatus.FORBIDDEN, "Not authorized to remove employees");
+  }
+
+  const employee = await prisma.user.findUnique({
+    where: { id: employeeId, companyId, isActive: true },
+  });
+
+  if (!employee) {
+    throw new AppError(httpStatus.NOT_FOUND, "Employee not found");
+  }
+
+  return await prisma.user.update({
+    where: { id: employeeId },
+    data: {
+      companyId: null,
+      role: "JOB_SEEKER",
+    },
+  });
+};
+
 const companyService = {
   createCompany,
   getCompanyBySlug,
   deleteCompanyById,
   updateCompanyById,
   addEmployee,
+  removeEmployee,
 };
 export default companyService;
