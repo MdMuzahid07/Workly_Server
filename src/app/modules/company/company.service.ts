@@ -105,7 +105,59 @@ const createCompany = async (
   return result;
 };
 
+const getCompanyBySlug = async (slug: string) => {
+  const result = await prisma.company.findUnique({
+    where: {
+      slug,
+      isVerified: true,
+      deletedAt: null,
+    },
+    include: {
+      socialLinks: true,
+      benefits: true,
+      employees: {
+        where: { isActive: true, deletedAt: null },
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          role: true,
+          lastLogin: true,
+        },
+      },
+      jobs: {
+        where: {
+          isActive: true,
+          deletedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+        take: 10,
+        orderBy: { createdAt: "desc" },
+      },
+      _count: {
+        select: {
+          employees: true,
+          jobs: {
+            where: {
+              isActive: true,
+              deletedAt: null,
+              expiresAt: { gt: new Date() },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!result) {
+    throw new AppError(httpStatus.NOT_FOUND, "Company not found");
+  }
+
+  return result;
+};
+
 const companyService = {
   createCompany,
+  getCompanyBySlug,
 };
 export default companyService;
