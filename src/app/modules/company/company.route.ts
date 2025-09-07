@@ -22,5 +22,12 @@ router.delete(
   companyController.deleteCompanyById,
 );
 
+router.patch(
+  "/update/:companyId",
+  authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  requestValidator(companyValidation.updateCompany),
+  companyController.updateCompanyById,
+);
+
 const companyRoute = router;
 export default companyRoute;
