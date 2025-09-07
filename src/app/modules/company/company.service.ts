@@ -187,9 +187,135 @@ const deleteCompanyById = async (userId: string, companyId: string) => {
   });
 };
 
+const updateCompanyById = async (
+  userId: string,
+  companyId: string,
+  payload: Partial<Company> & { socialLinks: SocialLink[]; benefits: Benefits[] },
+) => {
+  if (!userId) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+  }
+  const user = await prisma.user.findUnique({
+    where: { id: userId, isActive: true, isVerified: true },
+    include: { company: true },
+  });
+
+  if (!user || user.companyId !== companyId) {
+    throw new AppError(httpStatus.FORBIDDEN, "Not authorized to delete this company");
+  }
+
+  const { socialLinks, benefits, ...companyData } = payload;
+
+  const result = await prisma.$transaction(async (transactor) => {
+    const company = await transactor.company.update({
+      where: { id: companyId, deletedAt: null },
+      data: companyData,
+    });
+
+    if (payload.socialLinks !== undefined && payload.socialLinks.length > 0) {
+      const currentLinkIds = payload.socialLinks
+        .filter((link): link is SocialLink & { id: string } => !!link.id)
+        .map((link: SocialLink) => link.id);
+
+      await transactor.socialLink.deleteMany({
+        where: {
+          companyId: company.id,
+          NOT: {
+            id: {
+              in: currentLinkIds,
+            },
+          },
+        },
+      });
+
+      for (const link of payload.socialLinks) {
+        if (link.id) {
+          await transactor.socialLink.upsert({
+            where: {
+              id: link.id,
+            },
+            update: {
+              platform: link.platform,
+              url: link.url,
+            },
+            create: {
+              platform: link.platform,
+              url: link.url,
+              companyId: company.id,
+            },
+          });
+        } else {
+          await transactor.socialLink.create({
+            data: {
+              platform: link.platform,
+              url: link.url,
+              companyId: company.id,
+            },
+          });
+        }
+      }
+    }
+
+    if (payload.benefits !== undefined && payload.benefits.length > 0) {
+      const currentBenefitIds = payload.benefits
+        .filter((benefit): benefit is Benefits & { id: string } => !!benefit.id)
+        .map((benefit: Benefits) => benefit.id);
+
+      await transactor.benefits.deleteMany({
+        where: {
+          companyId: company.id,
+          NOT: {
+            id: {
+              in: currentBenefitIds,
+            },
+          },
+        },
+      });
+
+      for (const benefit of payload.benefits) {
+        if (benefit.id) {
+          await transactor.benefits.upsert({
+            where: {
+              id: benefit.id,
+            },
+            update: {
+              title: benefit.title,
+              description: benefit.description,
+              icon: benefit.icon,
+              category: benefit.category,
+            },
+            create: {
+              title: benefit.title,
+              description: benefit.description,
+              icon: benefit.icon,
+              category: benefit.category,
+              companyId: company.id,
+            },
+          });
+        } else {
+          await transactor.benefits.create({
+            data: {
+              title: benefit.title,
+              description: benefit.description,
+              icon: benefit.icon,
+              category: benefit.category,
+              companyId: company.id,
+            },
+          });
+        }
+      }
+    }
+
+    return company;
+  });
+
+  return result;
+};
+
 const companyService = {
   createCompany,
   getCompanyBySlug,
   deleteCompanyById,
+  updateCompanyById,
 };
 export default companyService;

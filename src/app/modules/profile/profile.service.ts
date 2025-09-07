@@ -134,6 +134,10 @@ const updateMyProfile = async (
     throw new AppError(httpStatus.BAD_REQUEST, `User not verified`);
   }
 
+  if (!isUserExits.profileId) {
+    throw new AppError(httpStatus.BAD_REQUEST, `User profile not found`);
+  }
+
   const result = await prisma.$transaction(async (transactor) => {
     const userProfile = await transactor.profile.update({
       where: {
