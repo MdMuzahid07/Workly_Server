@@ -30,9 +30,24 @@ const getCompanyBySlug = asyncHandler(async (req, res) => {
   });
 });
 
+const deleteCompanyById = asyncHandler(async (req, res) => {
+  const userId = req.user.userId;
+  const { companyId } = req.params as { companyId: string };
+
+  const result = await companyService.deleteCompanyById(userId, companyId);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Company deleted successfully, including jobs posted by the company",
+    data: result,
+  });
+});
+
 const companyController = {
   createCompany,
   getCompanyBySlug,
+  deleteCompanyById,
 };
 
 export default companyController;
