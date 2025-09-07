@@ -29,5 +29,18 @@ router.patch(
   companyController.updateCompanyById,
 );
 
+router.post(
+  "/add-employee/:companyId",
+  authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  // requestValidator(companyValidation.addEmployee),
+  companyController.addEmployee,
+);
+
+router.delete(
+  "/remove-employee/:companyId/:employeeId",
+  authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  companyController.removeEmployee,
+);
+
 const companyRoute = router;
 export default companyRoute;

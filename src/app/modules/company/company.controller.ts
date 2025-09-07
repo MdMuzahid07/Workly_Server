@@ -59,11 +59,44 @@ const updateCompanyById = asyncHandler(async (req, res) => {
   });
 });
 
+const addEmployee = asyncHandler(async (req, res) => {
+  const adminId = req.user.userId;
+  const { companyId } = req.params as { companyId: string };
+  const employeeEmail = req.body.employeeEmail;
+  const userRole = req.body.userRole;
+
+  const result = await companyService.addEmployee(companyId, adminId, employeeEmail, userRole);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Employee added successfully",
+    data: result,
+  });
+});
+
+const removeEmployee = asyncHandler(async (req, res) => {
+  const adminId = req.user.userId;
+  const { companyId } = req.params as { companyId: string };
+  const employeeId = req.body.employeeEmail;
+
+  const result = await companyService.removeEmployee(companyId, adminId, employeeId);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Employee removed successfully",
+    data: result,
+  });
+});
+
 const companyController = {
   createCompany,
   getCompanyBySlug,
   deleteCompanyById,
   updateCompanyById,
+  addEmployee,
+  removeEmployee,
 };
 
 export default companyController;
