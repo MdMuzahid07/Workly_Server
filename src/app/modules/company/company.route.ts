@@ -14,5 +14,7 @@ router.post(
   companyController.createCompany,
 );
 
+router.get("/company/:slug", companyController.getCompanyBySlug);
+
 const companyRoute = router;
 export default companyRoute;
