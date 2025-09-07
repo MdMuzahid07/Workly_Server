@@ -156,8 +156,40 @@ const getCompanyBySlug = async (slug: string) => {
   return result;
 };
 
+const deleteCompanyById = async (userId: string, companyId: string) => {
+  if (!userId) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+  }
+  const user = await prisma.user.findUnique({
+    where: { id: userId, isActive: true, isVerified: true },
+    include: { company: true },
+  });
+
+  if (!user || user.companyId !== companyId) {
+    throw new AppError(httpStatus.FORBIDDEN, "Not authorized to delete this company");
+  }
+
+  return await prisma.$transaction(async (transactor) => {
+    const company = await transactor.company.update({
+      where: { id: companyId },
+      data: { deletedAt: new Date() },
+    });
+
+    await transactor.job.updateMany({
+      where: { companyId },
+      data: {
+        isActive: false,
+        deletedAt: new Date(),
+      },
+    });
+
+    return company;
+  });
+};
+
 const companyService = {
   createCompany,
   getCompanyBySlug,
+  deleteCompanyById,
 };
 export default companyService;
