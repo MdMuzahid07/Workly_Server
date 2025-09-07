@@ -44,10 +44,26 @@ const deleteCompanyById = asyncHandler(async (req, res) => {
   });
 });
 
+const updateCompanyById = asyncHandler(async (req, res) => {
+  const userId = req.user.userId;
+  const { companyId } = req.params as { companyId: string };
+  const payload = req.body;
+
+  const result = await companyService.updateCompanyById(userId, companyId, payload);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Company updated successfully",
+    data: result,
+  });
+});
+
 const companyController = {
   createCompany,
   getCompanyBySlug,
   deleteCompanyById,
+  updateCompanyById,
 };
 
 export default companyController;
