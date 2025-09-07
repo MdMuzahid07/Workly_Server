@@ -16,5 +16,11 @@ router.post(
 
 router.get("/company/:slug", companyController.getCompanyBySlug);
 
+router.delete(
+  "/delete/:companyId",
+  authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  companyController.deleteCompanyById,
+);
+
 const companyRoute = router;
 export default companyRoute;
