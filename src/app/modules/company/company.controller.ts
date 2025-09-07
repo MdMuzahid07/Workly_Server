@@ -17,8 +17,22 @@ const createCompany = asyncHandler(async (req, res) => {
   });
 });
 
+const getCompanyBySlug = asyncHandler(async (req, res) => {
+  const { slug } = req.params as { slug: string };
+
+  const result = await companyService.getCompanyBySlug(slug as string);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Company fetched successfully",
+    data: result,
+  });
+});
+
 const companyController = {
   createCompany,
+  getCompanyBySlug,
 };
 
 export default companyController;
