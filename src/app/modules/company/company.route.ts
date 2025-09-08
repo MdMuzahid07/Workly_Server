@@ -7,6 +7,8 @@ import companyValidation from "./company.validation.js";
 
 const router = express.Router();
 
+router.get("/companies", companyController.getCompanies);
+
 router.post(
   "/new-company",
   authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),

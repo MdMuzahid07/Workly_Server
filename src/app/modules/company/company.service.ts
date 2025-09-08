@@ -3,6 +3,7 @@ import type { Benefits, Company, SocialLink, UserRole } from "../../../generated
 import generateUniqueSlug from "../../../utils/generateUniqueSlug.js";
 import prisma from "../../../utils/prismaClient.js";
 import AppError from "../../error/AppError.js";
+import factoryFunctions from "../../../utils/FactoryFunctionsWithFilterEngine.js";
 
 const createCompany = async (
   userId: string,
@@ -154,6 +155,22 @@ const getCompanyBySlug = async (slug: string) => {
   }
 
   return result;
+};
+
+const getCompanies = async (query: any) => {
+  const companyFilter = factoryFunctions.createCompanyFilter(prisma);
+  const { where, orderBy, skip, take, pagination } = await companyFilter.filter(query);
+  const result = await prisma.company.findMany({
+    where,
+    orderBy,
+    skip,
+    take,
+    include: {
+      socialLinks: true,
+      benefits: true,
+    },
+  });
+  return { data: result, meta: pagination };
 };
 
 const deleteCompanyById = async (userId: string, companyId: string) => {
@@ -390,5 +407,6 @@ const companyService = {
   updateCompanyById,
   addEmployee,
   removeEmployee,
+  getCompanies,
 };
 export default companyService;

@@ -3,6 +3,20 @@ import asyncHandler from "../../../utils/asyncHandler.js";
 import sendApiResponse from "../../../utils/sendApiResponse.js";
 import companyService from "./company.service.js";
 
+const getCompanies = asyncHandler(async (req, res) => {
+  const query = req.query;
+
+  const { data, meta } = await companyService.getCompanies(query);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Companies fetched successfully",
+    data,
+    meta,
+  });
+});
+
 const createCompany = asyncHandler(async (req, res) => {
   const userId = req.user.userId;
   const payload = req.body;
@@ -91,6 +105,7 @@ const removeEmployee = asyncHandler(async (req, res) => {
 });
 
 const companyController = {
+  getCompanies,
   createCompany,
   getCompanyBySlug,
   deleteCompanyById,
