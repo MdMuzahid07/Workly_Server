@@ -1,5 +1,6 @@
 import httpStatus from "http-status";
 import { type Job, type JobSkill } from "../../../generated/prisma/index.js";
+import factoryFunctions from "../../../utils/FactoryFunctionsWithFilterEngine.js";
 import prisma from "../../../utils/prismaClient.js";
 import AppError from "../../error/AppError.js";
 
@@ -109,10 +110,14 @@ const createJob = async (userId: string, payload: Job & { skillsRequired: JobSki
 };
 
 const getJobs = async (query: any) => {
+  const jobFilter = factoryFunctions.createJobFilter(prisma);
+  const { where, orderBy, skip, take, pagination } = await jobFilter.filter(query);
+
   const result = await prisma.job.findMany({
-    where: {
-      ...query,
-    },
+    where,
+    orderBy,
+    skip,
+    take,
     include: {
       JobSkill: true,
       postedBy: {
@@ -128,7 +133,7 @@ const getJobs = async (query: any) => {
     },
   });
 
-  return result;
+  return { data: result, meta: pagination };
 };
 
 const getJobById = async (jobId: string) => {
