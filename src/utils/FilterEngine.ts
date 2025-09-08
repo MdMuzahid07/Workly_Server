@@ -1,13 +1,12 @@
 import httpStatus from "http-status";
 import AppError from "../app/error/AppError.js";
 
-//* =============== Filter types ===========>
+//* ========== Types and interfaces ===========>
 type FilterValue = string | number | boolean | Date | null | undefined;
 type FilterArray = FilterValue[];
 type RangeFilter = { min?: FilterValue; max?: FilterValue };
 type DateRangeFilter = { start?: Date; end?: Date };
 
-//* ============== Filter options ===========>
 export interface FilterOptions {
   // ========== For searching ==========>
   search?: string;
@@ -42,6 +41,9 @@ export interface FilterResult {
   };
 }
 
+//* ========== Types and interfaces </===========
+
+//* ========== FilterEngine class ===========>
 export class FilterEngine {
   private allowedFields: Set<string>;
   private model: any;
