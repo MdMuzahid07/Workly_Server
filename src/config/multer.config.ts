@@ -1,5 +1,4 @@
 import multer from "multer";
-// Note: We intentionally avoid multer-storage-cloudinary when using Multer v2.
 
 // ===========  Configure Multer memory storage (Cloudinary handled in service) =======>
 const storage = multer.memoryStorage();
