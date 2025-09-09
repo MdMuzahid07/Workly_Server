@@ -14,5 +14,8 @@ declare namespace NodeJS {
     SMTP_USER: string;
     SMTP_PASS: string;
     FRONTEND_URL: string;
+    CLOUDINARY_CLOUD_NAME: string;
+    CLOUDINARY_API_KEY: string;
+    CLOUDINARY_API_SECRET: string;
   }
 }
