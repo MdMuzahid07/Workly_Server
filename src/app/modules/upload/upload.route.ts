@@ -4,7 +4,7 @@ import uploadController from "./upload.controller.js";
 
 const router = express.Router();
 
-router.post("/single", upload.any, uploadController.single);
+router.post("/single", upload.single("file"), uploadController.single);
 
 router.post("/multiple", upload.array("files", 10), uploadController.multiple);
 
