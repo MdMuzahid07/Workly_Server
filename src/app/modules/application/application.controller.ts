@@ -17,8 +17,124 @@ const createApplication = asyncHandler(async (req, res) => {
   });
 });
 
+const getMyApplications = asyncHandler(async (req, res) => {
+  const userId = req.user.userId;
+  const result = await applicationService.getMyApplications(userId, req.query);
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Applications fetched successfully",
+    data: result.data,
+    meta: result.meta,
+  });
+});
+
+const getJobApplications = asyncHandler(async (req, res) => {
+  const employerId = req.user.userId;
+  const { jobId } = req.params as { jobId: string };
+  const result = await applicationService.getJobApplications(employerId, jobId, req.query);
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Job applications fetched successfully",
+    data: result.data,
+    meta: result.meta,
+  });
+});
+
+const getApplicationById = asyncHandler(async (req, res) => {
+  const requesterId = req.user.userId;
+  const { id } = req.params as { id: string };
+  const result = await applicationService.getApplicationById(requesterId, id);
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Application fetched successfully",
+    data: result,
+  });
+});
+
+const updateStatus = asyncHandler(async (req, res) => {
+  const employerId = req.user.userId;
+  const { id } = req.params as { id: string };
+  const { status, rejectionReason } = req.body as { status: string; rejectionReason?: string };
+  const result = await applicationService.updateStatus(employerId, id, status, rejectionReason);
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Application status updated",
+    data: result,
+  });
+});
+
+const withdraw = asyncHandler(async (req, res) => {
+  const userId = req.user.userId;
+  const { id } = req.params as { id: string };
+  const result = await applicationService.withdraw(userId, id);
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Application withdrawn",
+    data: result,
+  });
+});
+
+const scheduleInterview = asyncHandler(async (req, res) => {
+  const employerId = req.user.userId;
+  const { id } = req.params as { id: string } as { id: string };
+  const { interviewScheduledAt, interviewNotes } = req.body as {
+    interviewScheduledAt: string;
+    interviewNotes?: string;
+  };
+  const result = await applicationService.scheduleInterview(
+    employerId,
+    id,
+    new Date(interviewScheduledAt),
+    interviewNotes,
+  );
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Interview updated",
+    data: result,
+  });
+});
+
+const updateNotes = asyncHandler(async (req, res) => {
+  const employerId = req.user.userId;
+  const { id } = req.params as { id: string };
+  const { interviewNotes } = req.body as { interviewNotes: string };
+  const result = await applicationService.updateNotes(employerId, id, interviewNotes);
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Notes updated",
+    data: result,
+  });
+});
+
+const getJobSummary = asyncHandler(async (req, res) => {
+  const employerId = req.user.userId;
+  const { jobId } = req.params as { jobId: string };
+  const result = await applicationService.getJobSummary(employerId, jobId);
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Application summary fetched",
+    data: result,
+  });
+});
+
 const applicationController = {
   createApplication,
+  getMyApplications,
+  getJobApplications,
+  getApplicationById,
+  updateStatus,
+  withdraw,
+  scheduleInterview,
+  updateNotes,
+  getJobSummary,
 };
 
 export default applicationController;

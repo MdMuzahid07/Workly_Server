@@ -14,5 +14,53 @@ router.post(
   applicationController.createApplication,
 );
 
+router.get(
+  "/me",
+  authValidator(UserRole.JOB_SEEKER),
+  requestValidator(applicationValidation.getMyApplications),
+  applicationController.getMyApplications,
+);
+
+router.get(
+  "/job/:jobId",
+  authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  requestValidator(applicationValidation.getJobApplications),
+  applicationController.getJobApplications,
+);
+
+router.get(
+  "/:id",
+  authValidator(UserRole.JOB_SEEKER, UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  applicationController.getApplicationById,
+);
+
+router.patch(
+  "/:id/status",
+  authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  requestValidator(applicationValidation.updateStatus),
+  applicationController.updateStatus,
+);
+
+router.patch(
+  "/:id/withdraw",
+  authValidator(UserRole.JOB_SEEKER),
+  requestValidator(applicationValidation.withdraw),
+  applicationController.withdraw,
+);
+
+router.patch(
+  "/:id/interview",
+  authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  requestValidator(applicationValidation.scheduleInterview),
+  applicationController.scheduleInterview,
+);
+
+router.patch(
+  "/:id/notes",
+  authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  requestValidator(applicationValidation.updateNotes),
+  applicationController.updateNotes,
+);
+
 const applicationRoute = router;
 export default applicationRoute;

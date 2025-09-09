@@ -43,10 +43,23 @@ const createUserFilter = (prisma: any) => {
   ]);
 };
 
+const createApplicationFilter = (prisma: any) => {
+  return new FilterEngine(prisma.application, "applications", [
+    "status",
+    "applicantId",
+    "jobId",
+    "createdAt",
+    "statusChangedAt",
+    "interviewScheduledAt",
+    "withdrawnAt",
+  ]);
+};
+
 const factoryFunctions = {
   createCompanyFilter,
   createJobFilter,
   createUserFilter,
+  createApplicationFilter,
 };
 
 export default factoryFunctions;
