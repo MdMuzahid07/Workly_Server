@@ -9,7 +9,7 @@ const router = express.Router();
 
 router.post(
   "/create",
-  authValidator(UserRole.JOB_SEEKER),
+  authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
   requestValidator(applicationValidation.createApplication),
   applicationController.createApplication,
 );

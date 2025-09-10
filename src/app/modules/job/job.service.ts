@@ -1,6 +1,7 @@
 import httpStatus from "http-status";
 import { type Job, type JobSkill } from "../../../generated/prisma/index.js";
 import factoryFunctions from "../../../utils/FactoryFunctionsWithFilterEngine.js";
+import generateUniqueSlug from "../../../utils/generateUniqueSlug.js";
 import prisma from "../../../utils/prismaClient.js";
 import AppError from "../../error/AppError.js";
 
@@ -62,12 +63,15 @@ const createJob = async (userId: string, payload: Job & { skillsRequired: JobSki
 
   const { skillsRequired, ...rest } = payload;
 
+  const slug = await generateUniqueSlug(payload.title, "job");
+
   const result = await prisma.$transaction(async (transactor) => {
     const job = await transactor.job.create({
       data: {
         ...rest,
         postedById: userId,
         companyId: rest.companyId,
+        slug,
       },
     });
 
