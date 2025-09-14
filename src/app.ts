@@ -14,7 +14,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
     credentials: true,
-    origin: config.environment === "production" ? config.frontend_url : "*",
+    origin: config.environment === "production" ? config.frontend_url : "http://localhost:3000",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
