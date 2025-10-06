@@ -18,9 +18,7 @@ const createJob = asyncHandler(async (req, res) => {
 });
 
 const getJobs = asyncHandler(async (req, res) => {
-  const query = req.query;
-
-  const { data, meta } = await jobService.getJobs(query);
+  const { data, meta } = await jobService.getJobs(req.query);
 
   sendApiResponse(res, {
     statusCode: httpStatus.OK,

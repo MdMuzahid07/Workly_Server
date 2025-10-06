@@ -117,6 +117,14 @@ const getJobs = async (query: any) => {
   const jobFilter = factoryFunctions.createJobFilter(prisma);
   const { where, orderBy, skip, take, pagination } = await jobFilter.filter(query);
 
+  if (query.skills && query.skills.length > 0) {
+    where.JobSkill = {
+      some: {
+        skillName: { in: query.skills, mode: "insensitive" },
+      },
+    };
+  }
+
   const result = await prisma.job.findMany({
     where,
     orderBy,

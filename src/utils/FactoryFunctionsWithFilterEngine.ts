@@ -16,12 +16,12 @@ const createCompanyFilter = (prisma: any) => {
 const createJobFilter = (prisma: any) => {
   return new FilterEngine(prisma.job, "jobs", [
     "title",
-    "description",
     "discipline",
     "requirements",
     "jobType",
     "experienceLevel",
-    "salary",
+    "salaryMin",
+    "salaryMax",
     "location",
     "isRemote",
     "companyId",
