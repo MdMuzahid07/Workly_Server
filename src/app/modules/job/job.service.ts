@@ -5,6 +5,33 @@ import generateUniqueSlug from "../../../utils/generateUniqueSlug.js";
 import prisma from "../../../utils/prismaClient.js";
 import AppError from "../../error/AppError.js";
 
+//* ============ helper functions ============>
+
+const parseArray = (value: any) => {
+  if (!value) return undefined;
+  return Array.isArray(value) ? value : value.split(",").map((v: string) => v.trim());
+};
+
+const parseBool = (value: any) => {
+  if (value === "true" || value === true) return true;
+  if (value === "false" || value === false) return false;
+  return undefined;
+};
+
+const getDateFromPeriod = (period: string) => {
+  const now = new Date();
+  const periods: Record<string, number> = {
+    "24h": 1,
+    "3d": 3,
+    "1w": 7,
+    "1m": 30,
+  };
+  const days = periods[period];
+  return days ? new Date(now.getTime() - days * 24 * 60 * 60 * 1000) : null;
+};
+
+//* ===================== services =========================>
+
 const createJob = async (userId: string, payload: Job & { skillsRequired: JobSkill[] }) => {
   if (!userId) {
     throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
@@ -114,13 +141,85 @@ const createJob = async (userId: string, payload: Job & { skillsRequired: JobSki
 };
 
 const getJobs = async (query: any) => {
-  const jobFilter = factoryFunctions.createJobFilter(prisma);
-  const { where, orderBy, skip, take, pagination } = await jobFilter.filter(query);
+  const {
+    search,
+    location,
+    jobType,
+    experienceLevel,
+    skills,
+    isRemote,
+    isFeatured,
+    salaryMin,
+    salaryMax,
+    postedWithin,
+    companyId,
+    sortBy = "createdAt",
+    sortOrder = "desc",
+    page,
+    limit,
+  } = query;
 
-  if (query.skills && query.skills.length > 0) {
+  // build filter query ==========>
+  const filterQuery: any = {
+    sortBy,
+    sortOrder,
+    page: page ? parseInt(page) : 1,
+    limit: limit ? parseInt(limit) : 10,
+    where: { isActive: true },
+    whereIn: {},
+  };
+
+  // text search ===============>
+  if (search) {
+    filterQuery.search = search.trim();
+    filterQuery.searchIn = ["title", "discipline", "requirements"];
+  }
+
+  // exact matches =============>
+  if (companyId) filterQuery.where.companyId = companyId;
+
+  const remote = parseBool(isRemote);
+  if (remote !== undefined) filterQuery.where.isRemote = remote;
+
+  const featured = parseBool(isFeatured);
+  if (featured !== undefined) filterQuery.where.isFeatured = featured;
+
+  // array filters ===============>
+  const locations = parseArray(location);
+  if (locations?.length) filterQuery.whereIn.location = locations;
+
+  const jobTypes = parseArray(jobType);
+  if (jobTypes?.length) filterQuery.whereIn.jobType = jobTypes;
+
+  const levels = parseArray(experienceLevel);
+  if (levels?.length) filterQuery.whereIn.experienceLevel = levels;
+
+  // salary range ===============>
+  if (salaryMin || salaryMax) {
+    filterQuery.range = {};
+    if (salaryMin) filterQuery.range.salaryMin = { min: parseInt(salaryMin) };
+    if (salaryMax) filterQuery.range.salaryMax = { max: parseInt(salaryMax) };
+  }
+
+  // date range ========================>
+  if (postedWithin) {
+    const startDate = getDateFromPeriod(postedWithin);
+    if (startDate) {
+      filterQuery.dateRange = {
+        createdAt: { start: startDate, end: new Date() },
+      };
+    }
+  }
+
+  // execute filterEngine ================>
+  const jobFilter = factoryFunctions.createJobFilter(prisma);
+  const { where, orderBy, skip, take, pagination } = await jobFilter.filter(filterQuery);
+
+  const skillsList = parseArray(skills);
+  if (skillsList?.length) {
     where.JobSkill = {
       some: {
-        skillName: { in: query.skills, mode: "insensitive" },
+        skillName: { in: skillsList, mode: "insensitive" },
       },
     };
   }
@@ -142,11 +241,51 @@ const getJobs = async (query: any) => {
         },
       },
       company: true,
+      _count: {
+        select: {
+          applications: true,
+        },
+      },
     },
   });
 
   return { data: result, meta: pagination };
 };
+
+// const getJobs = async (query: any) => {
+//   const jobFilter = factoryFunctions.createJobFilter(prisma);
+//   const { where, orderBy, skip, take, pagination } = await jobFilter.filter(query);
+
+//   if (query.skills && query.skills.length > 0) {
+//     where.JobSkill = {
+//       some: {
+//         skillName: { in: query.skills, mode: "insensitive" },
+//       },
+//     };
+//   }
+
+//   const result = await prisma.job.findMany({
+//     where,
+//     orderBy,
+//     skip,
+//     take,
+//     include: {
+//       JobSkill: true,
+//       postedBy: {
+//         select: {
+//           id: true,
+//           fullName: true,
+//           email: true,
+//           phone: true,
+//           role: true,
+//         },
+//       },
+//       company: true,
+//     },
+//   });
+
+//   return { data: result, meta: pagination };
+// };
 
 const getJobById = async (jobId: string) => {
   const result = await prisma.job.findUnique({
