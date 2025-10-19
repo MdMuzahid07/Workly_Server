@@ -186,9 +186,6 @@ const getJobs = async (query: any) => {
   if (featured !== undefined) filterQuery.where.isFeatured = featured;
 
   // array filters ===============>
-  const locations = parseArray(location);
-  if (locations?.length) filterQuery.whereIn.location = locations;
-
   const jobTypes = parseArray(jobType);
   if (jobTypes?.length) filterQuery.whereIn.jobType = jobTypes;
 
@@ -215,6 +212,13 @@ const getJobs = async (query: any) => {
   // execute filterEngine ================>
   const jobFilter = factoryFunctions.createJobFilter(prisma);
   const { where, orderBy, skip, take, pagination } = await jobFilter.filter(filterQuery);
+
+  if (location && location.trim()) {
+    where.location = {
+      contains: location.trim(),
+      mode: "insensitive",
+    };
+  }
 
   const skillsList = parseArray(skills);
   if (skillsList?.length) {
