@@ -125,6 +125,7 @@ const createJobFilter = (prisma: any) => {
     "jobType", // FULL_TIME, PART_TIME, CONTRACT, etc.
     "experienceLevel", // Entry Level, Intermediate, Expert
     "location", // Remote, New York, NY, etc.
+    "industry", // Technology, Healthcare, Finance, etc.
 
     // ========== Range filters ==========
     "salaryMin",

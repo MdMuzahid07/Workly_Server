@@ -147,6 +147,7 @@ const getJobs = async (query: any) => {
     jobType,
     experienceLevel,
     skills,
+    industry,
     isRemote,
     isFeatured,
     salaryMin,
@@ -221,6 +222,14 @@ const getJobs = async (query: any) => {
       some: {
         skillName: { in: skillsList, mode: "insensitive" },
       },
+    };
+  }
+
+  // Industry filter (relation with company)
+  const industries = parseArray(industry);
+  if (industries?.length) {
+    where.company = {
+      industry: { in: industries },
     };
   }
 
