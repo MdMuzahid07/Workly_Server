@@ -18,7 +18,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:push": "prisma db push",
-    "prepare": "husky"
+    "prepare": "node -e \"try { require('husky').install() } catch (e) {}\"",
+    "vercel-build": "prisma generate && tsc"
   },
   "packageManager": "yarn@1.22.22",
   "devDependencies": {
