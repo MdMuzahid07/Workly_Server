@@ -11,7 +11,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -265,6 +264,13 @@ model Application {
   statusChangedAt        DateTime?
   applicantData          String?                @default("")
   folderName             String?                @db.VarChar(100)
+  fullName               String?                @db.VarChar(100)
+  email                  String?                @db.VarChar(200)
+  phone                  String?                @db.VarChar(50)
+  resumeUrl              String?                @db.Text
+  agreedTerms            Boolean                @default(true)
+  yearsOfExperience      Int?
+  currentLocation        String?                @db.VarChar(255)
   interviewScheduledAt   DateTime?
   interviewNotes         String?                @db.Text
   withdrawnAt            DateTime?
