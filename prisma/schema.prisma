@@ -109,6 +109,7 @@ model Company {
   contactEmail String?   @db.VarChar(255)
   contactPhone String?   @db.VarChar(50)
   isVerified   Boolean   @default(false)
+  founded      String?   @db.VarChar(100)
   verifiedAt   DateTime?
   deletedAt    DateTime?
   createdAt    DateTime  @default(now())
@@ -164,7 +165,8 @@ model Job {
   title                 String    @db.VarChar(255)
   slug                  String    @unique @db.VarChar(255)
   discipline            String    @db.VarChar(255)
-  requirements          String    @db.Text
+  description           String    @db.Text
+  requirements          String[]  @default([])
   jobType               JobType   @default(FULL_TIME)
   location              String    @db.VarChar(255)
   experienceLevel       String    @db.VarChar(50)
@@ -182,7 +184,7 @@ model Job {
   viewCount             Int       @default(0)
   applyCount            Int       @default(0)
   deletedAt             DateTime?
-  benefits              String    @default("")
+  benefits              String[]  @default([])
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 

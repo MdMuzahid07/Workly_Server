@@ -55,6 +55,11 @@ const createCompany = z.object({
     .optional()
     .nullable()
     .refine((val) => !val || val.length <= 50, "Contact phone cannot exceed 50 characters"),
+  founded: z
+    .string()
+    .optional()
+    .nullable()
+    .refine((val) => !val || val.length <= 100, "Founded year cannot exceed 100 characters"),
   benefits: z.any().optional().nullable().describe("Company benefits in JSON format"),
 });
 

@@ -116,6 +116,7 @@ const login = async (payload: any) => {
     email: isExits.email,
     role: isExits.role,
     isVerified: isExits.isVerified,
+    companyId: isExits.companyId,
     isActive: isExits.isActive,
   };
 
