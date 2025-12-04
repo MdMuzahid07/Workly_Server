@@ -196,7 +196,6 @@ const forgotPassword = async (payload: any) => {
     "If an account with that email exists, we've sent password reset instructions";
 
   if (!isUserExists || !isUserExists.isActive || !isUserExists.isVerified) {
-    console.log(`User not found with ${email} this email`);
     return {
       message: standardMessage,
       data: null,
@@ -214,8 +213,6 @@ const forgotPassword = async (payload: any) => {
   });
 
   if (recentResetAttempts >= 5) {
-    console.log(`Rate limit exceeded for password reset`);
-
     return {
       message: standardMessage,
       data: null,

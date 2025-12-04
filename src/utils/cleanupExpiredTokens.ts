@@ -10,7 +10,6 @@ const cleanupExpiredTokens = async () => {
       },
     });
 
-    console.log(`Cleaned up ${result.count} expired verification tokens`);
     return result.count;
   } catch (error) {
     console.error("Error cleaning up expired tokens:", error);

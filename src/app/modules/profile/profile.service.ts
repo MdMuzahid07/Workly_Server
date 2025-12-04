@@ -90,6 +90,9 @@ const myProfile = async (userId: string) => {
   const result = await prisma.user.findUnique({
     where: {
       id: userId,
+      isActive: true,
+      deletedAt: null,
+      isVerified: true,
     },
     include: {
       profile: {
@@ -109,12 +112,14 @@ const myProfile = async (userId: string) => {
     throw new AppError(httpStatus.NOT_FOUND, "Profile not found");
   }
 
-  return result;
+  const { passwordHash, ...rest } = result;
+
+  return rest;
 };
 
 const updateMyProfile = async (
   userId: string,
-  payload: Profile & { skills: ISkill[]; preference: IPreference },
+  payload: Profile & { skills: ISkill[]; preference: IPreference; phone?: string },
 ) => {
   if (!userId) {
     throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
@@ -134,16 +139,33 @@ const updateMyProfile = async (
     throw new AppError(httpStatus.BAD_REQUEST, `User not verified`);
   }
 
-  if (!isUserExits.profileId) {
-    throw new AppError(httpStatus.BAD_REQUEST, `User profile not found`);
-  }
-
   const result = await prisma.$transaction(async (transactor) => {
-    const userProfile = await transactor.profile.update({
+    if (payload.phone !== undefined) {
+      await transactor.user.update({
+        where: {
+          id: userId,
+        },
+        data: {
+          phone: payload.phone,
+        },
+      });
+    }
+
+    const userProfile = await transactor.profile.upsert({
       where: {
         userId: userId,
       },
-      data: {
+      update: {
+        bio: payload.bio || "",
+        location: payload.location || "",
+        avatarUrl: payload.avatarUrl || "",
+        coverUrl: payload.coverUrl || "",
+        resumeUrl: payload.resumeUrl || "",
+        linkedInUrl: payload.linkedInUrl || "",
+        websiteUrl: payload.websiteUrl || "",
+      },
+      create: {
+        userId: userId,
         bio: payload.bio || "",
         location: payload.location || "",
         avatarUrl: payload.avatarUrl || "",
@@ -153,6 +175,17 @@ const updateMyProfile = async (
         websiteUrl: payload.websiteUrl || "",
       },
     });
+
+    if (!isUserExits.profileId) {
+      await transactor.user.update({
+        where: {
+          id: userId,
+        },
+        data: {
+          profileId: userProfile.id,
+        },
+      });
+    }
 
     if (payload.skills !== undefined && payload.skills.length > 0) {
       const currentSkillIds = payload.skills

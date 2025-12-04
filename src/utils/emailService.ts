@@ -27,7 +27,6 @@ const sendVerificationEmail = async (to: string, userName: string, verificationU
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log("Verification email sent:", info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error("Error sending verification email:", error);
@@ -51,7 +50,6 @@ const sendResendVerificationEmail = async (
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log("Resend verification email sent:", info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error("Error sending resend verification email:", error);
@@ -71,7 +69,6 @@ const sendPasswordResetEmail = async (email: string, fullName: string, resetUrl:
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log("Password reset email sent:", info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error("Error sending password reset email:", error);
