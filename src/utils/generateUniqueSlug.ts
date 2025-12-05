@@ -32,9 +32,11 @@ function baseSlugify(text: string): string {
  * @param field The field on the model to check for existing slugs. Defaults to "slug"
  * @returns The generated slug
  */
+type SlugModel = "company" | "job" | "category";
+
 async function generateUniqueSlug(
   text: string,
-  model: "company" | "job",
+  model: SlugModel,
   field: string = "slug",
 ): Promise<string> {
   const baseSlug = baseSlugify(text);

@@ -361,6 +361,18 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
+model Category {
+  id            String   @id @default(uuid())
+  name          String   @unique
+  slug          String   @unique
+  description   String?  @db.Text
+  subcategories String[] @default([])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("categories")
+}
+
 //! =============================== enums ===============================>
 
 enum UserRole {
