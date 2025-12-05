@@ -65,12 +65,25 @@ const deleteCategory = asyncHandler(async (req, res) => {
   });
 });
 
+const toggleCategoryStatus = asyncHandler(async (req, res) => {
+  const { categoryId } = req.params as { categoryId: string };
+  const data = await categoryService.toggleCategoryStatus(categoryId);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: `Category ${data.active ? "activated" : "deactivated"} successfully`,
+    data,
+  });
+});
+
 const categoryController = {
   getCategories,
   getCategoryBySlug,
   createCategory,
   updateCategory,
   deleteCategory,
+  toggleCategoryStatus,
 };
 
 export default categoryController;

@@ -24,6 +24,12 @@ router.patch(
   categoryController.updateCategory,
 );
 
+router.patch(
+  "/categories/:categoryId/toggle-status",
+  authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  categoryController.toggleCategoryStatus,
+);
+
 router.delete(
   "/categories/:categoryId",
   authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),

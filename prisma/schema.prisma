@@ -365,6 +365,7 @@ model Category {
   id            String   @id @default(uuid())
   name          String   @unique
   slug          String   @unique
+  active        Boolean  @default(true)
   description   String?  @db.Text
   subcategories String[] @default([])
   createdAt     DateTime @default(now())

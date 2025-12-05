@@ -149,12 +149,31 @@ const deleteCategory = async (categoryId: string) => {
   return { id: categoryId };
 };
 
+const toggleCategoryStatus = async (categoryId: string) => {
+  const categoryClient = (prisma as any).category;
+
+  const existing = await categoryClient.findUnique({ where: { id: categoryId } });
+  if (!existing) {
+    throw new AppError(httpStatus.NOT_FOUND, "Category not found");
+  }
+
+  const updated = await categoryClient.update({
+    where: { id: categoryId },
+    data: {
+      active: !existing.active,
+    },
+  });
+
+  return updated;
+};
+
 const categoryService = {
   getCategories,
   getCategoryBySlug,
   createCategory,
   updateCategory,
   deleteCategory,
+  toggleCategoryStatus,
 };
 
 export default categoryService;
