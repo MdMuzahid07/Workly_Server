@@ -6,9 +6,9 @@ import AppError from "../../error/AppError.js";
 type CategoryPayload = {
   name: string;
   slug: string;
-  description?: string | null;
+  description: string;
   icon: string;
-  subcategories?: string[];
+  subcategories: string[];
 };
 
 const normalizeSubcategories = (subs?: string[] | null) => {
@@ -18,6 +18,39 @@ const normalizeSubcategories = (subs?: string[] | null) => {
     .filter(Boolean)
     .map((item) => item.toLowerCase());
   return Array.from(new Set(normalized));
+};
+
+const createCategory = async (payload: CategoryPayload) => {
+  const normalizedSubs = normalizeSubcategories(payload.subcategories);
+
+  const categoryClient = (prisma as any).industry;
+
+  const [existingName, existingSlug] = await Promise.all([
+    categoryClient.findUnique({ where: { name: payload.name } }),
+    categoryClient.findUnique({ where: { slug: payload.slug } }),
+  ]);
+
+  if (existingName) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Category with this name already exists");
+  }
+
+  if (existingSlug) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Category with this slug already exists");
+  }
+
+  const slug = await generateUniqueSlug(payload.slug || payload.name, "industry");
+
+  const result = await categoryClient.create({
+    data: {
+      name: payload.name,
+      icon: payload.icon,
+      slug,
+      description: payload.description,
+      subcategories: normalizedSubs,
+    },
+  });
+
+  return result;
 };
 
 const getCategories = async (query: Record<string, unknown>) => {
@@ -33,7 +66,7 @@ const getCategories = async (query: Record<string, unknown>) => {
       }
     : {};
 
-  const categoryClient = (prisma as any).category;
+  const categoryClient = (prisma as any).industry;
 
   const result = await categoryClient.findMany({
     where,
@@ -44,7 +77,7 @@ const getCategories = async (query: Record<string, unknown>) => {
 };
 
 const getCategoryBySlug = async (slug: string) => {
-  const categoryClient = (prisma as any).category;
+  const categoryClient = (prisma as any).industry;
 
   const category = await categoryClient.findUnique({
     where: { slug },
@@ -57,41 +90,8 @@ const getCategoryBySlug = async (slug: string) => {
   return category;
 };
 
-const createCategory = async (payload: CategoryPayload) => {
-  const normalizedSubs = normalizeSubcategories(payload.subcategories);
-
-  const categoryClient = (prisma as any).category;
-
-  const [existingName, existingSlug] = await Promise.all([
-    categoryClient.findUnique({ where: { name: payload.name } }),
-    categoryClient.findUnique({ where: { slug: payload.slug } }),
-  ]);
-
-  if (existingName) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Category with this name already exists");
-  }
-
-  if (existingSlug) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Category with this slug already exists");
-  }
-
-  const slug = await generateUniqueSlug(payload.slug || payload.name, "category");
-
-  const created = await categoryClient.create({
-    data: {
-      name: payload.name,
-      icon: payload.icon,
-      slug,
-      description: payload.description,
-      subcategories: normalizedSubs,
-    },
-  });
-
-  return created;
-};
-
 const updateCategory = async (categoryId: string, payload: Partial<CategoryPayload>) => {
-  const categoryClient = (prisma as any).category;
+  const categoryClient = (prisma as any).industry;
 
   const existing = await categoryClient.findUnique({ where: { id: categoryId } });
   if (!existing) {
@@ -118,7 +118,7 @@ const updateCategory = async (categoryId: string, payload: Partial<CategoryPaylo
 
   const nextSlug =
     payload.slug !== undefined
-      ? await generateUniqueSlug(payload.slug || payload.name || existing.name, "category")
+      ? await generateUniqueSlug(payload.slug || payload.name || existing.name, "industry")
       : existing.slug;
 
   const updated = await categoryClient.update({
@@ -139,7 +139,7 @@ const updateCategory = async (categoryId: string, payload: Partial<CategoryPaylo
 };
 
 const deleteCategory = async (categoryId: string) => {
-  const categoryClient = (prisma as any).category;
+  const categoryClient = (prisma as any).industry;
   const existing = await categoryClient.findUnique({ where: { id: categoryId } });
   if (!existing) {
     throw new AppError(httpStatus.NOT_FOUND, "Category not found");
@@ -153,7 +153,7 @@ const deleteCategory = async (categoryId: string) => {
 };
 
 const toggleCategoryStatus = async (categoryId: string) => {
-  const categoryClient = (prisma as any).category;
+  const categoryClient = (prisma as any).industry;
 
   const existing = await categoryClient.findUnique({ where: { id: categoryId } });
   if (!existing) {

@@ -368,15 +368,17 @@ model Industry {
   name          String    @unique
   slug          String    @unique
   active        Boolean   @default(true)
-  description   String?   @db.Text
-  icon          String?   @db.VarChar(50)
+  description   String    @db.Text
+  icon          String    @db.VarChar(50)
   subcategories String[]  @default([])
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   companies     Company[]
   jobs          Job[]
 
-  @@map("Industries")
+  @@index([slug])
+  @@index([active])
+  @@map("industries")
 }
 
 //! =============================== enums ===============================>

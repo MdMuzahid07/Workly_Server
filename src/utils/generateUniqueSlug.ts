@@ -32,7 +32,7 @@ function baseSlugify(text: string): string {
  * @param field The field on the model to check for existing slugs. Defaults to "slug"
  * @returns The generated slug
  */
-type SlugModel = "company" | "job" | "category";
+type SlugModel = "company" | "job" | "industry";
 
 async function generateUniqueSlug(
   text: string,

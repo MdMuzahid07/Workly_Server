@@ -24,7 +24,7 @@ const createCategory = z.object({
     .trim()
     .optional()
     .nullable()
-    .refine((val) => !val || val.length <= 1000, "Description cannot exceed 1000 characters"),
+    .refine((val) => !val || val.length <= 500, "Description cannot exceed 500 characters"),
   subcategories: subcategoriesSchema,
 });
 
