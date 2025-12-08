@@ -26,6 +26,7 @@ export const createJob = z.object({
   jobType: JobTypeEnum,
   location: z.string().min(1, { message: "Location is required" }),
   experienceLevel: z.string().min(1, { message: "Experience level is required" }),
+  categoryId: z.string().min(1, { message: "Category is required" }),
   isRemote: z.boolean().default(false),
   salaryMin: z.number().nonnegative({ message: "Minimum salary cannot be negative" }).optional(),
   salaryMax: z.number().nonnegative({ message: "Maximum salary cannot be negative" }).optional(),

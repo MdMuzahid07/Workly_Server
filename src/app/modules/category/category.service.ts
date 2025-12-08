@@ -7,6 +7,7 @@ type CategoryPayload = {
   name: string;
   slug: string;
   description?: string | null;
+  icon: string;
   subcategories?: string[];
 };
 
@@ -79,6 +80,7 @@ const createCategory = async (payload: CategoryPayload) => {
   const created = await categoryClient.create({
     data: {
       name: payload.name,
+      icon: payload.icon,
       slug,
       description: payload.description,
       subcategories: normalizedSubs,
@@ -124,6 +126,7 @@ const updateCategory = async (categoryId: string, payload: Partial<CategoryPaylo
     data: {
       name: payload.name ?? existing.name,
       slug: nextSlug,
+      icon: payload.icon ?? existing.icon,
       description: payload.description ?? existing.description,
       subcategories:
         payload.subcategories !== undefined
@@ -167,6 +170,14 @@ const toggleCategoryStatus = async (categoryId: string) => {
   return updated;
 };
 
+// ==================== statistics ====================>
+
+const getCategoryStatistics = async () => {
+  return {};
+};
+
+void getCategoryStatistics;
+
 const categoryService = {
   getCategories,
   getCategoryBySlug,
@@ -174,6 +185,7 @@ const categoryService = {
   updateCategory,
   deleteCategory,
   toggleCategoryStatus,
+  getCategoryStatistics,
 };
 
 export default categoryService;

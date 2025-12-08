@@ -11,6 +11,7 @@ const createCategory = z.object({
     .trim()
     .min(1, "Category name is required")
     .max(255, "Name cannot exceed 255 characters"),
+  icon: z.string().trim().min(1, "Icon is required").max(50, "Icon cannot exceed 50 characters"),
   active: z.boolean().default(true),
   slug: z
     .string()
