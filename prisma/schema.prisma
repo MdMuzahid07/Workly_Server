@@ -104,7 +104,7 @@ model Company {
   logoUrl      String?   @db.VarChar(500)
   coverUrl     String?   @db.VarChar(500)
   location     String?   @db.VarChar(255)
-  industry     String?   @db.VarChar(100)
+  industryId   String?   @db.VarChar(100)
   size         String?   @db.VarChar(50)
   contactEmail String?   @db.VarChar(255)
   contactPhone String?   @db.VarChar(50)
@@ -119,9 +119,9 @@ model Company {
   jobs        Job[]
   employees   User[]
   benefits    Benefits[]
+  industry    Industry?    @relation(fields: [industryId], references: [id])
 
   @@index([slug])
-  @@index([industry])
   @@index([isVerified, deletedAt])
   @@index([deletedAt])
   @@map("companies")
@@ -190,9 +190,9 @@ model Job {
 
   companyId  String
   postedById String
-  categoryId String?
+  industryId String?
 
-  category       Category?      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  industry       Industry?      @relation(fields: [industryId], references: [id], onDelete: Restrict)
   skillsRequired Skill[]
   company        Company        @relation(fields: [companyId], references: [id], onDelete: Restrict)
   postedBy       User           @relation("JobPoster", fields: [postedById], references: [id], onDelete: Restrict)
@@ -363,19 +363,20 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
-model Category {
-  id            String   @id @default(uuid())
-  name          String   @unique
-  slug          String   @unique
-  active        Boolean  @default(true)
-  description   String?  @db.Text
-  icon          String?  @db.VarChar(50)
-  subcategories String[] @default([])
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+model Industry {
+  id            String    @id @default(uuid())
+  name          String    @unique
+  slug          String    @unique
+  active        Boolean   @default(true)
+  description   String?   @db.Text
+  icon          String?   @db.VarChar(50)
+  subcategories String[]  @default([])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  companies     Company[]
   jobs          Job[]
 
-  @@map("categories")
+  @@map("Industries")
 }
 
 //! =============================== enums ===============================>

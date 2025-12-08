@@ -1,9 +1,9 @@
 import httpStatus from "http-status";
 import type { Benefits, Company, SocialLink, UserRole } from "../../../generated/prisma/index.js";
+import factoryFunctions from "../../../utils/FactoryFunctionsWithFilterEngine.js";
 import generateUniqueSlug from "../../../utils/generateUniqueSlug.js";
 import prisma from "../../../utils/prismaClient.js";
 import AppError from "../../error/AppError.js";
-import factoryFunctions from "../../../utils/FactoryFunctionsWithFilterEngine.js";
 
 const createCompany = async (
   userId: string,
@@ -114,6 +114,7 @@ const getCompanyBySlug = async (slug: string) => {
       deletedAt: null,
     },
     include: {
+      industry: true,
       socialLinks: true,
       benefits: true,
       employees: {
