@@ -169,6 +169,7 @@ const getCompanies = async (query: any) => {
     include: {
       socialLinks: true,
       benefits: true,
+      industry: true,
     },
   });
   return { data: result, meta: pagination };

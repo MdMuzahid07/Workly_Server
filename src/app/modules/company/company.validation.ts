@@ -34,7 +34,7 @@ const createCompany = z.object({
     .optional()
     .nullable()
     .refine((val) => !val || val.length <= 255, "Location cannot exceed 255 characters"),
-  industry: z
+  industryId: z
     .string()
     .optional()
     .nullable()
