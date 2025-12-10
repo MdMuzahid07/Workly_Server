@@ -77,6 +77,26 @@ const toggleCategoryStatus = asyncHandler(async (req, res) => {
   });
 });
 
+// ======================= statistics ==================>
+
+const getCategoriesStatistics = asyncHandler(async (req, res) => {
+  const { search, active, sortBy, sortOrder } = req.query;
+
+  const data = await categoryService.getCategoryStatistics({
+    search: search as string,
+    active: (active as "all" | "true" | "false") || "all",
+    sortBy: sortBy as any,
+    sortOrder: sortOrder as any,
+  });
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Category statistics fetched successfully",
+    data,
+  });
+});
+
 const categoryController = {
   getCategories,
   getCategoryBySlug,
@@ -84,6 +104,7 @@ const categoryController = {
   updateCategory,
   deleteCategory,
   toggleCategoryStatus,
+  getCategoriesStatistics,
 };
 
 export default categoryController;

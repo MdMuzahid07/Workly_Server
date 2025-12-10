@@ -1,15 +1,15 @@
 import httpStatus from "http-status";
+import { Prisma } from "../../../generated/prisma/index.js";
 import generateUniqueSlug from "../../../utils/generateUniqueSlug.js";
 import prisma from "../../../utils/prismaClient.js";
 import AppError from "../../error/AppError.js";
-
-type CategoryPayload = {
-  name: string;
-  slug: string;
-  description: string;
-  icon: string;
-  subcategories: string[];
-};
+import {
+  CategoryPayload,
+  CategoryStatisticsResponse,
+  CategoryWithStats,
+  QueryParams,
+  Summary,
+} from "./category.interface.js";
 
 const normalizeSubcategories = (subs?: string[] | null) => {
   if (!subs || subs.length === 0) return [];
@@ -172,11 +172,141 @@ const toggleCategoryStatus = async (categoryId: string) => {
 
 // ==================== statistics ====================>
 
-const getCategoryStatistics = async () => {
-  return {};
-};
+export const getCategoryStatistics = async (
+  params: QueryParams = {},
+): Promise<CategoryStatisticsResponse> => {
+  const { search, active = "all", sortBy = "createdAt", sortOrder = "desc" } = params;
 
-void getCategoryStatistics;
+  // ==== build where clause ====>
+  const where: Prisma.IndustryWhereInput = {};
+
+  // Active filter
+  if (active === "true") {
+    where.active = true;
+  } else if (active === "false") {
+    where.active = false;
+  }
+
+  // ===== search filter ===>
+  if (search?.trim()) {
+    where.OR = [
+      { name: { contains: search.trim(), mode: "insensitive" } },
+      { slug: { contains: search.trim(), mode: "insensitive" } },
+      { subcategories: { has: search.trim().toLowerCase() } },
+    ];
+  }
+
+  // ====  fetch categories with related jobs and applications count ====>
+  const categories = await prisma.industry.findMany({
+    where,
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      active: true,
+      description: true,
+      icon: true,
+      subcategories: true,
+      createdAt: true,
+      updatedAt: true,
+      jobs: {
+        where: {
+          deletedAt: null,
+        },
+        select: {
+          isActive: true,
+          _count: {
+            select: {
+              applications: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy:
+      sortBy === "createdAt" || sortBy === "name"
+        ? { [sortBy]: sortOrder }
+        : { createdAt: sortOrder },
+  });
+
+  // ====  process categories and calculate statistics ====>
+  const processedCategories: CategoryWithStats[] = categories.map((cat) => {
+    const totalJobs = cat.jobs.length;
+    const activeJobs = cat.jobs.filter((job) => job.isActive).length;
+    const totalApplications = cat.jobs.reduce((sum, job) => sum + job._count.applications, 0);
+
+    return {
+      id: cat.id,
+      name: cat.name,
+      slug: cat.slug,
+      active: cat.active,
+      description: cat.description,
+      icon: cat.icon,
+      subcategories: cat.subcategories,
+      createdAt: cat.createdAt,
+      updatedAt: cat.updatedAt,
+      totalJobs,
+      activeJobs,
+      totalApplications,
+    };
+  });
+
+  // ====  sort by computed fields if needed ====>
+  if (sortBy === "totalJobs" || sortBy === "totalApplications") {
+    processedCategories.sort((a, b) => {
+      const diff = a[sortBy] - b[sortBy];
+      return sortOrder === "asc" ? diff : -diff;
+    });
+  }
+
+  // ====== calculate summer from all categories (ignore filters for summary) ======>
+  const allCategories = await prisma.industry.findMany({
+    select: {
+      active: true,
+      jobs: {
+        where: {
+          deletedAt: null,
+        },
+        select: {
+          isActive: true,
+          _count: {
+            select: {
+              applications: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const totalCategories = allCategories.length;
+  const activeCategories = allCategories.filter((c) => c.active).length;
+  const totalJobs = allCategories.reduce((sum, c) => sum + c.jobs.length, 0);
+  const activeJobs = allCategories.reduce(
+    (sum, c) => sum + c.jobs.filter((j) => j.isActive).length,
+    0,
+  );
+  const totalApplications = allCategories.reduce(
+    (sum, c) => sum + c.jobs.reduce((s, j) => s + j._count.applications, 0),
+    0,
+  );
+
+  const summary: Summary = {
+    totalCategories,
+    activeCategories,
+    inactiveCategories: totalCategories - activeCategories,
+    totalJobs,
+    activeJobs,
+    totalApplications,
+    averageApplicationsPerCategory:
+      totalCategories > 0 ? Math.round(totalApplications / totalCategories) : 0,
+  };
+
+  return {
+    categories: processedCategories,
+    summary,
+  };
+};
 
 const categoryService = {
   getCategories,

@@ -10,6 +10,14 @@ const router = express.Router();
 router.get("/categories", categoryController.getCategories);
 router.get("/categories/:slug", categoryController.getCategoryBySlug);
 
+// ========= statistics =================>
+
+router.get(
+  "/category-statistics",
+  authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.EMPLOYER),
+  categoryController.getCategoriesStatistics,
+);
+
 router.post(
   "/categories",
   authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
