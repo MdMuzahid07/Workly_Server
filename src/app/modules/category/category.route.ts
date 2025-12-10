@@ -14,7 +14,7 @@ router.get("/categories/:slug", categoryController.getCategoryBySlug);
 
 router.get(
   "/category-statistics",
-  authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.EMPLOYER),
+  // authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.EMPLOYER),
   categoryController.getCategoriesStatistics,
 );
 
