@@ -26,8 +26,8 @@ const createCategory = async (payload: CategoryPayload) => {
   const categoryClient = (prisma as any).industry;
 
   const [existingName, existingSlug] = await Promise.all([
-    categoryClient.findUnique({ where: { name: payload.name } }),
-    categoryClient.findUnique({ where: { slug: payload.slug } }),
+    categoryClient.findFirst({ where: { name: payload.name, isDeleted: false } }),
+    categoryClient.findFirst({ where: { slug: payload.slug, isDeleted: false } }),
   ]);
 
   if (existingName) {
@@ -56,15 +56,16 @@ const createCategory = async (payload: CategoryPayload) => {
 const getCategories = async (query: Record<string, unknown>) => {
   const search = (query.search as string)?.trim() ?? "";
 
-  const where = search
-    ? {
-        OR: [
-          { name: { contains: search, mode: "insensitive" } },
-          { slug: { contains: search, mode: "insensitive" } },
-          { subcategories: { has: search.toLowerCase() } },
-        ],
-      }
-    : {};
+  const where = {
+    isDeleted: false,
+    ...(search && {
+      OR: [
+        { name: { contains: search, mode: "insensitive" } },
+        { slug: { contains: search, mode: "insensitive" } },
+        { subcategories: { has: search.toLowerCase() } },
+      ],
+    }),
+  };
 
   const categoryClient = (prisma as any).industry;
 
@@ -79,8 +80,8 @@ const getCategories = async (query: Record<string, unknown>) => {
 const getCategoryBySlug = async (slug: string) => {
   const categoryClient = (prisma as any).industry;
 
-  const category = await categoryClient.findUnique({
-    where: { slug },
+  const category = await categoryClient.findFirst({
+    where: { slug, isDeleted: false },
   });
 
   if (!category) {
@@ -93,13 +94,13 @@ const getCategoryBySlug = async (slug: string) => {
 const updateCategory = async (categoryId: string, payload: Partial<CategoryPayload>) => {
   const categoryClient = (prisma as any).industry;
 
-  const existing = await categoryClient.findUnique({ where: { id: categoryId } });
+  const existing = await categoryClient.findFirst({ where: { id: categoryId, isDeleted: false } });
   if (!existing) {
     throw new AppError(httpStatus.NOT_FOUND, "Category not found");
   }
 
   if (payload.name) {
-    const duplicateName = await categoryClient.findUnique({
+    const duplicateName = await categoryClient.findFirst({
       where: { name: payload.name },
     });
     if (duplicateName && duplicateName.id !== categoryId) {
@@ -108,7 +109,7 @@ const updateCategory = async (categoryId: string, payload: Partial<CategoryPaylo
   }
 
   if (payload.slug) {
-    const duplicateSlug = await categoryClient.findUnique({
+    const duplicateSlug = await categoryClient.findFirst({
       where: { slug: payload.slug },
     });
     if (duplicateSlug && duplicateSlug.id !== categoryId) {
@@ -122,7 +123,7 @@ const updateCategory = async (categoryId: string, payload: Partial<CategoryPaylo
       : existing.slug;
 
   const updated = await categoryClient.update({
-    where: { id: categoryId },
+    where: { id: categoryId, isDeleted: false },
     data: {
       name: payload.name ?? existing.name,
       slug: nextSlug,
@@ -140,13 +141,14 @@ const updateCategory = async (categoryId: string, payload: Partial<CategoryPaylo
 
 const deleteCategory = async (categoryId: string) => {
   const categoryClient = (prisma as any).industry;
-  const existing = await categoryClient.findUnique({ where: { id: categoryId } });
-  if (!existing) {
+  const existing = await categoryClient.findFirst({ where: { id: categoryId, isDeleted: false } });
+  if (!existing || existing.isDeleted) {
     throw new AppError(httpStatus.NOT_FOUND, "Category not found");
   }
 
-  await categoryClient.delete({
+  await categoryClient.update({
     where: { id: categoryId },
+    data: { isDeleted: true, deletedAt: new Date(), active: false },
   });
 
   return { id: categoryId };
@@ -155,8 +157,8 @@ const deleteCategory = async (categoryId: string) => {
 const toggleCategoryStatus = async (categoryId: string) => {
   const categoryClient = (prisma as any).industry;
 
-  const existing = await categoryClient.findUnique({ where: { id: categoryId } });
-  if (!existing) {
+  const existing = await categoryClient.findFirst({ where: { id: categoryId, isDeleted: false } });
+  if (!existing || existing.isDeleted) {
     throw new AppError(httpStatus.NOT_FOUND, "Category not found");
   }
 
@@ -178,7 +180,9 @@ export const getCategoryStatistics = async (
   const { search, active = "all", sortBy = "createdAt", sortOrder = "desc" } = params;
 
   // ==== build where clause ====>
-  const where: Prisma.IndustryWhereInput = {};
+  const where: Prisma.IndustryWhereInput = {
+    isDeleted: false,
+  };
 
   // Active filter
   if (active === "true") {
@@ -261,6 +265,7 @@ export const getCategoryStatistics = async (
 
   // ====== calculate summer from all categories (ignore filters for summary) ======>
   const allCategories = await prisma.industry.findMany({
+    where: { isDeleted: false },
     select: {
       active: true,
       jobs: {

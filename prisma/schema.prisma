@@ -368,6 +368,8 @@ model Industry {
   name          String    @unique
   slug          String    @unique
   active        Boolean   @default(true)
+  isDeleted     Boolean   @default(false)
+  deletedAt     DateTime?
   description   String    @db.Text
   icon          String    @db.VarChar(50)
   subcategories String[]  @default([])
