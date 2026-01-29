@@ -13,16 +13,23 @@ import prisma from "../../../utils/prismaClient.js";
 import AppError from "../../error/AppError.js";
 
 const register = async (payload: any) => {
+  // Normalize email (consistent with googleOAuth and forgotPassword)
+  const normalizedEmail = (payload.email || "").toLowerCase().trim();
+
+  if (!normalizedEmail) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Email is required");
+  }
+
   const isExits = await prisma.user.findUnique({
     where: {
-      email: payload.email,
+      email: normalizedEmail,
     },
   });
 
   if (isExits) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      `User already exists with ${payload.email} this email`,
+      `User already exists with ${normalizedEmail} this email`,
     );
   }
 
@@ -30,7 +37,7 @@ const register = async (payload: any) => {
 
   const user = await prisma.user.create({
     data: {
-      email: payload.email,
+      email: normalizedEmail,
       passwordHash: passwordHash,
       fullName: payload.fullName,
       phone: payload.phone,
@@ -88,14 +95,21 @@ const register = async (payload: any) => {
 };
 
 const login = async (payload: any) => {
-  const isExits = await prisma.user.findFirst({
+  // Normalize email (consistent with register, googleOAuth, and forgotPassword)
+  const normalizedEmail = (payload.email || "").toLowerCase().trim();
+
+  if (!normalizedEmail) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Email is required");
+  }
+
+  const isExits = await prisma.user.findUnique({
     where: {
-      email: payload.email,
+      email: normalizedEmail,
     },
   });
 
   if (!isExits || !isExits?.isActive) {
-    throw new AppError(httpStatus.BAD_REQUEST, `User not found with ${payload.email} this email`);
+    throw new AppError(httpStatus.BAD_REQUEST, `User not found with ${normalizedEmail} this email`);
   }
 
   const isPasswordMatch = await bcrypt.compare(payload.password, isExits.passwordHash);
@@ -111,18 +125,24 @@ const login = async (payload: any) => {
     );
   }
 
+  // Update lastLogin (consistent with googleOAuth)
+  const user = await prisma.user.update({
+    where: { id: isExits.id },
+    data: { lastLogin: new Date() },
+  });
+
   const jwtPayload = {
-    userId: isExits.id,
-    email: isExits.email,
-    role: isExits.role,
-    isVerified: isExits.isVerified,
-    companyId: isExits.companyId,
-    isActive: isExits.isActive,
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+    isVerified: user.isVerified,
+    companyId: user.companyId,
+    isActive: user.isActive,
   };
 
   const accessToken = generateJsonWebToken(jwtPayload, "access");
   const refreshToken = generateJsonWebToken(jwtPayload, "refresh");
-  const { passwordHash: _, ...safeUser } = isExits;
+  const { passwordHash: _, ...safeUser } = user;
 
   return {
     accessToken,
@@ -448,6 +468,78 @@ const resendVerificationEmail = async (payload: any) => {
   };
 };
 
+const googleOAuth = async (
+  googleProfile: {
+    googleId: string;
+    email: string;
+    name: string;
+    avatar?: string;
+  },
+  role: "EMPLOYER" | "JOB_SEEKER" = "JOB_SEEKER",
+) => {
+  const normalizedEmail = (googleProfile.email || "").toLowerCase().trim();
+
+  if (!normalizedEmail) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Google account email is required");
+  }
+
+  // If the user already exists, mark verified (Google emails are verified) and update lastLogin.
+  // If not, create a new local user with a random passwordHash (OAuth user doesn't use password).
+  let user = await prisma.user.findUnique({
+    where: { email: normalizedEmail },
+  });
+
+  if (user && !user.isActive) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "User is inactive");
+  }
+
+  if (!user) {
+    const randomPassword = generateVerificationToken();
+    const passwordHash = await bcrypt.hash(randomPassword, Number(config.bcrypt_salt_rounds));
+
+    user = await prisma.user.create({
+      data: {
+        email: normalizedEmail,
+        passwordHash,
+        fullName: googleProfile.name || normalizedEmail,
+        role: role, // Use role from state parameter
+        isActive: true,
+        isVerified: true,
+        lastLogin: new Date(),
+      },
+    });
+  } else {
+    // If user exists, update lastLogin but don't change their existing role
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        isVerified: true,
+        lastLogin: new Date(),
+      },
+    });
+  }
+
+  const jwtPayload = {
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+    isVerified: user.isVerified,
+    companyId: user.companyId,
+    isActive: user.isActive,
+  };
+
+  const accessToken = generateJsonWebToken(jwtPayload, "access");
+  const refreshToken = generateJsonWebToken(jwtPayload, "refresh");
+
+  const { passwordHash: _, ...safeUser } = user;
+
+  return {
+    safeUser,
+    accessToken,
+    refreshToken,
+  };
+};
+
 const authService = {
   register,
   login,
@@ -457,5 +549,6 @@ const authService = {
   resetPassword,
   verifyEmail,
   resendVerificationEmail,
+  googleOAuth,
 };
 export default authService;

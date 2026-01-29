@@ -5,12 +5,14 @@ import apiNotFound from "./app/middleware/apiNotFound.js";
 import globalErrorHandler from "./app/middleware/globalErrorHandler.js";
 import router from "./app/route/index.js";
 import config from "./config/index.js";
+import passport from "./config/passport.config.js";
 
 const app: Application = express();
 
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
+app.use(passport.initialize());
 // Production-Grade CORS Configuration
 app.use(
   cors({

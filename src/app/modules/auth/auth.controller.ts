@@ -145,6 +145,46 @@ const getCurrentUser: RequestHandler = asyncHandler(async (req, res) => {
   });
 });
 
+const googleOAuth = asyncHandler(async (req, res) => {
+  const googleProfile = req.user as unknown as {
+    googleId: string;
+    email: string;
+    name: string;
+    avatar?: string;
+  };
+
+  // Extract role from state parameter (passed through OAuth flow)
+  let role: "EMPLOYER" | "JOB_SEEKER" = "JOB_SEEKER"; // Default role
+  try {
+    const stateParam = req.query.state as string | undefined;
+    if (stateParam) {
+      const state = JSON.parse(decodeURIComponent(stateParam));
+      if (state.role && (state.role === "EMPLOYER" || state.role === "JOB_SEEKER")) {
+        role = state.role;
+      }
+    }
+  } catch (error) {
+    console.warn("Failed to parse state parameter, using default role:", error);
+  }
+
+  const result = await authService.googleOAuth(googleProfile, role);
+
+  // Set refresh token in httpOnly cookie (same pattern as login/register)
+  res.cookie("refreshToken", result.refreshToken, {
+    httpOnly: true,
+    secure: config.environment === "production" ? true : false,
+    sameSite: "strict",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  // Redirect back to frontend callback page with accessToken + user data
+  const redirectUrl = new URL(`${config.frontend_url}/auth/google/callback`);
+  redirectUrl.searchParams.set("accessToken", result.accessToken);
+  redirectUrl.searchParams.set("user", JSON.stringify(result.safeUser));
+
+  return res.redirect(redirectUrl.toString());
+});
+
 const authController = {
   register,
   login,
@@ -155,6 +195,7 @@ const authController = {
   verifyEmail,
   resendVerificationEmail,
   getCurrentUser,
+  googleOAuth,
 };
 
 export default authController;

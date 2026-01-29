@@ -13,6 +13,9 @@ export default {
   jwt_refresh_expires_in: process.env.JWT_REFRESH_EXPIRES_IN!,
   jwt_algorithm: process.env.JWT_ALGORITHM || "HS256",
   environment: process.env.ENVIRONMENT || "development",
+  backend_url: process.env.BACKEND_URL || "http://localhost:5000",
+  google_client_id: process.env.GOOGLE_CLIENT_ID,
+  google_client_secret: process.env.GOOGLE_CLIENT_SECRET,
   // Email configuration
   smtp: {
     host: process.env.SMTP_HOST || "smtp.gmail.com",
