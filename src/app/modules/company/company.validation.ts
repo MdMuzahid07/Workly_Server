@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+const benefitsSchema = z.object({
+  title: z.string().min(1, "Title is required").max(255),
+  description: z.string().optional().nullable(),
+  category: z.string().max(100).optional().nullable(),
+  icon: z.string().max(100).optional().nullable(),
+  isActive: z.boolean().default(true),
+});
+
 const createCompany = z.object({
   name: z
     .string()
@@ -60,7 +68,7 @@ const createCompany = z.object({
     .optional()
     .nullable()
     .refine((val) => !val || val.length <= 100, "Founded year cannot exceed 100 characters"),
-  benefits: z.any().optional().nullable().describe("Company benefits in JSON format"),
+  benefits: z.array(benefitsSchema).optional().nullable(),
 });
 
 const updateCompany = createCompany.partial();

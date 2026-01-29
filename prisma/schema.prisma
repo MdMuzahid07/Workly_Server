@@ -95,6 +95,8 @@ model Company {
   logoUrl      String?      @db.VarChar(500)
   coverUrl     String?      @db.VarChar(500)
   location     String?      @db.VarChar(255)
+  mission      String?      @db.VarChar(1000)
+  values       String[]     @default([])
   industryId   String?      @db.VarChar(100)
   size         String?      @db.VarChar(50)
   contactEmail String?      @db.VarChar(255)

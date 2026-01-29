@@ -11,12 +11,35 @@ const app: Application = express();
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
+// Production-Grade CORS Configuration
 app.use(
   cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, or server-to-server)
+      if (!origin) return callback(null, true);
+
+      // Check if origin is in the allowed whitelist
+      if (config.allowed_origins.indexOf(origin) !== -1) {
+        return callback(null, true);
+      }
+
+      // Development-specific: Allow local network access (192.168.x.x)
+      if (config.environment !== "production" && origin.startsWith("http://192.168.")) {
+        return callback(null, true);
+      }
+
+      // Production-specific matching (optional, e.g. subdomains)
+      if (config.environment === "production" && config.frontend_url === origin) {
+        return callback(null, true);
+      }
+
+      // Reject all other origins
+      return callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
-    origin: config.environment === "production" ? config.frontend_url : "http://localhost:3000",
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    maxAge: 86400, // Cache preflight response for 24 hours
   }),
 );
 

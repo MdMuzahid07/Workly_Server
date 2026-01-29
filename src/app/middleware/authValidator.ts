@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import httpStatus from "http-status";
 import jwt, { type JwtPayload, type Secret } from "jsonwebtoken";
+import config from "../../config/index.js";
 import AppError from "../error/AppError.js";
 const authValidator = (...requiredRoles: string[]) => {
   return async (
@@ -10,14 +11,21 @@ const authValidator = (...requiredRoles: string[]) => {
     next: NextFunction,
   ) => {
     try {
-      const token = req.headers.authorization;
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Token not found");
+      }
+
+      const token = authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : authHeader;
+
       if (!token) {
         throw new AppError(httpStatus.BAD_REQUEST, "Token not found");
       }
 
-      let verifiedUser = null;
-
-      verifiedUser = jwt.verify(token, process.env.JWT_SECRET as Secret) as JwtPayload & {
+      const verifiedUser = jwt.verify(
+        token,
+        config.jwt_secret as Secret,
+      ) as unknown as JwtPayload & {
         role: string;
       };
 

@@ -77,7 +77,6 @@ const logout: RequestHandler = asyncHandler(async (req, res) => {
 
 const refresh: RequestHandler = asyncHandler(async (req, res) => {
   const refreshToken = req.cookies.refreshToken;
-  console.log(refreshToken, "refreshtoken ");
   const result = await authService.refresh(refreshToken);
 
   sendApiResponse(res, {
@@ -135,6 +134,17 @@ const resendVerificationEmail: RequestHandler = asyncHandler(async (req, res) =>
   });
 });
 
+const getCurrentUser: RequestHandler = asyncHandler(async (req, res) => {
+  const user = req.user;
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "User retrieved successfully",
+    data: user,
+  });
+});
+
 const authController = {
   register,
   login,
@@ -144,6 +154,7 @@ const authController = {
   resetPassword,
   verifyEmail,
   resendVerificationEmail,
+  getCurrentUser,
 };
 
 export default authController;

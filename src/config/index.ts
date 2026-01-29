@@ -22,6 +22,10 @@ export default {
   },
   // Frontend URL for verification links
   frontend_url: process.env.FRONTEND_URL || "http://localhost:3000",
+  // CORS Allowed Origins
+  allowed_origins: process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(",")
+    : ["http://localhost:3000", "http://localhost:8081"],
   // Cloudinary configuration
   cloudinary: {
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,

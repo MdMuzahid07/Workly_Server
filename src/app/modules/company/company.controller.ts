@@ -104,6 +104,19 @@ const removeEmployee = asyncHandler(async (req, res) => {
   });
 });
 
+const getMyCompany = asyncHandler(async (req, res) => {
+  const userId = req.user.userId;
+
+  const result = await companyService.getMyCompany(userId);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Company fetched successfully",
+    data: result,
+  });
+});
+
 const companyController = {
   getCompanies,
   createCompany,
@@ -112,6 +125,7 @@ const companyController = {
   updateCompanyById,
   addEmployee,
   removeEmployee,
+  getMyCompany,
 };
 
 export default companyController;
