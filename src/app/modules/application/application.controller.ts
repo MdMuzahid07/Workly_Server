@@ -4,6 +4,7 @@ import sendApiResponse from "../../../utils/sendApiResponse.js";
 import applicationService from "./application.service.js";
 
 const createApplication = asyncHandler(async (req, res) => {
+  //@ts-ignore
   const userId = req.user.userId;
   const payload = req.body;
 
@@ -18,6 +19,7 @@ const createApplication = asyncHandler(async (req, res) => {
 });
 
 const getMyApplications = asyncHandler(async (req, res) => {
+  //@ts-ignore
   const userId = req.user.userId;
   const result = await applicationService.getMyApplications(userId, req.query);
   sendApiResponse(res, {
@@ -30,6 +32,7 @@ const getMyApplications = asyncHandler(async (req, res) => {
 });
 
 const getJobApplications = asyncHandler(async (req, res) => {
+  //@ts-ignore
   const employerId = req.user.userId;
   const { jobId } = req.params as { jobId: string };
   const result = await applicationService.getJobApplications(employerId, jobId, req.query);
@@ -43,6 +46,7 @@ const getJobApplications = asyncHandler(async (req, res) => {
 });
 
 const getApplicationById = asyncHandler(async (req, res) => {
+  //@ts-ignore
   const requesterId = req.user.userId;
   const { id } = req.params as { id: string };
   const result = await applicationService.getApplicationById(requesterId, id);
@@ -55,6 +59,7 @@ const getApplicationById = asyncHandler(async (req, res) => {
 });
 
 const updateStatus = asyncHandler(async (req, res) => {
+  //@ts-ignore
   const employerId = req.user.userId;
   const { id } = req.params as { id: string };
   const { status, rejectionReason } = req.body as { status: string; rejectionReason?: string };
@@ -68,6 +73,7 @@ const updateStatus = asyncHandler(async (req, res) => {
 });
 
 const withdraw = asyncHandler(async (req, res) => {
+  //@ts-ignore
   const userId = req.user.userId;
   const { id } = req.params as { id: string };
   const result = await applicationService.withdraw(userId, id);
@@ -80,6 +86,7 @@ const withdraw = asyncHandler(async (req, res) => {
 });
 
 const scheduleInterview = asyncHandler(async (req, res) => {
+  //@ts-ignore
   const employerId = req.user.userId;
   const { id } = req.params as { id: string } as { id: string };
   const { interviewScheduledAt, interviewNotes } = req.body as {
@@ -101,6 +108,7 @@ const scheduleInterview = asyncHandler(async (req, res) => {
 });
 
 const updateNotes = asyncHandler(async (req, res) => {
+  //@ts-ignore
   const employerId = req.user.userId;
   const { id } = req.params as { id: string };
   const { interviewNotes } = req.body as { interviewNotes: string };
@@ -114,6 +122,7 @@ const updateNotes = asyncHandler(async (req, res) => {
 });
 
 const getJobSummary = asyncHandler(async (req, res) => {
+  //@ts-ignore
   const employerId = req.user.userId;
   const { jobId } = req.params as { jobId: string };
   const result = await applicationService.getJobSummary(employerId, jobId);

@@ -4,6 +4,7 @@ import sendApiResponse from "../../../utils/sendApiResponse.js";
 import profileService from "./profile.service.js";
 
 const createProfile = asyncHandler(async (req, res) => {
+  //@ts-ignore
   const userId = req.user.userId;
   const result = await profileService.createProfile(userId, req.body);
 
@@ -17,6 +18,7 @@ const createProfile = asyncHandler(async (req, res) => {
 });
 
 const myProfile = asyncHandler(async (req, res) => {
+  //@ts-ignore
   const userId = req.user.userId;
 
   const result = await profileService.myProfile(userId);
@@ -30,6 +32,7 @@ const myProfile = asyncHandler(async (req, res) => {
 });
 
 const updateProfile = asyncHandler(async (req, res) => {
+  //@ts-ignore
   const userId = req.user.userId;
   const payload = req.body;
 
@@ -44,6 +47,7 @@ const updateProfile = asyncHandler(async (req, res) => {
 });
 
 const saveJob = asyncHandler(async (req, res) => {
+  //@ts-ignore
   const userId = req.user.userId;
   const { jobId } = req.body;
 
@@ -63,7 +67,16 @@ const saveJob = asyncHandler(async (req, res) => {
 });
 
 const getSavedJobs = asyncHandler(async (req, res) => {
-  const userId = req.user.userId;
+  //@ts-ignore
+  const userId = req.user?.userId;
+  if (!userId) {
+    return sendApiResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: "Unauthorized: User ID not found",
+      data: null,
+    });
+  }
   const query = req.query;
 
   const result = await profileService.getSavedJobs(userId, query);
@@ -78,6 +91,7 @@ const getSavedJobs = asyncHandler(async (req, res) => {
 });
 
 const updateSavedJob = asyncHandler(async (req, res) => {
+  //@ts-ignore
   const userId = req.user.userId;
   const { jobId } = req.params;
   const payload = req.body;

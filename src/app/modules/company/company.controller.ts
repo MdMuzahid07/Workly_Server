@@ -18,6 +18,7 @@ const getCompanies = asyncHandler(async (req, res) => {
 });
 
 const createCompany = asyncHandler(async (req, res) => {
+  //@ts-ignore
   const userId = req.user.userId;
   const payload = req.body;
 
@@ -45,6 +46,7 @@ const getCompanyBySlug = asyncHandler(async (req, res) => {
 });
 
 const deleteCompanyById = asyncHandler(async (req, res) => {
+  //@ts-ignore
   const userId = req.user.userId;
   const { companyId } = req.params as { companyId: string };
 
@@ -59,6 +61,7 @@ const deleteCompanyById = asyncHandler(async (req, res) => {
 });
 
 const updateCompanyById = asyncHandler(async (req, res) => {
+  //@ts-ignore
   const userId = req.user.userId;
   const { companyId } = req.params as { companyId: string };
   const payload = req.body;
@@ -74,6 +77,7 @@ const updateCompanyById = asyncHandler(async (req, res) => {
 });
 
 const addEmployee = asyncHandler(async (req, res) => {
+  //@ts-ignore
   const adminId = req.user.userId;
   const { companyId } = req.params as { companyId: string };
   const employeeEmail = req.body.employeeEmail;
@@ -90,6 +94,7 @@ const addEmployee = asyncHandler(async (req, res) => {
 });
 
 const removeEmployee = asyncHandler(async (req, res) => {
+  //@ts-ignore
   const adminId = req.user.userId;
   const { companyId } = req.params as { companyId: string };
   const employeeId = req.body.employeeEmail;
@@ -104,6 +109,20 @@ const removeEmployee = asyncHandler(async (req, res) => {
   });
 });
 
+const getMyCompany = asyncHandler(async (req, res) => {
+  //@ts-ignore
+  const userId = req.user.userId;
+
+  const result = await companyService.getMyCompany(userId);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Company fetched successfully",
+    data: result,
+  });
+});
+
 const companyController = {
   getCompanies,
   createCompany,
@@ -112,6 +131,7 @@ const companyController = {
   updateCompanyById,
   addEmployee,
   removeEmployee,
+  getMyCompany,
 };
 
 export default companyController;

@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
@@ -11,30 +5,28 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {
-  id                String            @id @default(uuid())
-  email             String            @unique @db.VarChar(255)
-  passwordHash      String            @db.VarChar(255)
-  fullName          String            @db.VarChar(255)
-  phone             String?           @db.VarChar(50)
-  role              UserRole          @default(JOB_SEEKER)
-  isVerified        Boolean           @default(false)
-  isActive          Boolean           @default(true)
-  profileId         String?           @unique
-  profileVisibility ProfileVisibility @default(PUBLIC)
-  companyId         String?
-  company           Company?          @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  profile           Profile?          @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  lastLogin         DateTime?
-  deletedAt         DateTime?
-
-  jobsPosted         Job[]               @relation("JobPoster")
-  savedJobs          SavedJob[]
+  id                 String              @id @default(uuid())
+  email              String              @unique @db.VarChar(255)
+  passwordHash       String              @db.VarChar(255)
+  fullName           String              @db.VarChar(255)
+  phone              String?             @db.VarChar(50)
+  role               UserRole            @default(JOB_SEEKER)
+  isVerified         Boolean             @default(false)
+  isActive           Boolean             @default(true)
+  profileId          String?             @unique
+  profileVisibility  ProfileVisibility   @default(PUBLIC)
+  companyId          String?
+  lastLogin          DateTime?
+  deletedAt          DateTime?
   applications       Application[]
+  jobsPosted         Job[]               @relation("JobPoster")
   notifications      Notification[]
+  savedJobs          SavedJob[]
+  company            Company?            @relation(fields: [companyId], references: [id])
+  profile            Profile?            @relation(fields: [profileId], references: [id], onDelete: Cascade)
   verificationTokens VerificationToken[]
 
   @@index([email, isActive])
@@ -46,33 +38,31 @@ model User {
 }
 
 model Profile {
-  id          String  @id @default(uuid())
-  userId      String  @unique
-  bio         String? @db.Text
-  location    String? @db.VarChar(255)
-  avatarUrl   String? @db.VarChar(500)
-  coverUrl    String? @db.VarChar(500)
-  resumeUrl   String? @db.VarChar(500)
-  linkedInUrl String? @db.VarChar(500)
-  websiteUrl  String? @db.VarChar(500)
-
-  skills     Skill[]
-  user       User?
-  preference Preference?
+  id          String      @id @default(uuid())
+  userId      String      @unique
+  bio         String?
+  location    String?     @db.VarChar(255)
+  avatarUrl   String?     @db.VarChar(500)
+  coverUrl    String?     @db.VarChar(500)
+  resumeUrl   String?     @db.VarChar(500)
+  linkedInUrl String?     @db.VarChar(500)
+  websiteUrl  String?     @db.VarChar(500)
+  preference  Preference?
+  skills      Skill[]
+  user        User?
 
   @@index([userId])
   @@map("profiles")
 }
 
 model Skill {
-  id              String @id @default(uuid())
-  skillName       String @db.VarChar(100)
+  id              String  @id @default(uuid())
+  skillName       String  @db.VarChar(100)
   experienceYears Float
-
-  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  profileId String
-  Job       Job?    @relation(fields: [jobId], references: [id])
-  jobId     String?
+  profileId       String
+  jobId           String?
+  Job             Job?    @relation(fields: [jobId], references: [id])
+  profile         Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@index([profileId])
   @@index([skillName])
@@ -97,31 +87,33 @@ model Preference {
 }
 
 model Company {
-  id           String    @id @default(uuid())
-  name         String    @unique @db.VarChar(255)
-  slug         String    @unique @db.VarChar(255)
-  description  String?   @db.Text
-  websiteUrl   String?   @db.VarChar(500)
-  logoUrl      String?   @db.VarChar(500)
-  coverUrl     String?   @db.VarChar(500)
-  location     String?   @db.VarChar(255)
-  industry     String?   @db.VarChar(100)
-  size         String?   @db.VarChar(50)
-  contactEmail String?   @db.VarChar(255)
-  contactPhone String?   @db.VarChar(50)
-  isVerified   Boolean   @default(false)
+  id           String       @id @default(uuid())
+  name         String       @unique @db.VarChar(255)
+  slug         String       @unique @db.VarChar(255)
+  description  String?
+  websiteUrl   String?      @db.VarChar(500)
+  logoUrl      String?      @db.VarChar(500)
+  coverUrl     String?      @db.VarChar(500)
+  location     String?      @db.VarChar(255)
+  mission      String?      @db.VarChar(1000)
+  values       String[]     @default([])
+  industryId   String?      @db.VarChar(100)
+  size         String?      @db.VarChar(50)
+  contactEmail String?      @db.VarChar(255)
+  contactPhone String?      @db.VarChar(50)
+  isVerified   Boolean      @default(false)
+  founded      String?      @db.VarChar(100)
   verifiedAt   DateTime?
   deletedAt    DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  socialLinks SocialLink[]
-  jobs        Job[]
-  employees   User[]
-  benefits    Benefits[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  benefits     Benefits[]
+  industry     Industry?    @relation(fields: [industryId], references: [id])
+  jobs         Job[]
+  socialLinks  SocialLink[]
+  employees    User[]
 
   @@index([slug])
-  @@index([industry])
   @@index([isVerified, deletedAt])
   @@index([deletedAt])
   @@map("companies")
@@ -130,18 +122,16 @@ model Company {
 model Benefits {
   id          String   @id @default(uuid())
   title       String   @db.VarChar(255)
-  description String?  @db.Text
+  description String?
   category    String?  @db.VarChar(100)
   icon        String?  @db.VarChar(100)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  companyId String?
-  jobId     String?
-
-  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  job     Job?     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  companyId   String?
+  jobId       String?
+  company     Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  job         Job?     @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@index([companyId])
   @@index([jobId])
@@ -153,51 +143,52 @@ model SocialLink {
   id        String  @id @default(uuid())
   platform  String  @db.VarChar(50)
   url       String  @db.VarChar(500)
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
   companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@index([companyId])
   @@map("social_links")
 }
 
 model Job {
-  id                    String    @id @default(uuid())
-  title                 String    @db.VarChar(255)
-  slug                  String    @unique @db.VarChar(255)
-  discipline            String    @db.VarChar(255)
-  requirements          String    @db.Text
-  jobType               JobType   @default(FULL_TIME)
-  location              String    @db.VarChar(255)
-  experienceLevel       String    @db.VarChar(50)
-  isRemote              Boolean   @default(false)
+  id                    String         @id @default(uuid())
+  title                 String         @db.VarChar(255)
+  slug                  String         @unique @db.VarChar(255)
+  discipline            String         @db.VarChar(255)
+  description           String
+  requirements          String[]       @default([])
+  jobType               JobType        @default(FULL_TIME)
+  location              String         @db.VarChar(255)
+  experienceLevel       String         @db.VarChar(50)
+  isRemote              Boolean        @default(false)
   salaryMin             Int?
   salaryMax             Int?
-  currency              String?   @db.VarChar(3)
-  contactEmail          String?   @db.VarChar(255)
+  currency              String?        @db.VarChar(3)
+  contactEmail          String?        @db.VarChar(255)
   applicationDeadline   DateTime?
   maxApplications       Int?
-  autoCloseApplications Boolean   @default(false)
-  isActive              Boolean   @default(true)
-  isFeatured            Boolean   @default(false)
+  autoCloseApplications Boolean        @default(false)
+  isActive              Boolean        @default(true)
+  isFeatured            Boolean        @default(false)
   expiresAt             DateTime?
-  viewCount             Int       @default(0)
-  applyCount            Int       @default(0)
+  viewCount             Int            @default(0)
+  applyCount            Int            @default(0)
   deletedAt             DateTime?
-  benefits              String    @default("")
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-
-  companyId  String
-  postedById String
-
-  skillsRequired Skill[]
-  company        Company        @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  postedBy       User           @relation("JobPoster", fields: [postedById], references: [id], onDelete: Restrict)
-  applications   Application[]
-  notifications  Notification[] @relation("JobNotifications")
-  savedByUsers   SavedJob[]
-  JobSkill       JobSkill[]
-  Benefits       Benefits[]
+  benefits              String[]       @default([])
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  companyId             String
+  postedById            String
+  industryId            String?
+  applications          Application[]
+  Benefits              Benefits[]
+  JobSkill              JobSkill[]
+  company               Company        @relation(fields: [companyId], references: [id])
+  industry              Industry?      @relation(fields: [industryId], references: [id], onDelete: Restrict)
+  postedBy              User           @relation("JobPoster", fields: [postedById], references: [id])
+  notifications         Notification[] @relation("JobNotifications")
+  savedByUsers          SavedJob[]
+  skillsRequired        Skill[]
 
   @@index([isActive, expiresAt, deletedAt])
   @@index([companyId])
@@ -216,12 +207,11 @@ model JobSkill {
   experienceYears Float
   isRequired      Boolean          @default(true)
   priority        JobSkillPriority @default(HIGH)
-  description     String?          @db.Text
+  description     String?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
-
-  job   Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  jobId String
+  jobId           String
+  job             Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@index([jobId])
   @@index([skillName])
@@ -234,7 +224,7 @@ model Notification {
   id            String           @id @default(uuid())
   type          NotificationType
   title         String           @db.VarChar(255)
-  message       String           @db.Text
+  message       String
   isRead        Boolean          @default(false)
   jobId         String?
   applicationId String?
@@ -244,10 +234,9 @@ model Notification {
   metadata      Json?
   createdAt     DateTime         @default(now())
   userId        String
-
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  job         Job?         @relation("JobNotifications", fields: [jobId], references: [id], onDelete: SetNull)
-  application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  application   Application?     @relation(fields: [applicationId], references: [id])
+  job           Job?             @relation("JobNotifications", fields: [jobId], references: [id])
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead])
   @@index([createdAt])
@@ -258,24 +247,30 @@ model Notification {
 model Application {
   id                     String                 @id @default(uuid())
   status                 ApplicationStatus      @default(SUBMITTED)
-  coverLetter            String?                @db.Text
+  coverLetter            String?
   preferredContactMethod PreferredContactMethod @default(email)
-  rejectionReason        String?                @db.Text
+  rejectionReason        String?
   statusChangedBy        String?
   statusChangedAt        DateTime?
   applicantData          String?                @default("")
   folderName             String?                @db.VarChar(100)
+  fullName               String?                @db.VarChar(100)
+  email                  String?                @db.VarChar(200)
+  phone                  String?                @db.VarChar(50)
+  resumeUrl              String?
+  agreedTerms            Boolean                @default(true)
+  yearsOfExperience      Int?
+  currentLocation        String?                @db.VarChar(255)
   interviewScheduledAt   DateTime?
-  interviewNotes         String?                @db.Text
+  interviewNotes         String?
   withdrawnAt            DateTime?
   createdAt              DateTime               @default(now())
   updatedAt              DateTime               @updatedAt
   applicantId            String
   jobId                  String
-
-  applicant     User           @relation(fields: [applicantId], references: [id], onDelete: Cascade)
-  job           Job            @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  notifications Notification[]
+  applicant              User                   @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  job                    Job                    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  notifications          Notification[]
 
   @@unique([jobId, applicantId])
   @@index([applicantId, status])
@@ -290,11 +285,10 @@ model SavedJob {
   userId     String
   jobId      String
   folderName String?  @db.VarChar(100)
-  notes      String?  @db.Text
+  notes      String?
   createdAt  DateTime @default(now())
-
-  job  Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job        Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, jobId])
   @@index([userId])
@@ -344,8 +338,7 @@ model VerificationToken {
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime  @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([token])
   @@index([userId, type])
@@ -353,7 +346,25 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
-//! =============================== enums ===============================>
+model Industry {
+  id            String    @id @default(uuid())
+  name          String    @unique
+  slug          String    @unique
+  active        Boolean   @default(true)
+  description   String
+  icon          String    @db.VarChar(50)
+  subcategories String[]  @default([])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  isDeleted     Boolean   @default(false)
+  deletedAt     DateTime?
+  companies     Company[]
+  jobs          Job[]
+
+  @@index([slug])
+  @@index([active])
+  @@map("industries")
+}
 
 enum UserRole {
   JOB_SEEKER

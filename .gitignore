@@ -5,7 +5,6 @@ dist
 npm-debug.log
 yarn-error.log
 package-lock.json
-prisma/migrations/
 coverage
 *.log
 *.lock

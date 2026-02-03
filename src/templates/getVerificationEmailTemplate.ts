@@ -11,8 +11,8 @@ export const getVerificationEmailTemplate = (userName: string, verificationUrl: 
       margin: 0;
       padding: 0;
       font-family: "Segoe UI", Arial, sans-serif;
-      background-color: #f3f4f6;
-      color: #333;
+      background-color: #f0fdf4;
+      color: #1c1917;
       line-height: 1.6;
     }
     .container {
@@ -24,7 +24,7 @@ export const getVerificationEmailTemplate = (userName: string, verificationUrl: 
       overflow: hidden;
     }
     .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background:  #189A30 ;
       color: #ffffff;
       padding: 40px 20px;
       text-align: center;
@@ -36,7 +36,7 @@ export const getVerificationEmailTemplate = (userName: string, verificationUrl: 
     .header p {
       margin: 8px 0 0;
       font-size: 16px;
-      opacity: 0.9;
+      opacity: 0.95;
     }
     .content {
       padding: 30px 25px;
@@ -45,15 +45,16 @@ export const getVerificationEmailTemplate = (userName: string, verificationUrl: 
     .content h2 {
       margin-top: 0;
       font-size: 20px;
-      color: #111827;
+      color: #1c1917;
     }
     .content p {
       font-size: 15px;
       margin: 15px 0;
+      color: #44403c;
     }
     .button {
       display: inline-block;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: #189A30;
       color: white !important;
       padding: 14px 28px;
       text-decoration: none;
@@ -67,14 +68,14 @@ export const getVerificationEmailTemplate = (userName: string, verificationUrl: 
     }
     .link {
       word-break: break-word;
-      color: #4f46e5;
+      color: #059669;
       font-size: 14px;
     }
     .footer {
       text-align: center;
       padding: 20px;
       font-size: 13px;
-      color: #6b7280;
+      color: #78716c;
       background-color: #f9fafb;
     }
     .footer p {
@@ -100,7 +101,7 @@ export const getVerificationEmailTemplate = (userName: string, verificationUrl: 
         <a href="${verificationUrl}" class="button">Verify My Email</a>
       </div>
 
-      <p>If the button doesn’t work, please copy and paste the link below into your browser:</p>
+      <p>If the button doesn't work, please copy and paste the link below into your browser:</p>
       <p class="link">${verificationUrl}</p>
 
       <p><strong>Note:</strong> This link will expire in <strong>24 hours</strong> for security reasons.</p>

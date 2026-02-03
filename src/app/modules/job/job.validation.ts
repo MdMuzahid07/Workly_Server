@@ -22,10 +22,11 @@ const jobSkillSchema = z.object({
 export const createJob = z.object({
   title: z.string().min(1, { message: "Job title is required" }),
   discipline: z.string().min(1, { message: "Discipline is required" }),
-  requirements: z.string().min(1, { message: "Requirements are required" }),
+  requirements: z.array(z.string()).min(1, { message: "At least one requirement is required" }),
   jobType: JobTypeEnum,
   location: z.string().min(1, { message: "Location is required" }),
   experienceLevel: z.string().min(1, { message: "Experience level is required" }),
+  industryId: z.string().min(1, { message: "Industry is required" }),
   isRemote: z.boolean().default(false),
   salaryMin: z.number().nonnegative({ message: "Minimum salary cannot be negative" }).optional(),
   salaryMax: z.number().nonnegative({ message: "Maximum salary cannot be negative" }).optional(),
@@ -44,7 +45,7 @@ export const createJob = z.object({
   isActive: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
   expiresAt: z.string().optional(),
-  benefits: z.string().optional(),
+  benefits: z.array(z.string()).optional(),
   companyId: z.string(),
 
   skillsRequired: z.array(jobSkillSchema).optional(),

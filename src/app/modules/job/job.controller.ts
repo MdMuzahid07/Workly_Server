@@ -4,6 +4,7 @@ import sendApiResponse from "../../../utils/sendApiResponse.js";
 import jobService from "./job.service.js";
 
 const createJob = asyncHandler(async (req, res) => {
+  //@ts-ignore
   const userId = req.user.userId;
   const payload = req.body;
 
@@ -44,6 +45,7 @@ const getJobById = asyncHandler(async (req, res) => {
 
 const updateJob = asyncHandler(async (req, res) => {
   const { jobId } = req.params;
+  //@ts-ignore
   const userId = req.user.userId;
   const payload = req.body;
 
@@ -59,6 +61,7 @@ const updateJob = asyncHandler(async (req, res) => {
 
 const deleteJob = asyncHandler(async (req, res) => {
   const { jobId } = req.params;
+  //@ts-ignore
   const userId = req.user.userId;
 
   await jobService.deleteJob(userId, jobId as string);

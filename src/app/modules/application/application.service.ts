@@ -52,6 +52,7 @@ const createApplication = async (userId: string, payload: any) => {
     }
   }
 
+  // try {
   const result = await prisma.application.create({
     data: {
       jobId: payload.jobId,

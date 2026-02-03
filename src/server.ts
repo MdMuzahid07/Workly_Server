@@ -16,7 +16,7 @@ const port = config.port || 5000;
  */
 
 async function main() {
-  const server: Server = app.listen(port, () => {
+  const server: Server = app.listen(Number(port), "0.0.0.0", () => {
     console.log(`Server running 🚀🚀 on => port  ${port}`);
   });
 
@@ -26,4 +26,8 @@ async function main() {
   });
 }
 
-main();
+if (process.env.NODE_ENV !== "production") {
+  main();
+}
+
+export default app;

@@ -9,22 +9,16 @@ const router = express.Router();
 
 router.post(
   "/create",
-  authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  authValidator(UserRole.JOB_SEEKER, UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
   requestValidator(applicationValidation.createApplication),
   applicationController.createApplication,
 );
 
-router.get(
-  "/me",
-  authValidator(UserRole.JOB_SEEKER),
-  requestValidator(applicationValidation.getMyApplications),
-  applicationController.getMyApplications,
-);
+router.get("/me", authValidator(UserRole.JOB_SEEKER), applicationController.getMyApplications);
 
 router.get(
   "/job/:jobId",
   authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
-  requestValidator(applicationValidation.getJobApplications),
   applicationController.getJobApplications,
 );
 

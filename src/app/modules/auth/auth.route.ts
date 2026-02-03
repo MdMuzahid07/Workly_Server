@@ -1,4 +1,7 @@
 import express from "express";
+import config from "../../../config/index.js";
+import passport from "../../../config/passport.config.js";
+import authValidator from "../../middleware/authValidator.js";
 import requestValidator from "../../middleware/requestValidator.js";
 import authController from "./auth.controller.js";
 import authValidation from "./auth.validation.js";
@@ -13,11 +16,41 @@ router
   .post("/forgot-password", authController.forgotPassword)
   .post("/reset-password", authController.resetPassword)
   .post("/verify-email", requestValidator(authValidation.verifyEmail), authController.verifyEmail)
-  .post(
-    "/resend-verification-email",
-    requestValidator(authValidation.resendVerificationEmail),
-    authController.resendVerificationEmail,
-  );
+  .get("/me", authValidator(), authController.getCurrentUser);
+
+// Google OAuth routes - check if strategy is configured
+const googleAuthMiddleware = (
+  _req: express.Request,
+  res: express.Response,
+  next: express.NextFunction,
+) => {
+  if (!config.google_client_id || !config.google_client_secret) {
+    res.status(503).json({
+      success: false,
+      message:
+        "Google OAuth is not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables.",
+    });
+    return;
+  }
+  return next();
+};
+
+router.get("/google", googleAuthMiddleware, (req, res, next) => {
+  // Pass state parameter to Passport (contains role information)
+  const state = req.query.state as string | undefined;
+  passport.authenticate("google", {
+    scope: ["profile", "email"],
+    session: false,
+    state: state, // Pass state through OAuth flow
+  })(req, res, next);
+});
+
+router.get(
+  "/google/callback",
+  googleAuthMiddleware,
+  passport.authenticate("google", { session: false }),
+  authController.googleOAuth,
+);
 
 const authRoute = router;
 

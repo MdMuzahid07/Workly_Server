@@ -13,6 +13,9 @@ export default {
   jwt_refresh_expires_in: process.env.JWT_REFRESH_EXPIRES_IN!,
   jwt_algorithm: process.env.JWT_ALGORITHM || "HS256",
   environment: process.env.ENVIRONMENT || "development",
+  backend_url: process.env.BACKEND_URL || "http://localhost:5000",
+  google_client_id: process.env.GOOGLE_CLIENT_ID,
+  google_client_secret: process.env.GOOGLE_CLIENT_SECRET,
   // Email configuration
   smtp: {
     host: process.env.SMTP_HOST || "smtp.gmail.com",
@@ -22,6 +25,10 @@ export default {
   },
   // Frontend URL for verification links
   frontend_url: process.env.FRONTEND_URL || "http://localhost:3000",
+  // CORS Allowed Origins
+  allowed_origins: process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(",")
+    : ["http://localhost:3000", "http://localhost:8081"],
   // Cloudinary configuration
   cloudinary: {
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,

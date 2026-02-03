@@ -1,26 +1,27 @@
 {
-  "name": "express-backend_prisma",
+  "name": "wj-server",
   "type": "module",
   "version": "1.0.0",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18"
   },
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "concurrently \"tsx watch src/server.ts\" \"prisma studio\"",
     "start": "node dist/server.js",
     "build": "tsc",
-    "studio": "prisma studio",
     "type-check": "tsc --noEmit",
     "lint": "eslint . --ext .ts,.js",
     "format": "prettier --write \"**/*.{ts,js,json,md,yaml,yml}\" --ignore-path .gitignore",
-    "format:check": "prettier --check \"**/*.{ts,js,json,md,yaml,yml}\" --ignore-path .gitignore",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:deploy": "prisma migrate deploy",
-    "prisma:push": "prisma db push",
-    "prepare": "husky"
+    "format-check": "prettier --check \"**/*.{ts,js,json,md,yaml,yml}\" --ignore-path .gitignore",
+    "prisma-generate": "prisma generate",
+    "prisma-migrate": "prisma migrate dev",
+    "prisma-deploy": "prisma migrate deploy",
+    "prisma-push": "prisma db push",
+    "prisma-pull": "prisma db pull",
+    "prepare": "husky install",
+    "vercel-build": "prisma generate && tsc"
   },
-  "packageManager": "yarn@4.9.1",
+  "packageManager": "yarn@1.22.22",
   "devDependencies": {
     "@types/bcrypt": "^6",
     "@types/cookie-parser": "^1.4.9",
@@ -30,17 +31,22 @@
     "@types/multer": "^2",
     "@types/node": "^20.11.0",
     "@types/nodemailer": "^7.0.1",
+    "@types/pg": "^8.15.6",
     "@typescript-eslint/eslint-plugin": "^8.40.0",
     "@typescript-eslint/parser": "^8.40.0",
+    "concurrently": "^9.2.1",
     "eslint": "^9.33.0",
     "lint-staged": "^16.1.5",
+    "npm": "^11.6.3",
     "prettier": "^3.6.2",
-    "prisma": "^6.17.1",
+    "prisma": "^7.1.0",
     "tsx": "^4.20.4",
     "typescript": "^5.9.2"
   },
   "dependencies": {
-    "@prisma/client": "^6.17.1",
+    "@prisma/adapter-pg": "^7.0.1",
+    "@prisma/client": "^7.1.0",
+    "@types/passport-google-oauth20": "^2.0.17",
     "bcrypt": "^6.0.0",
     "chalk": "^5.6.0",
     "cloudinary": "^2.7.0",
@@ -55,6 +61,9 @@
     "multer": "^2.0.2",
     "multer-storage-cloudinary": "^4.0.0",
     "nodemailer": "^7.0.5",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
+    "pg": "^8.16.3",
     "zod": "^4.0.17"
   },
   "lint-staged": {

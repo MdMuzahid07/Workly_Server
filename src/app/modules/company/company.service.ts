@@ -1,9 +1,9 @@
 import httpStatus from "http-status";
 import type { Benefits, Company, SocialLink, UserRole } from "../../../generated/prisma/index.js";
+import factoryFunctions from "../../../utils/FactoryFunctionsWithFilterEngine.js";
 import generateUniqueSlug from "../../../utils/generateUniqueSlug.js";
 import prisma from "../../../utils/prismaClient.js";
 import AppError from "../../error/AppError.js";
-import factoryFunctions from "../../../utils/FactoryFunctionsWithFilterEngine.js";
 
 const createCompany = async (
   userId: string,
@@ -114,6 +114,7 @@ const getCompanyBySlug = async (slug: string) => {
       deletedAt: null,
     },
     include: {
+      industry: true,
       socialLinks: true,
       benefits: true,
       employees: {
@@ -168,6 +169,7 @@ const getCompanies = async (query: any) => {
     include: {
       socialLinks: true,
       benefits: true,
+      industry: true,
     },
   });
   return { data: result, meta: pagination };
@@ -400,6 +402,68 @@ const removeEmployee = async (companyId: string, adminId: string, employeeId: st
   });
 };
 
+// ============== company Statistics ================>
+
+const getCompanyOverviewStatistics = async () => {};
+
+const getMyCompany = async (userId: string) => {
+  if (!userId) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+      isActive: true,
+      isVerified: true,
+    },
+    include: {
+      company: {
+        include: {
+          industry: true,
+          socialLinks: true,
+          benefits: true,
+        },
+      },
+    },
+  });
+
+  if (!user || !user.companyId) {
+    throw new AppError(httpStatus.NOT_FOUND, "Company not found for this user");
+  }
+
+  if (!user.company) {
+    throw new AppError(httpStatus.NOT_FOUND, "Company not found");
+  }
+
+  // Include count for stats
+  const companyWithCounts = await prisma.company.findUnique({
+    where: {
+      id: user.company.id,
+    },
+    include: {
+      industry: true,
+      socialLinks: true,
+      benefits: true,
+      _count: {
+        select: {
+          employees: {
+            where: { isActive: true, deletedAt: null },
+          },
+          jobs: {
+            where: {
+              isActive: true,
+              deletedAt: null,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return companyWithCounts;
+};
+
 const companyService = {
   createCompany,
   getCompanyBySlug,
@@ -408,5 +472,7 @@ const companyService = {
   addEmployee,
   removeEmployee,
   getCompanies,
+  getCompanyOverviewStatistics,
+  getMyCompany,
 };
 export default companyService;

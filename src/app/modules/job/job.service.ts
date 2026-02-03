@@ -244,6 +244,7 @@ const getJobs = async (query: any) => {
     take,
     include: {
       JobSkill: true,
+      industry: true,
       postedBy: {
         select: {
           id: true,
@@ -307,6 +308,7 @@ const getJobById = async (jobId: string) => {
     },
     include: {
       JobSkill: true,
+      industry: true,
       postedBy: {
         select: {
           id: true,
