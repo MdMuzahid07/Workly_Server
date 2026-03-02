@@ -99,12 +99,16 @@ const myProfile = async (userId: string) => {
         include: {
           skills: true,
           preference: true,
+          education: true,
+          workExperiences: true,
+          certifications: true,
         },
       },
       company: true,
       jobsPosted: true,
       applications: true,
       savedJobs: true,
+      resumes: true,
     },
   });
 
@@ -163,6 +167,8 @@ const updateMyProfile = async (
         resumeUrl: payload.resumeUrl || "",
         linkedInUrl: payload.linkedInUrl || "",
         websiteUrl: payload.websiteUrl || "",
+        headline: payload.headline ?? undefined,
+        totalExperienceYears: payload.totalExperienceYears ?? undefined,
       },
       create: {
         userId: userId,
@@ -173,6 +179,8 @@ const updateMyProfile = async (
         resumeUrl: payload.resumeUrl || "",
         linkedInUrl: payload.linkedInUrl || "",
         websiteUrl: payload.websiteUrl || "",
+        headline: payload.headline ?? undefined,
+        totalExperienceYears: payload.totalExperienceYears ?? undefined,
       },
     });
 
@@ -284,7 +292,7 @@ const saveJobs = async (userId: string, jobId: string) => {
   const jobExists = await prisma.job.findUnique({
     where: {
       id: jobId,
-      isActive: true,
+      status: "ACTIVE",
       deletedAt: null,
     },
   });

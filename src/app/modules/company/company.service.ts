@@ -129,7 +129,7 @@ const getCompanyBySlug = async (slug: string) => {
       },
       jobs: {
         where: {
-          isActive: true,
+          status: "ACTIVE",
           deletedAt: null,
           expiresAt: { gt: new Date() },
         },
@@ -141,7 +141,7 @@ const getCompanyBySlug = async (slug: string) => {
           employees: true,
           jobs: {
             where: {
-              isActive: true,
+              status: "ACTIVE",
               deletedAt: null,
               expiresAt: { gt: new Date() },
             },
@@ -452,7 +452,7 @@ const getMyCompany = async (userId: string) => {
           },
           jobs: {
             where: {
-              isActive: true,
+              status: "ACTIVE",
               deletedAt: null,
             },
           },
@@ -462,6 +462,28 @@ const getMyCompany = async (userId: string) => {
   });
 
   return companyWithCounts;
+};
+
+//* ===== settings =========>
+const getSettings = async (companyId: string) => {
+  const settings = await prisma.companySettings.findUnique({
+    where: { companyId },
+  });
+  if (!settings) {
+    // Create default settings if none exist
+    return prisma.companySettings.create({
+      data: { companyId },
+    });
+  }
+  return settings;
+};
+
+const updateSettings = async (companyId: string, data: any) => {
+  return prisma.companySettings.upsert({
+    where: { companyId },
+    update: data,
+    create: { companyId, ...data },
+  });
 };
 
 const companyService = {
@@ -474,5 +496,7 @@ const companyService = {
   getCompanies,
   getCompanyOverviewStatistics,
   getMyCompany,
+  getSettings,
+  updateSettings,
 };
 export default companyService;

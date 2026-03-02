@@ -234,6 +234,7 @@ export const getCategoryStatistics = async (
   });
 
   // ====  process categories and calculate statistics ====>
+  //@ts-ignore
   const processedCategories: CategoryWithStats[] = categories.map((cat) => {
     const totalJobs = cat.jobs.length;
     const activeJobs = cat.jobs.filter((job) => job.isActive).length;

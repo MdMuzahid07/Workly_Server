@@ -472,7 +472,7 @@ const deleteJob = async (userId: string, jobId: string) => {
     throw new AppError(httpStatus.FORBIDDEN, "You are not authorized to delete this job");
   }
 
-  if (isJobExists?.isActive) {
+  if (isJobExists?.status === "ACTIVE") {
     throw new AppError(httpStatus.BAD_REQUEST, "Job is active, cannot delete");
   }
 
