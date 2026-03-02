@@ -7,7 +7,7 @@ datasource db {
   provider = "postgresql"
 }
 
-//* ====== Enums ======//
+//* ====== enums ======>
 
 enum UserRole {
   JOB_SEEKER
@@ -105,26 +105,28 @@ enum MessageStatus {
 }
 
 model User {
-  id                 String              @id @default(uuid())
-  email              String              @unique @db.VarChar(255)
-  passwordHash       String              @db.VarChar(255)
-  fullName           String              @db.VarChar(255)
-  phone              String?             @db.VarChar(50)
-  role               UserRole            @default(JOB_SEEKER)
-  isVerified         Boolean             @default(false)
-  isActive           Boolean             @default(true)
-  profileId          String?             @unique
-  profileVisibility  ProfileVisibility   @default(PUBLIC)
-  companyId          String?
-  lastLogin          DateTime?
-  deletedAt          DateTime?
-  applications       Application[]
-  jobsPosted         Job[]               @relation("JobPoster")
-  notifications      Notification[]
-  savedJobs          SavedJob[]
-  company            Company?            @relation(fields: [companyId], references: [id])
-  profile            Profile?            @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  verificationTokens VerificationToken[]
+  id                String            @id @default(uuid())
+  email             String            @unique @db.VarChar(255)
+  passwordHash      String            @db.VarChar(255)
+  fullName          String            @db.VarChar(255)
+  phone             String?           @db.VarChar(50)
+  role              UserRole          @default(JOB_SEEKER)
+  isVerified        Boolean           @default(false)
+  isActive          Boolean           @default(true)
+  profileId         String?           @unique
+  profileVisibility ProfileVisibility @default(PUBLIC)
+  companyId         String?
+  lastLogin         DateTime?
+  deletedAt         DateTime?
+
+  //* ==== relations =====>
+  // applications       Application[]
+  // jobsPosted         Job[]               @relation("JobPoster")
+  // notifications      Notification[]
+  // savedJobs          SavedJob[]
+  // company            Company?            @relation(fields: [companyId], references: [id])
+  // profile            Profile?            @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  // verificationTokens VerificationToken[]
 
   @@index([email, isActive])
   @@index([role, isActive])
@@ -135,21 +137,65 @@ model User {
 }
 
 model Profile {
-  id          String      @id @default(uuid())
-  userId      String      @unique
-  bio         String?
-  location    String?     @db.VarChar(255)
-  avatarUrl   String?     @db.VarChar(500)
-  coverUrl    String?     @db.VarChar(500)
-  resumeUrl   String?     @db.VarChar(500)
-  linkedInUrl String?     @db.VarChar(500)
-  websiteUrl  String?     @db.VarChar(500)
-  preference  Preference?
-  skills      Skill[]
-  user        User?
+  id                   String  @id @default(uuid())
+  userId               String  @unique
+  //* ==== personal =====>
+  bio                  String?
+  location             String? @db.VarChar(255)
+  avatarUrl            String? @db.VarChar(500)
+  coverUrl             String? @db.VarChar(500)
+  resumeUrl            String? @db.VarChar(500)
+  linkedInUrl          String? @db.VarChar(500)
+  websiteUrl           String? @db.VarChar(500)
+  //* ==== professional ======>
+  headline             String? @db.VarChar(255)
+  totalExperienceYears Float?
+  //* ==== relations ======>
+  // preference           Preference?
+  // skills               Skill[]
+  // user                 User?
 
   @@index([userId])
   @@map("profiles")
+}
+
+model Education {
+  id           String    @id @default(uuid())
+  profileId    String
+  institution  String    @db.VarChar(255)
+  degree       String    @db.VarChar(255)
+  fieldOfStudy String?   @db.VarChar(255)
+  startDate    DateTime?
+  endDate      DateTime?
+  grade        String?   @db.VarChar(50)
+  description  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  //* ==== relations ======>
+  // profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@index([institution])
+  @@map("education")
+}
+
+model workExperience {
+  id          String    @id @default(uuid())
+  profileId   String
+  jobTitle    String    @db.VarChar(255)
+  company     String    @db.VarChar(255)
+  location    String?   @db.VarChar(255)
+  startDate   DateTime?
+  endDate     DateTime?
+  description String?
+  current     Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  //* ==== relations ======>
+  // profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  @@index([profileId])
+  @@map("work_experience")
 }
 
 model Skill {
