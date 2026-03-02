@@ -121,13 +121,24 @@ model User {
   deletedAt         DateTime?
 
   //* ==== relations =====>
-  // applications       Application[]
-  // jobsPosted         Job[]               @relation("JobPoster")
-  // notifications      Notification[]
-  // savedJobs          SavedJob[]
-  // company            Company?            @relation(fields: [companyId], references: [id])
-  // profile            Profile?            @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  // verificationTokens VerificationToken[]
+  applications       Application[]
+  jobsPosted         Job[]                     @relation("JobPoster")
+  notifications      Notification[]
+  savedJobs          SavedJob[]
+  company            Company?                  @relation(fields: [companyId], references: [id])
+  profile            Profile?                  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  verificationTokens VerificationToken[]
+  conversations      ConversationParticipant[]
+  profileViews       ProfileView[]             @relation("ViewedUser")
+  profileViewers     ProfileView[]             @relation("ViewerUser")
+  jobViews           JobView[]
+  followedCompanies  Follow[]
+  resumes            Resume[]
+  candidateSaves     SavedCandidate[]          @relation("SavedByEmployers") // as candidate being saved
+  employerSaves      SavedCandidate[]          @relation("SavedCandidates") // as employer saving candidates
+  userSettings       UserSettings?
+  sentMessages       Message[]                 @relation("SenderMessages")
+  auditLogs          AuditLog[]
 
   @@index([email, isActive])
   @@index([role, isActive])
@@ -138,23 +149,26 @@ model User {
 }
 
 model Profile {
-  id                   String  @id @default(uuid())
-  userId               String  @unique
+  id                   String           @id @default(uuid())
+  userId               String           @unique
   //* ==== personal =====>
   bio                  String?
-  location             String? @db.VarChar(255)
-  avatarUrl            String? @db.VarChar(500)
-  coverUrl             String? @db.VarChar(500)
-  resumeUrl            String? @db.VarChar(500)
-  linkedInUrl          String? @db.VarChar(500)
-  websiteUrl           String? @db.VarChar(500)
+  location             String?          @db.VarChar(255)
+  avatarUrl            String?          @db.VarChar(500)
+  coverUrl             String?          @db.VarChar(500)
+  resumeUrl            String?          @db.VarChar(500)
+  linkedInUrl          String?          @db.VarChar(500)
+  websiteUrl           String?          @db.VarChar(500)
   //* ==== professional ======>
-  headline             String? @db.VarChar(255)
+  headline             String?          @db.VarChar(255)
   totalExperienceYears Float?
   //* ==== relations ======>
-  // preference           Preference?
-  // skills               Skill[]
-  // user                 User?
+  preference           Preference?
+  skills               Skill[]
+  user                 User?
+  education            Education[]
+  workExperiences      WorkExperience[]
+  certifications       Certification[]
 
   @@index([userId])
   @@map("profiles")
@@ -173,7 +187,7 @@ model Education {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   //* ==== relations ======>
-  // profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profile      Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@index([profileId])
   @@index([institution])
@@ -194,7 +208,8 @@ model WorkExperience {
   updatedAt   DateTime  @updatedAt
 
   //* ==== relations ======>
-  // profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
   @@index([profileId])
   @@map("work_experience")
 }
@@ -211,7 +226,7 @@ model Certification {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   //* ==== relations ======>
-  // profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profile       Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@index([profileId])
   @@index([name])
@@ -225,8 +240,8 @@ model Skill {
   profileId       String
   jobId           String?
   //* ==== relations ======>
-  // Job             Job?    @relation(fields: [jobId], references: [id])
-  // profile         Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  Job             Job?    @relation(fields: [jobId], references: [id])
+  profile         Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@index([profileId])
   @@index([skillName])
@@ -246,7 +261,7 @@ model Preference {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   //* ==== relations ======>
-  //profile           Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profile           Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@index([profileId])
   @@map("preferences")
@@ -264,7 +279,7 @@ model Company {
   location     String?   @db.VarChar(255)
   mission      String?   @db.VarChar(1000)
   values       String[]  @default([])
-  industryId   String?   @db.VarChar(100)
+  industryId   String?
   size         String?   @db.VarChar(50)
   contactEmail String?   @db.VarChar(255)
   contactPhone String?   @db.VarChar(50)
@@ -275,11 +290,16 @@ model Company {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   //* ==== relations ======>
-  // benefits     Benefits[]
-  // industry     Industry?    @relation(fields: [industryId], references: [id])
-  // jobs         Job[]
-  // socialLinks  SocialLink[]
-  // employees    User[]
+
+  benefits        Benefits[]
+  industry        Industry?        @relation(fields: [industryId], references: [id])
+  jobs            Job[]
+  socialLinks     SocialLink[]
+  employees       User[]
+  follows         Follow[]
+  subscription    Subscription?
+  invoices        Invoice[]
+  companySettings CompanySettings?
 
   @@index([slug])
   @@index([isVerified, deletedAt])
@@ -299,8 +319,8 @@ model Benefits {
   companyId   String?
   jobId       String?
   //* ==== relations ======>
-  // company     Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  // job         Job?     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  company     Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  job         Job?     @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@index([companyId])
   @@index([jobId])
@@ -309,12 +329,12 @@ model Benefits {
 }
 
 model SocialLink {
-  id        String @id @default(uuid())
-  platform  String @db.VarChar(50)
-  url       String @db.VarChar(500)
+  id        String  @id @default(uuid())
+  platform  String  @db.VarChar(50)
+  url       String  @db.VarChar(500)
   companyId String
   //* ==== relations ======>
-  // company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@index([companyId])
   @@map("social_links")
@@ -325,7 +345,7 @@ model Industry {
   name          String    @unique
   slug          String    @unique
   active        Boolean   @default(true)
-  description   String
+  description   String?
   icon          String    @db.VarChar(50)
   subcategories String[]  @default([])
   createdAt     DateTime  @default(now())
@@ -333,8 +353,8 @@ model Industry {
   isDeleted     Boolean   @default(false)
   deletedAt     DateTime?
   //* ==== relations ======>
-  // companies     Company[]
-  // jobs          Job[]
+  companies     Company[]
+  jobs          Job[]
 
   @@index([slug])
   @@index([active])
@@ -342,50 +362,52 @@ model Industry {
 }
 
 model Job {
-  id                    String    @id @default(uuid())
-  title                 String    @db.VarChar(255)
-  slug                  String    @unique @db.VarChar(255)
-  discipline            String    @db.VarChar(255)
+  id                    String         @id @default(uuid())
+  title                 String         @db.VarChar(255)
+  slug                  String         @unique @db.VarChar(255)
+  discipline            String         @db.VarChar(255)
   description           String
-  requirements          String[]  @default([])
-  jobType               JobType   @default(FULL_TIME)
-  location              String    @db.VarChar(255)
-  experienceLevel       String    @db.VarChar(50)
-  isRemote              Boolean   @default(false)
+  requirements          String[]       @default([])
+  jobType               JobType        @default(FULL_TIME)
+  location              String         @db.VarChar(255)
+  experienceLevel       String         @db.VarChar(50)
+  isRemote              Boolean        @default(false)
   salaryMin             Int?
   salaryMax             Int?
-  currency              String?   @db.VarChar(3)
-  contactEmail          String?   @db.VarChar(255)
+  currency              String?        @db.VarChar(3)
+  contactEmail          String?        @db.VarChar(255)
   applicationDeadline   DateTime?
   maxApplications       Int?
-  autoCloseApplications Boolean   @default(false)
-  status                JobStatus @default(DRAFT)
-  isFeatured            Boolean   @default(false)
+  autoCloseApplications Boolean        @default(false)
+  status                JobStatus      @default(DRAFT)
+  isFeatured            Boolean        @default(false)
   expiresAt             DateTime?
-  viewCount             Int       @default(0)
-  applyCount            Int       @default(0)
+  viewCount             Int            @default(0)
+  applyCount            Int            @default(0)
   deletedAt             DateTime?
-  benefits              String[]  @default([])
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  benefits              String[]       @default([])
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
   companyId             String
   postedById            String
   industryId            String?
   //* ==== relations ======>
-  // applications          Application[]
-  // Benefits              Benefits[]
-  // JobSkill              JobSkill[]
-  // company               Company        @relation(fields: [companyId], references: [id])
-  // industry              Industry?      @relation(fields: [industryId], references: [id], onDelete: Restrict)
-  // postedBy              User           @relation("JobPoster", fields: [postedById], references: [id])
-  // notifications         Notification[] @relation("JobNotifications")
-  // savedByUsers          SavedJob[]
-  // skillsRequired        Skill[]
+  applications          Application[]
+  Benefits              Benefits[]
+  JobSkill              JobSkill[]
+  company               Company        @relation(fields: [companyId], references: [id])
+  industry              Industry?      @relation(fields: [industryId], references: [id], onDelete: Restrict)
+  postedBy              User           @relation("JobPoster", fields: [postedById], references: [id])
+  notifications         Notification[] @relation("JobNotifications")
+  savedByUsers          SavedJob[]
+  skillsRequired        Skill[]
+  jobViews              JobView[]
 
   @@index([companyId])
   @@index([location, isRemote])
   @@index([jobType, experienceLevel])
   @@index([isFeatured, createdAt])
+  @@index([status, expiresAt, deletedAt])
   @@index([postedById])
   @@index([deletedAt])
   @@index([slug])
@@ -403,7 +425,7 @@ model JobSkill {
   updatedAt       DateTime         @updatedAt
   jobId           String
   //* ==== relations ======>
-  // job             Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  job             Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@index([jobId])
   @@index([skillName])
@@ -417,11 +439,11 @@ model Application {
   id                     String                 @id @default(uuid())
   status                 ApplicationStatus      @default(SUBMITTED)
   coverLetter            String?
-  preferredContactMethod PreferredContactMethod @default(email)
+  preferredContactMethod PreferredContactMethod @default(EMAIL)
   rejectionReason        String?
   statusChangedBy        String?
   statusChangedAt        DateTime?
-  applicantData          String?                @default("")
+  applicantData          Json?
   folderName             String?                @db.VarChar(100)
   fullName               String?                @db.VarChar(100)
   email                  String?                @db.VarChar(200)
@@ -438,9 +460,10 @@ model Application {
   applicantId            String
   jobId                  String
   //* ==== relations ======>
-  // applicant              User                   @relation(fields: [applicantId], references: [id], onDelete: Cascade)
-  // job                    Job                    @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  // notifications          Notification[]
+  applicant              User                   @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  job                    Job                    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  notifications          Notification[]
+  conversations          Conversation[]
 
   @@unique([jobId, applicantId])
   @@index([applicantId, status])
@@ -458,8 +481,8 @@ model SavedJob {
   notes      String?
   createdAt  DateTime @default(now())
   //* ==== relations ======>
-  // job        Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  // user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job        Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, jobId])
   @@index([userId])
@@ -476,53 +499,63 @@ model SavedCandidate {
   notes       String?
   createdAt   DateTime @default(now())
   //* ==== relations ======>
-  // employer User @relation("SavedCandidates", fields: [employerId], references: [id], onDelete: Cascade)
-  // candidate User @relation("SavedByEmployers", fields: [candidateId], references: [id], onDelete: Cascade)
+  employer    User     @relation("SavedCandidates", fields: [employerId], references: [id], onDelete: Cascade)
+  candidate   User     @relation("SavedByEmployers", fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@unique([employerId, candidateId])
+  @@index([employerId])
+  @@index([candidateId])
+  @@index([folderName])
+  @@map("saved_candidates")
 }
 
 //* ====== messaging ======>
 model Conversation {
-  id            String   @id @default(uuid())
-  applicationId String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                       String                    @id @default(uuid())
+  applicationId            String?
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
   //* ==== relations ======>
-  // application   Application? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  // participants   ConversationParticipant[]
-  // messages       Message[]
-  // lastMessageId  String?                     // denormalized for quick preview
-  // lastMessage    Message?                    @relation("LastMessage", fields: [lastMessageId], references: [id])
+  messages                 Message[]                 @relation("ConversationMessages")
+  lastMessageId            String?                   @unique // Ensures one message can be last of at most one conversation
+  lastMessage              Message?                  @relation("LastMessage", fields: [lastMessageId], references: [id])
+  application              Application?              @relation(fields: [applicationId], references: [id])
+  conversationParticipants ConversationParticipant[]
+
+  @@map("conversations")
 }
 
 model ConversationParticipant {
-  id             String    @id @default(uuid())
+  id             String       @id @default(uuid())
   conversationId String
   userId         String
-  joinedAt       DateTime  @default(now())
+  joinedAt       DateTime     @default(now())
   leftAt         DateTime?
   lastReadAt     DateTime?
   //* ==== relations ======>
-  // conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  // user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([conversationId, userId])
   @@index([conversationId])
   @@index([userId])
+  @@map("conversation_participants")
 }
 
 model Message {
-  id             String        @id @default(uuid())
-  conversationId String
-  senderId       String
-  content        String        @db.Text
-  status         MessageStatus @default(SENT)
-  deliveredAt    DateTime?
-  readAt         DateTime?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id                         String        @id @default(uuid())
+  conversationId             String
+  senderId                   String
+  content                    String        @db.Text
+  status                     MessageStatus @default(SENT)
+  deliveredAt                DateTime?
+  readAt                     DateTime?
+  createdAt                  DateTime      @default(now())
+  updatedAt                  DateTime      @updatedAt
   //* ==== relations ======>
-  // conversation   Conversation   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  // sender         User           @relation("SenderMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  conversation               Conversation  @relation("ConversationMessages", fields: [conversationId], references: [id], onDelete: Cascade)
+  sender                     User          @relation("SenderMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  lastMessageForConversation Conversation? @relation("LastMessage")
 
   @@index([conversationId, createdAt])
   @@index([senderId])
@@ -546,9 +579,9 @@ model Notification {
   createdAt     DateTime         @default(now())
   userId        String
   //* ==== relations ======>
-  // application   Application?     @relation(fields: [applicationId], references: [id])
-  // job           Job?             @relation("JobNotifications", fields: [jobId], references: [id])
-  // user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application   Application?     @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  job           Job?             @relation("JobNotifications", fields: [jobId], references: [id], onDelete: SetNull)
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead])
   @@index([createdAt])
@@ -566,8 +599,8 @@ model ProfileView {
   ipAddress    String?  @db.VarChar(45)
   userAgent    String?  @db.Text
   //* ==== relations ======>
-  // viewer     User?    @relation("ViewerUser", fields: [viewerId], references: [id], onDelete: SetNull)
-  // viewedUser User     @relation("ViewedUser", fields: [viewedUserId], references: [id], onDelete: Cascade)
+  viewer       User?    @relation("ViewerUser", fields: [viewerId], references: [id], onDelete: SetNull)
+  viewedUser   User     @relation("ViewedUser", fields: [viewedUserId], references: [id], onDelete: Cascade)
 
   @@index([viewedUserId])
   @@index([viewerId])
@@ -583,8 +616,8 @@ model JobView {
   ipAddress String?  @db.VarChar(45)
   userAgent String?  @db.Text
   //* ==== relations ======>
-  // user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  // job        Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([jobId])
@@ -598,8 +631,8 @@ model Follow {
   companyId  String
   followedAt DateTime @default(now())
   //* ==== relations ======>
-  // user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  // company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@unique([userId, companyId])
   @@index([userId])
@@ -624,7 +657,8 @@ model Plan {
   updatedAt     DateTime @updatedAt
 
   //* ==== relations ======>
-  // subscriptions  Subscription[]
+  subscriptions Subscription[]
+
   @@map("plans")
 }
 
@@ -643,9 +677,10 @@ model Subscription {
   updatedAt            DateTime           @updatedAt
 
   //* ==== relations ======>
-  // company        Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  // plan           Plan             @relation(fields: [planId], references: [id])
-  // invoices       Invoice[]
+  company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  plan     Plan      @relation(fields: [planId], references: [id])
+  invoices Invoice[]
+
   @@index([status])
   @@index([endDate])
   @@map("subscriptions")
@@ -667,8 +702,8 @@ model Invoice {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   //* ==== relations ======>
-  // company        Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  // subscription   Subscription?    @relation(fields: [subscriptionId], references: [id])
+  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  subscription    Subscription? @relation(fields: [subscriptionId], references: [id])
 
   @@index([companyId])
   @@index([status])
@@ -689,7 +724,8 @@ model CompanySettings {
   updatedAt DateTime @updatedAt
 
   //* ==== relations ======>
-  // company               Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
   @@map("company_settings")
 }
 
@@ -708,7 +744,7 @@ model UserSettings {
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
   //* ==== relations ======>
-  // user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_settings")
 }
@@ -723,7 +759,7 @@ model Resume {
   isDefault  Boolean  @default(false)
   uploadDate DateTime @default(now())
   //* ==== relations ======>
-  // user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, fileName])
   @@index([userId])
@@ -740,7 +776,7 @@ model VerificationToken {
   usedAt    DateTime?
   createdAt DateTime  @default(now())
   //* ==== relations ======>
-  // user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([token])
   @@index([userId, type])
@@ -755,10 +791,12 @@ model AuditLog {
   action     String   @db.VarChar(50)
   oldValues  Json?
   newValues  Json?
-  userId     String   @db.VarChar(255)
   ipAddress  String?  @db.VarChar(45)
   userAgent  String?  @db.VarChar(500)
   createdAt  DateTime @default(now())
+  userId     String?
+  //* ==== relations ======>
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([entityType, entityId])
   @@index([userId])
