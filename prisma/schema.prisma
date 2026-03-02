@@ -545,14 +545,207 @@ model Notification {
   metadata      Json?
   createdAt     DateTime         @default(now())
   userId        String
-  application   Application?     @relation(fields: [applicationId], references: [id])
-  job           Job?             @relation("JobNotifications", fields: [jobId], references: [id])
-  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  //* ==== relations ======>
+  // application   Application?     @relation(fields: [applicationId], references: [id])
+  // job           Job?             @relation("JobNotifications", fields: [jobId], references: [id])
+  // user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead])
   @@index([createdAt])
   @@index([type, createdAt])
   @@map("notifications")
+}
+
+//* ==== view & tracking ======>
+
+model ProfileView {
+  id           String   @id @default(uuid())
+  viewerId     String?
+  viewedUserId String
+  viewedAt     DateTime @default(now())
+  ipAddress    String?  @db.VarChar(45)
+  userAgent    String?  @db.Text
+  //* ==== relations ======>
+  // viewer     User?    @relation("ViewerUser", fields: [viewerId], references: [id], onDelete: SetNull)
+  // viewedUser User     @relation("ViewedUser", fields: [viewedUserId], references: [id], onDelete: Cascade)
+
+  @@index([viewedUserId])
+  @@index([viewerId])
+  @@index([viewedAt])
+  @@map("profile_views")
+}
+
+model JobView {
+  id        String   @id @default(uuid())
+  userId    String? // null if anonymous
+  jobId     String
+  viewedAt  DateTime @default(now())
+  ipAddress String?  @db.VarChar(45)
+  userAgent String?  @db.Text
+  //* ==== relations ======>
+  // user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  // job        Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([jobId])
+  @@index([viewedAt])
+  @@map("job_views")
+}
+
+model Follow {
+  id         String   @id @default(uuid())
+  userId     String
+  companyId  String
+  followedAt DateTime @default(now())
+  //* ==== relations ======>
+  // user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, companyId])
+  @@index([userId])
+  @@index([companyId])
+  @@map("follows")
+}
+
+//* ===== subscription & billing ======>
+
+model Plan {
+  id            String   @id @default(uuid())
+  name          String   @unique @db.VarChar(100)
+  description   String?
+  price         Float
+  currency      String   @default("USD")
+  interval      String   @default("month")
+  features      Json
+  maxActiveJobs Int?
+  maxUsers      Int?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  //* ==== relations ======>
+  // subscriptions  Subscription[]
+  @@map("plans")
+}
+
+model Subscription {
+  id                   String             @id @default(uuid())
+  companyId            String             @unique
+  planId               String
+  status               SubscriptionStatus @default(ACTIVE)
+  startDate            DateTime
+  endDate              DateTime?
+  autoRenew            Boolean            @default(true)
+  cancelAtPeriodEnd    Boolean            @default(false)
+  stripeSubscriptionId String?            @unique
+  paymentMethod        Json?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  //* ==== relations ======>
+  // company        Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  // plan           Plan             @relation(fields: [planId], references: [id])
+  // invoices       Invoice[]
+  @@index([status])
+  @@index([endDate])
+  @@map("subscriptions")
+}
+
+model Invoice {
+  id              String        @id @default(uuid())
+  companyId       String
+  subscriptionId  String?
+  invoiceNumber   String        @unique
+  amount          Float
+  currency        String        @default("USD")
+  status          InvoiceStatus @default(UNPAID)
+  dueDate         DateTime?
+  paidAt          DateTime?
+  pdfUrl          String?       @db.VarChar(500)
+  stripeInvoiceId String?       @unique
+  metadata        Json?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  //* ==== relations ======>
+  // company        Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  // subscription   Subscription?    @relation(fields: [subscriptionId], references: [id])
+
+  @@index([companyId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("invoices")
+}
+
+//* ====== company settings ======>
+model CompanySettings {
+  id                 String  @id @default(uuid())
+  companyId          String  @unique
+  emailNotifications Boolean @default(true)
+  applicationAlerts  Boolean @default(true)
+  jobExpiryReminders Boolean @default(true)
+  weeklyReports      Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  //* ==== relations ======>
+  // company               Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  @@map("company_settings")
+}
+
+//* ====== user settings ======>
+model UserSettings {
+  id                 String            @id @default(uuid())
+  userId             String            @unique
+  jobRecommendations Boolean           @default(true)
+  applicationUpdates Boolean           @default(true)
+  messages           Boolean           @default(true)
+  interviewUpdates   Boolean           @default(true)
+  //* ==== privacy ====>
+  profileVisibility  ProfileVisibility @default(PUBLIC)
+  showEmail          Boolean           @default(false)
+  showPhone          Boolean           @default(false)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  //* ==== relations ======>
+  // user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
+
+//* ===== resume management =====>
+model Resume {
+  id         String   @id @default(uuid())
+  userId     String
+  fileName   String   @db.VarChar(255)
+  fileUrl    String   @db.VarChar(500)
+  fileSize   Int? // in bytes
+  isDefault  Boolean  @default(false)
+  uploadDate DateTime @default(now())
+  //* ==== relations ======>
+  // user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, fileName])
+  @@index([userId])
+  @@map("resumes")
+}
+
+//* ====== tokens & logs ======>
+model VerificationToken {
+  id        String    @id @default(uuid())
+  token     String    @unique @db.VarChar(255)
+  type      TokenType
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  //* ==== relations ======>
+  // user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId, type])
+  @@index([expiresAt])
+  @@map("verification_tokens")
 }
 
 model AuditLog {
@@ -586,20 +779,4 @@ model RateLimit {
   @@index([windowStart])
   @@index([resets])
   @@map("rate_limits")
-}
-
-model VerificationToken {
-  id        String    @id @default(uuid())
-  token     String    @unique @db.VarChar(255)
-  type      TokenType
-  userId    String
-  expiresAt DateTime
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([token])
-  @@index([userId, type])
-  @@index([expiresAt])
-  @@map("verification_tokens")
 }
