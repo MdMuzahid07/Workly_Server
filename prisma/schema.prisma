@@ -7,6 +7,103 @@ datasource db {
   provider = "postgresql"
 }
 
+//* ====== Enums ======//
+
+enum UserRole {
+  JOB_SEEKER
+  EMPLOYER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum ProfileVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  FREELANCE
+  REMOTE
+}
+
+enum JobStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+  EXPIRED
+}
+
+enum JobSkillPriority {
+  HIGH
+  MEDIUM
+  LOW
+  GOOD_TO_HAVE
+}
+
+enum NotificationType {
+  APPLICATION_RECEIVED
+  APPLICATION_STATUS_CHANGE
+  NEW_JOB_MATCH
+  JOB_EXPIRING
+  JOB_CLOSED
+  MESSAGE_RECEIVED
+  SYSTEM_ANNOUNCEMENT
+  PROFILE_INCOMPLETE
+  INTERVIEW_SCHEDULED
+  PROFILE_VIEWED
+  JOB_VIEWED
+}
+
+enum ApplicationStatus {
+  SUBMITTED
+  REVIEWING
+  SHORTLISTED
+  INTERVIEWED
+  REJECTED
+  OFFERED
+  ACCEPTED
+  WITHDRAWN
+}
+
+enum PreferredContactMethod {
+  EMAIL
+  PHONE
+  BOTH
+}
+
+enum TokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+  TWO_FACTOR_AUTH
+  LOGIN_MAGIC_LINK
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+  TRIALING
+}
+
+enum InvoiceStatus {
+  PAID
+  UNPAID
+  OVERDUE
+  REFUNDED
+}
+
+enum MessageStatus {
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
 model User {
   id                 String              @id @default(uuid())
   email              String              @unique @db.VarChar(255)
