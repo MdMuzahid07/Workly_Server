@@ -104,6 +104,7 @@ enum MessageStatus {
   FAILED
 }
 
+//* ====== user & profile ======>
 model User {
   id                String            @id @default(uuid())
   email             String            @unique @db.VarChar(255)
@@ -179,7 +180,7 @@ model Education {
   @@map("education")
 }
 
-model workExperience {
+model WorkExperience {
   id          String    @id @default(uuid())
   profileId   String
   jobTitle    String    @db.VarChar(255)
@@ -198,14 +199,34 @@ model workExperience {
   @@map("work_experience")
 }
 
+model Certification {
+  id            String    @id @default(uuid())
+  profileId     String
+  name          String    @db.VarChar(255)
+  issuingOrg    String    @db.VarChar(255)
+  issueDate     DateTime?
+  expiryDate    DateTime?
+  credentialId  String?   @db.VarChar(255)
+  credentialUrl String?   @db.VarChar(500)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  //* ==== relations ======>
+  // profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@index([name])
+  @@map("certifications")
+}
+
 model Skill {
   id              String  @id @default(uuid())
   skillName       String  @db.VarChar(100)
   experienceYears Float
   profileId       String
   jobId           String?
-  Job             Job?    @relation(fields: [jobId], references: [id])
-  profile         Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  //* ==== relations ======>
+  // Job             Job?    @relation(fields: [jobId], references: [id])
+  // profile         Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@index([profileId])
   @@index([skillName])
@@ -221,40 +242,44 @@ model Preference {
   remoteWork        Boolean  @default(false)
   industry          String?  @db.VarChar(100)
   workExperience    String?  @db.VarChar(100)
+  availability      String?  @db.VarChar(100)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
-  profile           Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  //* ==== relations ======>
+  //profile           Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@index([profileId])
   @@map("preferences")
 }
 
+//* ====== company & job ======>
 model Company {
-  id           String       @id @default(uuid())
-  name         String       @unique @db.VarChar(255)
-  slug         String       @unique @db.VarChar(255)
+  id           String    @id @default(uuid())
+  name         String    @unique @db.VarChar(255)
+  slug         String    @unique @db.VarChar(255)
   description  String?
-  websiteUrl   String?      @db.VarChar(500)
-  logoUrl      String?      @db.VarChar(500)
-  coverUrl     String?      @db.VarChar(500)
-  location     String?      @db.VarChar(255)
-  mission      String?      @db.VarChar(1000)
-  values       String[]     @default([])
-  industryId   String?      @db.VarChar(100)
-  size         String?      @db.VarChar(50)
-  contactEmail String?      @db.VarChar(255)
-  contactPhone String?      @db.VarChar(50)
-  isVerified   Boolean      @default(false)
-  founded      String?      @db.VarChar(100)
+  websiteUrl   String?   @db.VarChar(500)
+  logoUrl      String?   @db.VarChar(500)
+  coverUrl     String?   @db.VarChar(500)
+  location     String?   @db.VarChar(255)
+  mission      String?   @db.VarChar(1000)
+  values       String[]  @default([])
+  industryId   String?   @db.VarChar(100)
+  size         String?   @db.VarChar(50)
+  contactEmail String?   @db.VarChar(255)
+  contactPhone String?   @db.VarChar(50)
+  isVerified   Boolean   @default(false)
+  founded      String?   @db.VarChar(100)
   verifiedAt   DateTime?
   deletedAt    DateTime?
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  benefits     Benefits[]
-  industry     Industry?    @relation(fields: [industryId], references: [id])
-  jobs         Job[]
-  socialLinks  SocialLink[]
-  employees    User[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  //* ==== relations ======>
+  // benefits     Benefits[]
+  // industry     Industry?    @relation(fields: [industryId], references: [id])
+  // jobs         Job[]
+  // socialLinks  SocialLink[]
+  // employees    User[]
 
   @@index([slug])
   @@index([isVerified, deletedAt])
@@ -273,8 +298,9 @@ model Benefits {
   updatedAt   DateTime @updatedAt
   companyId   String?
   jobId       String?
-  company     Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  job         Job?     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  //* ==== relations ======>
+  // company     Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  // job         Job?     @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@index([companyId])
   @@index([jobId])
@@ -283,57 +309,79 @@ model Benefits {
 }
 
 model SocialLink {
-  id        String  @id @default(uuid())
-  platform  String  @db.VarChar(50)
-  url       String  @db.VarChar(500)
+  id        String @id @default(uuid())
+  platform  String @db.VarChar(50)
+  url       String @db.VarChar(500)
   companyId String
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  //* ==== relations ======>
+  // company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@index([companyId])
   @@map("social_links")
 }
 
+model Industry {
+  id            String    @id @default(uuid())
+  name          String    @unique
+  slug          String    @unique
+  active        Boolean   @default(true)
+  description   String
+  icon          String    @db.VarChar(50)
+  subcategories String[]  @default([])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  isDeleted     Boolean   @default(false)
+  deletedAt     DateTime?
+  //* ==== relations ======>
+  // companies     Company[]
+  // jobs          Job[]
+
+  @@index([slug])
+  @@index([active])
+  @@map("industries")
+}
+
 model Job {
-  id                    String         @id @default(uuid())
-  title                 String         @db.VarChar(255)
-  slug                  String         @unique @db.VarChar(255)
-  discipline            String         @db.VarChar(255)
+  id                    String    @id @default(uuid())
+  title                 String    @db.VarChar(255)
+  slug                  String    @unique @db.VarChar(255)
+  discipline            String    @db.VarChar(255)
   description           String
-  requirements          String[]       @default([])
-  jobType               JobType        @default(FULL_TIME)
-  location              String         @db.VarChar(255)
-  experienceLevel       String         @db.VarChar(50)
-  isRemote              Boolean        @default(false)
+  requirements          String[]  @default([])
+  jobType               JobType   @default(FULL_TIME)
+  location              String    @db.VarChar(255)
+  experienceLevel       String    @db.VarChar(50)
+  isRemote              Boolean   @default(false)
   salaryMin             Int?
   salaryMax             Int?
-  currency              String?        @db.VarChar(3)
-  contactEmail          String?        @db.VarChar(255)
+  currency              String?   @db.VarChar(3)
+  contactEmail          String?   @db.VarChar(255)
   applicationDeadline   DateTime?
   maxApplications       Int?
-  autoCloseApplications Boolean        @default(false)
-  isActive              Boolean        @default(true)
-  isFeatured            Boolean        @default(false)
+  autoCloseApplications Boolean   @default(false)
+  status                JobStatus @default(DRAFT)
+  isFeatured            Boolean   @default(false)
   expiresAt             DateTime?
-  viewCount             Int            @default(0)
-  applyCount            Int            @default(0)
+  viewCount             Int       @default(0)
+  applyCount            Int       @default(0)
   deletedAt             DateTime?
-  benefits              String[]       @default([])
-  createdAt             DateTime       @default(now())
-  updatedAt             DateTime       @updatedAt
+  benefits              String[]  @default([])
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
   companyId             String
   postedById            String
   industryId            String?
-  applications          Application[]
-  Benefits              Benefits[]
-  JobSkill              JobSkill[]
-  company               Company        @relation(fields: [companyId], references: [id])
-  industry              Industry?      @relation(fields: [industryId], references: [id], onDelete: Restrict)
-  postedBy              User           @relation("JobPoster", fields: [postedById], references: [id])
-  notifications         Notification[] @relation("JobNotifications")
-  savedByUsers          SavedJob[]
-  skillsRequired        Skill[]
+  //* ==== relations ======>
+  // applications          Application[]
+  // Benefits              Benefits[]
+  // JobSkill              JobSkill[]
+  // company               Company        @relation(fields: [companyId], references: [id])
+  // industry              Industry?      @relation(fields: [industryId], references: [id], onDelete: Restrict)
+  // postedBy              User           @relation("JobPoster", fields: [postedById], references: [id])
+  // notifications         Notification[] @relation("JobNotifications")
+  // savedByUsers          SavedJob[]
+  // skillsRequired        Skill[]
 
-  @@index([isActive, expiresAt, deletedAt])
   @@index([companyId])
   @@index([location, isRemote])
   @@index([jobType, experienceLevel])
@@ -354,7 +402,8 @@ model JobSkill {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   jobId           String
-  job             Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  //* ==== relations ======>
+  // job             Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@index([jobId])
   @@index([skillName])
@@ -363,30 +412,7 @@ model JobSkill {
   @@map("job_skills")
 }
 
-model Notification {
-  id            String           @id @default(uuid())
-  type          NotificationType
-  title         String           @db.VarChar(255)
-  message       String
-  isRead        Boolean          @default(false)
-  jobId         String?
-  applicationId String?
-  sentVia       String[]         @default(["in_app"])
-  emailSentAt   DateTime?
-  pushSentAt    DateTime?
-  metadata      Json?
-  createdAt     DateTime         @default(now())
-  userId        String
-  application   Application?     @relation(fields: [applicationId], references: [id])
-  job           Job?             @relation("JobNotifications", fields: [jobId], references: [id])
-  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, isRead])
-  @@index([createdAt])
-  @@index([type, createdAt])
-  @@map("notifications")
-}
-
+//* ====== application & saved jobs/candidate ======>
 model Application {
   id                     String                 @id @default(uuid())
   status                 ApplicationStatus      @default(SUBMITTED)
@@ -411,9 +437,10 @@ model Application {
   updatedAt              DateTime               @updatedAt
   applicantId            String
   jobId                  String
-  applicant              User                   @relation(fields: [applicantId], references: [id], onDelete: Cascade)
-  job                    Job                    @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  notifications          Notification[]
+  //* ==== relations ======>
+  // applicant              User                   @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  // job                    Job                    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  // notifications          Notification[]
 
   @@unique([jobId, applicantId])
   @@index([applicantId, status])
@@ -430,14 +457,102 @@ model SavedJob {
   folderName String?  @db.VarChar(100)
   notes      String?
   createdAt  DateTime @default(now())
-  job        Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  //* ==== relations ======>
+  // job        Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  // user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, jobId])
   @@index([userId])
   @@index([jobId])
   @@index([folderName])
   @@map("saved_jobs")
+}
+
+model SavedCandidate {
+  id          String   @id @default(uuid())
+  employerId  String
+  candidateId String
+  folderName  String?  @db.VarChar(100)
+  notes       String?
+  createdAt   DateTime @default(now())
+  //* ==== relations ======>
+  // employer User @relation("SavedCandidates", fields: [employerId], references: [id], onDelete: Cascade)
+  // candidate User @relation("SavedByEmployers", fields: [candidateId], references: [id], onDelete: Cascade)
+}
+
+//* ====== messaging ======>
+model Conversation {
+  id            String   @id @default(uuid())
+  applicationId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  //* ==== relations ======>
+  // application   Application? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  // participants   ConversationParticipant[]
+  // messages       Message[]
+  // lastMessageId  String?                     // denormalized for quick preview
+  // lastMessage    Message?                    @relation("LastMessage", fields: [lastMessageId], references: [id])
+}
+
+model ConversationParticipant {
+  id             String    @id @default(uuid())
+  conversationId String
+  userId         String
+  joinedAt       DateTime  @default(now())
+  leftAt         DateTime?
+  lastReadAt     DateTime?
+  //* ==== relations ======>
+  // conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  // user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([conversationId])
+  @@index([userId])
+}
+
+model Message {
+  id             String        @id @default(uuid())
+  conversationId String
+  senderId       String
+  content        String        @db.Text
+  status         MessageStatus @default(SENT)
+  deliveredAt    DateTime?
+  readAt         DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  //* ==== relations ======>
+  // conversation   Conversation   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  // sender         User           @relation("SenderMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+  @@index([status])
+  @@map("messages")
+}
+
+//* ====== notification ======>
+model Notification {
+  id            String           @id @default(uuid())
+  type          NotificationType
+  title         String           @db.VarChar(255)
+  message       String
+  isRead        Boolean          @default(false)
+  jobId         String?
+  applicationId String?
+  sentVia       String[]         @default(["in_app"])
+  emailSentAt   DateTime?
+  pushSentAt    DateTime?
+  metadata      Json?
+  createdAt     DateTime         @default(now())
+  userId        String
+  application   Application?     @relation(fields: [applicationId], references: [id])
+  job           Job?             @relation("JobNotifications", fields: [jobId], references: [id])
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@index([type, createdAt])
+  @@map("notifications")
 }
 
 model AuditLog {
@@ -487,88 +602,4 @@ model VerificationToken {
   @@index([userId, type])
   @@index([expiresAt])
   @@map("verification_tokens")
-}
-
-model Industry {
-  id            String    @id @default(uuid())
-  name          String    @unique
-  slug          String    @unique
-  active        Boolean   @default(true)
-  description   String
-  icon          String    @db.VarChar(50)
-  subcategories String[]  @default([])
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  isDeleted     Boolean   @default(false)
-  deletedAt     DateTime?
-  companies     Company[]
-  jobs          Job[]
-
-  @@index([slug])
-  @@index([active])
-  @@map("industries")
-}
-
-enum UserRole {
-  JOB_SEEKER
-  EMPLOYER
-  ADMIN
-  SUPER_ADMIN
-}
-
-enum ProfileVisibility {
-  PUBLIC
-  PRIVATE
-}
-
-enum JobType {
-  FULL_TIME
-  PART_TIME
-  CONTRACT
-  INTERNSHIP
-  FREELANCE
-  REMOTE
-}
-
-enum JobSkillPriority {
-  HIGH
-  MEDIUM
-  LOW
-  GOOD_TO_HAVE
-}
-
-enum NotificationType {
-  APPLICATION_RECEIVED
-  APPLICATION_STATUS_CHANGE
-  NEW_JOB_MATCH
-  JOB_EXPIRING
-  JOB_CLOSED
-  MESSAGE_RECEIVED
-  SYSTEM_ANNOUNCEMENT
-  PROFILE_INCOMPLETE
-  INTERVIEW_SCHEDULED
-}
-
-enum ApplicationStatus {
-  SUBMITTED
-  REVIEWING
-  SHORTLISTED
-  INTERVIEWED
-  REJECTED
-  OFFERED
-  ACCEPTED
-  WITHDRAWN
-}
-
-enum PreferredContactMethod {
-  email
-  phone
-  both
-}
-
-enum TokenType {
-  EMAIL_VERIFICATION
-  PASSWORD_RESET
-  TWO_FACTOR_AUTH
-  LOGIN_MAGIC_LINK
 }
