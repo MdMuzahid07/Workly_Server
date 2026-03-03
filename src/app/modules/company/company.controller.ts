@@ -109,6 +109,20 @@ const removeEmployee = asyncHandler(async (req, res) => {
   });
 });
 
+const getCompanyOverviewStatistics = asyncHandler(async (req, res) => {
+  //@ts-ignore
+  const userId = req.user.userId;
+
+  const result = await companyService.getCompanyOverviewStatistics(userId);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Company overview statistics fetched successfully",
+    data: result,
+  });
+});
+
 const getMyCompany = asyncHandler(async (req, res) => {
   //@ts-ignore
   const userId = req.user.userId;
@@ -159,6 +173,7 @@ const companyController = {
   updateCompanyById,
   addEmployee,
   removeEmployee,
+  getCompanyOverviewStatistics,
   getMyCompany,
   getSettings,
   updateSettings,

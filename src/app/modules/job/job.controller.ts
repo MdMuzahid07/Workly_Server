@@ -30,6 +30,20 @@ const getJobs = asyncHandler(async (req, res) => {
   });
 });
 
+const getMyJobs = asyncHandler(async (req, res) => {
+  //@ts-ignore
+  const userId = req.user.userId;
+  const { data, meta } = await jobService.getMyJobs(userId, req.query);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Employer jobs fetched successfully",
+    data,
+    meta,
+  });
+});
+
 const getJobById = asyncHandler(async (req, res) => {
   const { jobId } = req.params;
 
@@ -76,6 +90,7 @@ const deleteJob = asyncHandler(async (req, res) => {
 const jobController = {
   createJob,
   getJobs,
+  getMyJobs,
   getJobById,
   updateJob,
   deleteJob,

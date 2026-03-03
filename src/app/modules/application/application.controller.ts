@@ -45,6 +45,19 @@ const getJobApplications = asyncHandler(async (req, res) => {
   });
 });
 
+const getMyCompanyApplications = asyncHandler(async (req, res) => {
+  //@ts-ignore
+  const employerId = req.user.userId;
+  const result = await applicationService.getMyCompanyApplications(employerId, req.query);
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Company applications fetched successfully",
+    data: result.data,
+    meta: result.meta,
+  });
+});
+
 const getApplicationById = asyncHandler(async (req, res) => {
   //@ts-ignore
   const requesterId = req.user.userId;
@@ -138,6 +151,7 @@ const applicationController = {
   createApplication,
   getMyApplications,
   getJobApplications,
+  getMyCompanyApplications,
   getApplicationById,
   updateStatus,
   withdraw,

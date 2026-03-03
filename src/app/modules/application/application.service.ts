@@ -346,10 +346,81 @@ const getJobSummary = async (employerId: string, jobId: string) => {
   return { total, summary } as const;
 };
 
+const getMyCompanyApplications = async (employerId: string, query: any) => {
+  if (!employerId) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+  }
+
+  const employer = await prisma.user.findUnique({
+    where: { id: employerId, isActive: true },
+    select: { companyId: true, role: true },
+  });
+
+  if (!employer || !employer.companyId) {
+    throw new AppError(httpStatus.FORBIDDEN, "Not authorized or no company associated");
+  }
+
+  const applicationFilter = factoryFunctions.createApplicationFilter(prisma);
+  const filterOptions: any = {
+    where: {
+      job: {
+        companyId: employer.companyId,
+      },
+      deletedAt: null,
+    },
+    page: Number(query.page) || 1,
+    limit: Number(query.limit) || 10,
+    sortBy: query.sortBy || "createdAt",
+    sortOrder: (query.sortOrder as "asc" | "desc") || "desc",
+  };
+
+  if (query.status) {
+    filterOptions.where.status = query.status;
+  }
+
+  if (query.jobId) {
+    filterOptions.where.jobId = query.jobId;
+  }
+
+  if (query.q) {
+    filterOptions.search = query.q;
+    filterOptions.searchIn = ["applicant.fullName", "applicant.email"];
+  }
+
+  const { where, orderBy, skip, take, pagination } = await applicationFilter.filter(filterOptions);
+
+  const data = await prisma.application.findMany({
+    where,
+    orderBy,
+    skip,
+    take,
+    include: {
+      job: {
+        select: {
+          id: true,
+          title: true,
+        },
+      },
+      applicant: {
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          phone: true,
+          profile: { select: { skills: true, preference: true } },
+        },
+      },
+    },
+  });
+
+  return { data, meta: pagination };
+};
+
 const applicationService = {
   createApplication,
   getMyApplications,
   getJobApplications,
+  getMyCompanyApplications,
   getApplicationById,
   updateStatus,
   withdraw,

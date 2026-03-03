@@ -16,6 +16,12 @@ router
   )
   .get("/jobs", jobController.getJobs);
 
+router.get(
+  "/my-jobs",
+  authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  jobController.getMyJobs,
+);
+
 router.get("/job/:jobId", jobController.getJobById);
 
 router.patch(

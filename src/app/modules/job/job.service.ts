@@ -267,40 +267,23 @@ const getJobs = async (query: any) => {
   return { data: result, meta: pagination };
 };
 
-// const getJobs = async (query: any) => {
-//   const jobFilter = factoryFunctions.createJobFilter(prisma);
-//   const { where, orderBy, skip, take, pagination } = await jobFilter.filter(query);
-
-//   if (query.skills && query.skills.length > 0) {
-//     where.JobSkill = {
-//       some: {
-//         skillName: { in: query.skills, mode: "insensitive" },
-//       },
-//     };
-//   }
-
-//   const result = await prisma.job.findMany({
-//     where,
-//     orderBy,
-//     skip,
-//     take,
-//     include: {
-//       JobSkill: true,
-//       postedBy: {
-//         select: {
-//           id: true,
-//           fullName: true,
-//           email: true,
-//           phone: true,
-//           role: true,
-//         },
-//       },
-//       company: true,
-//     },
-//   });
-
-//   return { data: result, meta: pagination };
 // };
+
+const getMyJobs = async (userId: string, query: any) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId, isActive: true },
+  });
+
+  if (!user || !user.companyId) {
+    throw new AppError(httpStatus.NOT_FOUND, "Company not found for this user");
+  }
+
+  // Force companyId to be the employer's companyId
+  query.companyId = user.companyId;
+
+  // Use the existing getJobs logic which handles all sorting, pagination, etc.
+  return getJobs(query);
+};
 
 const getJobById = async (jobId: string) => {
   const result = await prisma.job.findUnique({
@@ -493,6 +476,7 @@ const deleteJob = async (userId: string, jobId: string) => {
 const jobService = {
   createJob,
   getJobs,
+  getMyJobs,
   getJobById,
   updateJob,
   deleteJob,

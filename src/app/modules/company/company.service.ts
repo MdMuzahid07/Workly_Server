@@ -404,7 +404,54 @@ const removeEmployee = async (companyId: string, adminId: string, employeeId: st
 
 // ============== company Statistics ================>
 
-const getCompanyOverviewStatistics = async () => {};
+const getCompanyOverviewStatistics = async (userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId, isActive: true },
+    include: { company: true },
+  });
+
+  if (!user || !user.companyId) {
+    throw new AppError(httpStatus.NOT_FOUND, "Company not found for this user");
+  }
+
+  const companyId = user.companyId;
+
+  // 1. Total & Active Jobs
+  const jobsStats = await prisma.job.groupBy({
+    by: ["status"],
+    where: { companyId, deletedAt: null },
+    _count: { id: true },
+  });
+
+  const totalJobs = jobsStats.reduce((acc, curr) => acc + curr._count.id, 0);
+  const activeJobs = jobsStats.find((s) => s.status === "ACTIVE")?._count.id || 0;
+
+  // 2. Total & Pending Applications
+  const applicationsStats = await prisma.application.groupBy({
+    by: ["status"],
+    where: {
+      job: { companyId, deletedAt: null },
+    },
+    _count: { id: true },
+  });
+
+  const totalApplications = applicationsStats.reduce((acc, curr) => acc + curr._count.id, 0);
+  const pendingApplications =
+    applicationsStats.find((s) => s.status === "SUBMITTED")?._count.id || 0;
+
+  // 3. Total Employees
+  const totalEmployees = await prisma.user.count({
+    where: { companyId, isActive: true, deletedAt: null },
+  });
+
+  return {
+    totalJobs,
+    activeJobs,
+    totalApplications,
+    pendingApplications,
+    totalEmployees,
+  };
+};
 
 const getMyCompany = async (userId: string) => {
   if (!userId) {
