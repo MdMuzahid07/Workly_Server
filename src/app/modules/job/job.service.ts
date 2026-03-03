@@ -99,6 +99,7 @@ const createJob = async (userId: string, payload: Job & { skillsRequired: JobSki
         postedById: userId,
         companyId: rest.companyId,
         slug,
+        status: "DRAFT",
       },
     });
 
@@ -166,7 +167,7 @@ const getJobs = async (query: any) => {
     sortOrder,
     page: page ? parseInt(page) : 1,
     limit: limit ? parseInt(limit) : 10,
-    where: { isActive: true },
+    where: {},
     whereIn: {},
   };
 

@@ -197,7 +197,7 @@ const deleteCompanyById = async (userId: string, companyId: string) => {
     await transactor.job.updateMany({
       where: { companyId },
       data: {
-        isActive: false,
+        status: "CLOSED",
         deletedAt: new Date(),
       },
     });

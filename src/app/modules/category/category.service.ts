@@ -218,7 +218,7 @@ export const getCategoryStatistics = async (
           deletedAt: null,
         },
         select: {
-          isActive: true,
+          status: true,
           _count: {
             select: {
               applications: true,
@@ -235,10 +235,13 @@ export const getCategoryStatistics = async (
 
   // ====  process categories and calculate statistics ====>
   //@ts-ignore
-  const processedCategories: CategoryWithStats[] = categories.map((cat) => {
+  const processedCategories: CategoryWithStats[] = categories.map((cat: any) => {
     const totalJobs = cat.jobs.length;
-    const activeJobs = cat.jobs.filter((job) => job.isActive).length;
-    const totalApplications = cat.jobs.reduce((sum, job) => sum + job._count.applications, 0);
+    const activeJobs = cat.jobs.filter((job: any) => job.status === "ACTIVE").length;
+    const totalApplications = cat.jobs.reduce(
+      (sum: number, job: any) => sum + job._count.applications,
+      0,
+    );
 
     return {
       id: cat.id,
@@ -274,7 +277,7 @@ export const getCategoryStatistics = async (
           deletedAt: null,
         },
         select: {
-          isActive: true,
+          status: true,
           _count: {
             select: {
               applications: true,
@@ -286,14 +289,15 @@ export const getCategoryStatistics = async (
   });
 
   const totalCategories = allCategories.length;
-  const activeCategories = allCategories.filter((c) => c.active).length;
-  const totalJobs = allCategories.reduce((sum, c) => sum + c.jobs.length, 0);
+  const activeCategories = allCategories.filter((c: any) => c.active).length;
+  const totalJobs = allCategories.reduce((sum: number, c: any) => sum + c.jobs.length, 0);
   const activeJobs = allCategories.reduce(
-    (sum, c) => sum + c.jobs.filter((j) => j.isActive).length,
+    (sum: number, c: any) => sum + c.jobs.filter((j: any) => j.status === "ACTIVE").length,
     0,
   );
   const totalApplications = allCategories.reduce(
-    (sum, c) => sum + c.jobs.reduce((s, j) => s + j._count.applications, 0),
+    (sum: number, c: any) =>
+      sum + c.jobs.reduce((s: number, j: any) => s + j._count.applications, 0),
     0,
   );
 

@@ -16,10 +16,10 @@ const createApplication = async (userId: string, payload: any) => {
     throw new AppError(httpStatus.BAD_REQUEST, "User not found or inactive");
   }
 
-  const job = await prisma.job.findUnique({
+  const job = await prisma.job.findFirst({
     where: {
       id: payload.jobId,
-      isActive: true,
+      status: "ACTIVE",
       deletedAt: null,
       expiresAt: { gt: new Date() },
     },

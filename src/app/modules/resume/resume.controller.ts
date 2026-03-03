@@ -44,7 +44,7 @@ const setDefaultResume = asyncHandler(async (req, res) => {
   //@ts-ignore
   const userId = req.user.userId;
   const { resumeId } = req.params;
-  const result = await resumeService.setDefaultResume(userId, resumeId);
+  const result = await resumeService.setDefaultResume(userId, resumeId as string);
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -58,7 +58,7 @@ const deleteResume = asyncHandler(async (req, res) => {
   //@ts-ignore
   const userId = req.user.userId;
   const { resumeId } = req.params;
-  const result = await resumeService.deleteResume(userId, resumeId);
+  const result = await resumeService.deleteResume(userId, resumeId as string);
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
