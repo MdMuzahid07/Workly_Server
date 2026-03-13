@@ -307,7 +307,17 @@ const getJobById = async (jobId: string) => {
           role: true,
         },
       },
-      company: true,
+      company: {
+        include: {
+          _count: {
+            select: {
+              employees: true,
+              jobs: true,
+            },
+          },
+        },
+      },
+      Benefits: true,
     },
   });
 
