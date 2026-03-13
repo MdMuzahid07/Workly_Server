@@ -154,6 +154,7 @@ const getJobs = async (query: any) => {
     salaryMin,
     salaryMax,
     postedWithin,
+    status,
     companyId,
     sortBy = "createdAt",
     sortOrder = "desc",
@@ -179,6 +180,10 @@ const getJobs = async (query: any) => {
 
   // exact matches =============>
   if (companyId) filterQuery.where.companyId = companyId;
+
+  if (status) {
+    filterQuery.where.status = status;
+  }
 
   const remote = parseBool(isRemote);
   if (remote !== undefined) filterQuery.where.isRemote = remote;
