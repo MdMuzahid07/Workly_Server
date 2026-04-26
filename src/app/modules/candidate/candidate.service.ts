@@ -97,7 +97,6 @@ const getAllCandidates = async (query: any, employerId?: string) => {
   }
 
   try {
-    // Build include object dynamically
     const include: any = {
       profile: {
         include: {
@@ -144,9 +143,7 @@ const getAllCandidates = async (query: any, employerId?: string) => {
       },
     };
   } catch (err: any) {
-    // Log the error for internal tracking
     console.error("Prisma Error in getAllCandidates:", err);
-    // Return a slightly more detailed error message to help the user identify the field causing issues
     throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "Database error: " + err.message);
   }
 };
@@ -178,7 +175,6 @@ const getCandidateById = async (id: string, employerId?: string) => {
     const candidate = await prisma.user.findUnique({
       where: {
         id,
-        role: "JOB_SEEKER",
         isActive: true,
         deletedAt: null,
       },
@@ -198,46 +194,48 @@ const getCandidateById = async (id: string, employerId?: string) => {
   } catch (err: any) {
     if (err instanceof AppError) throw err;
     console.error("Prisma Error in getCandidateById:", err);
-    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "Database error details: " + err.message);
+    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "Database error: " + err.message);
   }
 };
 
 const toggleSaveCandidate = async (employerId: string, candidateId: string) => {
-  const candidate = await prisma.user.findUnique({
-    where: { id: candidateId, role: "JOB_SEEKER", isActive: true },
-  });
+  try {
+    const candidate = await prisma.user.findUnique({
+      where: { id: candidateId, isActive: true },
+    });
 
-  if (!candidate) {
-    throw new AppError(httpStatus.NOT_FOUND, "Candidate not found");
-  }
+    if (!candidate) {
+      throw new AppError(httpStatus.NOT_FOUND, "Candidate user not found");
+    }
 
-  const existingSave = await prisma.savedCandidate.findUnique({
-    where: {
-      employerId_candidateId: {
-        employerId,
-        candidateId,
-      },
-    },
-  });
-
-  if (existingSave) {
-    await prisma.savedCandidate.delete({
+    // Check if it's already saved using findFirst to be safe about index names
+    const existingSave = await prisma.savedCandidate.findFirst({
       where: {
-        employerId_candidateId: {
-          employerId,
-          candidateId,
-        },
-      },
-    });
-    return { action: "unsaved", message: "Candidate profile unsaved" };
-  } else {
-    await prisma.savedCandidate.create({
-      data: {
         employerId,
         candidateId,
       },
     });
-    return { action: "saved", message: "Candidate profile saved" };
+
+    if (existingSave) {
+      await prisma.savedCandidate.delete({
+        where: {
+          id: existingSave.id,
+        },
+      });
+      return { action: "unsaved", message: "Candidate profile unsaved" };
+    } else {
+      await prisma.savedCandidate.create({
+        data: {
+          employer: { connect: { id: employerId } },
+          candidate: { connect: { id: candidateId } },
+        },
+      });
+      return { action: "saved", message: "Candidate profile saved" };
+    }
+  } catch (err: any) {
+    if (err instanceof AppError) throw err;
+    console.error("Prisma Error in toggleSaveCandidate:", err);
+    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "Database error: " + err.message);
   }
 };
 
@@ -245,43 +243,48 @@ const getSavedCandidates = async (employerId: string, query: any) => {
   const { page = 1, limit = 10 } = query;
   const skip = (Number(page) - 1) * Number(limit);
 
-  const [saved, total] = await Promise.all([
-    prisma.savedCandidate.findMany({
-      where: { employerId },
-      include: {
-        candidate: {
-          include: {
-            profile: {
-              include: {
-                skills: true,
-                preference: true,
+  try {
+    const [saved, total] = await Promise.all([
+      prisma.savedCandidate.findMany({
+        where: { employerId },
+        include: {
+          candidate: {
+            include: {
+              profile: {
+                include: {
+                  skills: true,
+                  preference: true,
+                },
               },
             },
           },
         },
-      },
-      skip,
-      take: Number(limit),
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.savedCandidate.count({ where: { employerId } }),
-  ]);
+        skip,
+        take: Number(limit),
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.savedCandidate.count({ where: { employerId } }),
+    ]);
 
-  return {
-    data: saved.map((s) => {
-      const { passwordHash, ...rest } = s.candidate as any;
-      return {
-        ...rest,
-        isSaved: true,
-      };
-    }),
-    meta: {
-      page: Number(page),
-      limit: Number(limit),
-      total,
-      pages: Math.ceil(total / Number(limit)),
-    },
-  };
+    return {
+      data: saved.map((s) => {
+        const { passwordHash, ...rest } = s.candidate as any;
+        return {
+          ...rest,
+          isSaved: true,
+        };
+      }),
+      meta: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        pages: Math.ceil(total / Number(limit)),
+      },
+    };
+  } catch (err: any) {
+    console.error("Prisma Error in getSavedCandidates:", err);
+    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "Database error: " + err.message);
+  }
 };
 
 const candidateService = {

@@ -4,7 +4,7 @@ import sendApiResponse from "../../../utils/sendApiResponse.js";
 import candidateService from "./candidate.service.js";
 
 const getAllCandidates = asyncHandler(async (req, res) => {
-  const employerId = (req.user as any)?.id;
+  const employerId = (req.user as any)?.userId;
   const result = await candidateService.getAllCandidates(req.query, employerId);
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
@@ -16,7 +16,7 @@ const getAllCandidates = asyncHandler(async (req, res) => {
 });
 
 const getCandidateById = asyncHandler(async (req, res) => {
-  const employerId = (req.user as any)?.id;
+  const employerId = (req.user as any)?.userId;
   const result = await candidateService.getCandidateById(req.params.id as string, employerId);
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
@@ -27,7 +27,7 @@ const getCandidateById = asyncHandler(async (req, res) => {
 });
 
 const toggleSaveCandidate = asyncHandler(async (req, res) => {
-  const employerId = (req.user as any).id;
+  const employerId = (req.user as any).userId;
   const { candidateId } = req.body;
   const result = await candidateService.toggleSaveCandidate(employerId, candidateId);
   sendApiResponse(res, {
@@ -39,7 +39,7 @@ const toggleSaveCandidate = asyncHandler(async (req, res) => {
 });
 
 const getSavedCandidates = asyncHandler(async (req, res) => {
-  const employerId = (req.user as any).id;
+  const employerId = (req.user as any).userId;
   const result = await candidateService.getSavedCandidates(employerId, req.query);
   sendApiResponse(res, {
     statusCode: httpStatus.OK,

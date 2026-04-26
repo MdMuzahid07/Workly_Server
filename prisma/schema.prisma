@@ -119,6 +119,8 @@ model User {
   companyId         String?
   lastLogin         DateTime?
   deletedAt         DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @default(now()) @updatedAt
 
   //* ==== relations =====>
   applications       Application[]
@@ -169,6 +171,8 @@ model Profile {
   education            Education[]
   workExperiences      WorkExperience[]
   certifications       Certification[]
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @default(now()) @updatedAt
 
   @@index([userId])
   @@map("profiles")
