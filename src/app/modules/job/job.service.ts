@@ -141,7 +141,7 @@ const createJob = async (userId: string, payload: Job & { skillsRequired: JobSki
   return result;
 };
 
-const getJobs = async (query: any) => {
+const getJobs = async (query: any, currentUserId?: string | null) => {
   const {
     search,
     location,
@@ -269,7 +269,21 @@ const getJobs = async (query: any) => {
     },
   });
 
-  return { data: result, meta: pagination };
+  let dataWithSavedStatus = result;
+  if (currentUserId) {
+    const savedJobs = await prisma.savedJob.findMany({
+      where: { userId: currentUserId, jobId: { in: result.map((j) => j.id) } },
+      select: { jobId: true },
+    });
+    const savedJobIds = new Set(savedJobs.map((sj) => sj.jobId));
+
+    dataWithSavedStatus = result.map((job) => ({
+      ...job,
+      isSaved: savedJobIds.has(job.id),
+    })) as any;
+  }
+
+  return { data: dataWithSavedStatus, meta: pagination };
 };
 
 // };
@@ -290,7 +304,7 @@ const getMyJobs = async (userId: string, query: any) => {
   return getJobs(query);
 };
 
-const getJobById = async (jobId: string) => {
+const getJobById = async (jobId: string, currentUserId?: string | null) => {
   const result = await prisma.job.findUnique({
     where: {
       id: jobId,
@@ -321,7 +335,21 @@ const getJobById = async (jobId: string) => {
     },
   });
 
-  return result;
+  if (!result) {
+    throw new AppError(httpStatus.NOT_FOUND, "Job not found");
+  }
+
+  let isSaved = false;
+  if (currentUserId) {
+    const savedJob = await prisma.savedJob.findUnique({
+      where: {
+        userId_jobId: { userId: currentUserId, jobId: result.id },
+      },
+    });
+    if (savedJob) isSaved = true;
+  }
+
+  return { ...result, isSaved };
 };
 
 const updateJob = async (
