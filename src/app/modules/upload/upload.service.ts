@@ -64,6 +64,8 @@ const handleMultipleUpload = async (req: Request) => {
 const uploadService = {
   handleSingleUpload,
   handleMultipleUpload,
+  uploadBufferToCloudinary,
 };
 
+export { uploadBufferToCloudinary };
 export default uploadService;

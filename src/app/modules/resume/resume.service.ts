@@ -1,17 +1,29 @@
-// resume.service.ts
 import prisma from "../../../utils/prismaClient.js";
+import { uploadBufferToCloudinary } from "../upload/upload.service.js";
 
 const listResumes = async (userId: string) => {
-  return prisma.resume.findMany({ where: { userId } });
+  return prisma.resume.findMany({ where: { userId }, orderBy: { uploadDate: "desc" } });
 };
 
 const uploadResume = async (userId: string, file: Express.Multer.File, isDefault?: boolean) => {
-  // Assuming file is already uploaded to Cloudinary and URL is available
+  let fileUrl = (file as any).path;
+
+  if (!fileUrl && file.buffer) {
+    const { secure_url } = await uploadBufferToCloudinary(file.buffer, {
+      folder: "workly-job/resumes",
+    });
+    fileUrl = secure_url;
+  }
+
+  if (!fileUrl) {
+    throw new Error("Failed to upload resume to Cloudinary");
+  }
+
   const resume = await prisma.resume.create({
     data: {
       userId,
       fileName: file.originalname,
-      fileUrl: file.path, // Cloudinary URL
+      fileUrl,
       fileSize: file.size,
       isDefault: isDefault || false,
     },

@@ -4,7 +4,7 @@ import authValidator from "../../middleware/authValidator.js";
 import requestValidator from "../../middleware/requestValidator.js";
 import resumeController from "./resume.controller.js";
 import resumeValidation from "./resume.validation.js";
-// import multerUpload from "../../middleware/multerUpload.js"; // Uncomment and use your multer middleware
+import upload from "../../../config/multer.config.js";
 
 const router = express.Router();
 
@@ -19,7 +19,7 @@ router.get(
 router.post(
   "/resumes",
   authValidator(UserRole.JOB_SEEKER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
-  // multerUpload.single("file"), // Uncomment and use your multer middleware
+  upload.single("file"),
   requestValidator(resumeValidation.uploadResume),
   resumeController.uploadResume,
 );
