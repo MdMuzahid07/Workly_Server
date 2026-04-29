@@ -57,8 +57,15 @@ const createApplication = async (userId: string, payload: any) => {
     data: {
       jobId: payload.jobId,
       applicantId: userId,
+      fullName: payload.fullName,
+      email: payload.email,
+      phone: payload.phone,
+      resumeUrl: payload.resumeFile, // Map frontend resumeFile to resumeUrl
+      currentLocation: payload.location,
+      yearsOfExperience: payload.experience ? Number(payload.experience) : 0,
+      agreedTerms: payload.agreeTerms ?? true,
       coverLetter: payload.coverLetter,
-      preferredContactMethod: payload.preferredContactMethod || "email",
+      preferredContactMethod: (payload.preferredContactMethod?.toUpperCase() as any) || "EMAIL",
       folderName: payload.folderName,
     },
     include: {

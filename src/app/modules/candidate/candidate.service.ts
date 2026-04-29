@@ -267,11 +267,12 @@ const getSavedCandidates = async (employerId: string, query: any) => {
     ]);
 
     return {
-      data: saved.map((s) => {
+      data: saved.map((s: any) => {
         const { passwordHash, ...rest } = s.candidate as any;
         return {
           ...rest,
           isSaved: true,
+          savedAt: s.createdAt,
         };
       }),
       meta: {
