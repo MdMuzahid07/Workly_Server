@@ -7,10 +7,7 @@ const router = express.Router();
 
 router.post(
   "/log/:viewedUserId",
-  // Optional auth: we want to log even anonymous views if possible
-  // but if user is logged in, we capture their ID
-  // So we don't strictly require a role here if we want to track all views
-  // But usually, we only track views from other users.
+  authValidator(UserRole.JOB_SEEKER, UserRole.EMPLOYER, UserRole.ADMIN),
   profileViewController.logProfileView,
 );
 
