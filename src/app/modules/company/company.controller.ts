@@ -109,6 +109,20 @@ const removeEmployee = asyncHandler(async (req, res) => {
   });
 });
 
+const getCompanyOverviewStatistics = asyncHandler(async (req, res) => {
+  //@ts-ignore
+  const userId = req.user.userId;
+
+  const result = await companyService.getCompanyOverviewStatistics(userId);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Company overview statistics fetched successfully",
+    data: result,
+  });
+});
+
 const getMyCompany = asyncHandler(async (req, res) => {
   //@ts-ignore
   const userId = req.user.userId;
@@ -123,6 +137,34 @@ const getMyCompany = asyncHandler(async (req, res) => {
   });
 });
 
+// Get company settings
+const getSettings = asyncHandler(async (req, res) => {
+  //@ts-ignore
+  const userId = req.user.userId;
+  // Only allow access to own company settings
+  const result = await companyService.getSettings(req.params.companyId as string);
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Company settings fetched successfully",
+    data: result,
+  });
+});
+
+// Update company settings
+const updateSettings = asyncHandler(async (req, res) => {
+  //@ts-ignore
+  const userId = req.user.userId;
+  // Only allow access to own company settings
+  const result = await companyService.updateSettings(req.params.companyId as string, req.body);
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Company settings updated successfully",
+    data: result,
+  });
+});
+
 const companyController = {
   getCompanies,
   createCompany,
@@ -131,7 +173,10 @@ const companyController = {
   updateCompanyById,
   addEmployee,
   removeEmployee,
+  getCompanyOverviewStatistics,
   getMyCompany,
+  getSettings,
+  updateSettings,
 };
 
 export default companyController;

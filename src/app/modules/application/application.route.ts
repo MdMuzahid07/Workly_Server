@@ -23,6 +23,12 @@ router.get(
 );
 
 router.get(
+  "/my-company-applications",
+  authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  applicationController.getMyCompanyApplications,
+);
+
+router.get(
   "/:id",
   authValidator(UserRole.JOB_SEEKER, UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
   applicationController.getApplicationById,

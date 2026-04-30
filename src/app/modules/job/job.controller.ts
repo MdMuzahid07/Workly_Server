@@ -2,6 +2,21 @@ import httpStatus from "http-status";
 import asyncHandler from "../../../utils/asyncHandler.js";
 import sendApiResponse from "../../../utils/sendApiResponse.js";
 import jobService from "./job.service.js";
+import jwt, { type JwtPayload } from "jsonwebtoken";
+import config from "../../../config/index.js";
+
+const extractUserId = (req: any) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return null;
+    const token = authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : authHeader;
+    if (!token) return null;
+    const decoded = jwt.verify(token, config.jwt_secret as string) as JwtPayload;
+    return decoded.userId;
+  } catch (e) {
+    return null;
+  }
+};
 
 const createJob = asyncHandler(async (req, res) => {
   //@ts-ignore
@@ -19,7 +34,8 @@ const createJob = asyncHandler(async (req, res) => {
 });
 
 const getJobs = asyncHandler(async (req, res) => {
-  const { data, meta } = await jobService.getJobs(req.query);
+  const userId = extractUserId(req);
+  const { data, meta } = await jobService.getJobs(req.query, userId);
 
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
@@ -30,10 +46,25 @@ const getJobs = asyncHandler(async (req, res) => {
   });
 });
 
+const getMyJobs = asyncHandler(async (req, res) => {
+  //@ts-ignore
+  const userId = req.user.userId;
+  const { data, meta } = await jobService.getMyJobs(userId, req.query);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Employer jobs fetched successfully",
+    data,
+    meta,
+  });
+});
+
 const getJobById = asyncHandler(async (req, res) => {
   const { jobId } = req.params;
+  const userId = extractUserId(req);
 
-  const result = await jobService.getJobById(jobId as string);
+  const result = await jobService.getJobById(jobId as string, userId);
 
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
@@ -76,6 +107,7 @@ const deleteJob = asyncHandler(async (req, res) => {
 const jobController = {
   createJob,
   getJobs,
+  getMyJobs,
   getJobById,
   updateJob,
   deleteJob,

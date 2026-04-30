@@ -42,11 +42,7 @@ const createCompany = z.object({
     .optional()
     .nullable()
     .refine((val) => !val || val.length <= 255, "Location cannot exceed 255 characters"),
-  industryId: z
-    .string()
-    .optional()
-    .nullable()
-    .refine((val) => !val || val.length <= 100, "Industry cannot exceed 100 characters"),
+  industryId: z.string().uuid("Invalid industry ID").optional().nullable(),
   size: z
     .string()
     .optional()
@@ -68,6 +64,8 @@ const createCompany = z.object({
     .optional()
     .nullable()
     .refine((val) => !val || val.length <= 100, "Founded year cannot exceed 100 characters"),
+  mission: z.string().max(1000, "Mission cannot exceed 1000 characters").optional().nullable(),
+  values: z.array(z.string()).optional().nullable(),
   benefits: z.array(benefitsSchema).optional().nullable(),
 });
 

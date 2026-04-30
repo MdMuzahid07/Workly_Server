@@ -99,6 +99,7 @@ const createJob = async (userId: string, payload: Job & { skillsRequired: JobSki
         postedById: userId,
         companyId: rest.companyId,
         slug,
+        status: "DRAFT",
       },
     });
 
@@ -140,7 +141,7 @@ const createJob = async (userId: string, payload: Job & { skillsRequired: JobSki
   return result;
 };
 
-const getJobs = async (query: any) => {
+const getJobs = async (query: any, currentUserId?: string | null) => {
   const {
     search,
     location,
@@ -153,6 +154,7 @@ const getJobs = async (query: any) => {
     salaryMin,
     salaryMax,
     postedWithin,
+    status,
     companyId,
     sortBy = "createdAt",
     sortOrder = "desc",
@@ -166,7 +168,7 @@ const getJobs = async (query: any) => {
     sortOrder,
     page: page ? parseInt(page) : 1,
     limit: limit ? parseInt(limit) : 10,
-    where: { isActive: true },
+    where: {},
     whereIn: {},
   };
 
@@ -178,6 +180,10 @@ const getJobs = async (query: any) => {
 
   // exact matches =============>
   if (companyId) filterQuery.where.companyId = companyId;
+
+  if (status) {
+    filterQuery.where.status = status;
+  }
 
   const remote = parseBool(isRemote);
   if (remote !== undefined) filterQuery.where.isRemote = remote;
@@ -263,45 +269,42 @@ const getJobs = async (query: any) => {
     },
   });
 
-  return { data: result, meta: pagination };
+  let dataWithSavedStatus = result;
+  if (currentUserId) {
+    const savedJobs = await prisma.savedJob.findMany({
+      where: { userId: currentUserId, jobId: { in: result.map((j) => j.id) } },
+      select: { jobId: true },
+    });
+    const savedJobIds = new Set(savedJobs.map((sj) => sj.jobId));
+
+    dataWithSavedStatus = result.map((job) => ({
+      ...job,
+      isSaved: savedJobIds.has(job.id),
+    })) as any;
+  }
+
+  return { data: dataWithSavedStatus, meta: pagination };
 };
 
-// const getJobs = async (query: any) => {
-//   const jobFilter = factoryFunctions.createJobFilter(prisma);
-//   const { where, orderBy, skip, take, pagination } = await jobFilter.filter(query);
-
-//   if (query.skills && query.skills.length > 0) {
-//     where.JobSkill = {
-//       some: {
-//         skillName: { in: query.skills, mode: "insensitive" },
-//       },
-//     };
-//   }
-
-//   const result = await prisma.job.findMany({
-//     where,
-//     orderBy,
-//     skip,
-//     take,
-//     include: {
-//       JobSkill: true,
-//       postedBy: {
-//         select: {
-//           id: true,
-//           fullName: true,
-//           email: true,
-//           phone: true,
-//           role: true,
-//         },
-//       },
-//       company: true,
-//     },
-//   });
-
-//   return { data: result, meta: pagination };
 // };
 
-const getJobById = async (jobId: string) => {
+const getMyJobs = async (userId: string, query: any) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId, isActive: true },
+  });
+
+  if (!user || !user.companyId) {
+    throw new AppError(httpStatus.NOT_FOUND, "Company not found for this user");
+  }
+
+  // Force companyId to be the employer's companyId
+  query.companyId = user.companyId;
+
+  // Use the existing getJobs logic which handles all sorting, pagination, etc.
+  return getJobs(query);
+};
+
+const getJobById = async (jobId: string, currentUserId?: string | null) => {
   const result = await prisma.job.findUnique({
     where: {
       id: jobId,
@@ -318,11 +321,35 @@ const getJobById = async (jobId: string) => {
           role: true,
         },
       },
-      company: true,
+      company: {
+        include: {
+          _count: {
+            select: {
+              employees: true,
+              jobs: true,
+            },
+          },
+        },
+      },
+      Benefits: true,
     },
   });
 
-  return result;
+  if (!result) {
+    throw new AppError(httpStatus.NOT_FOUND, "Job not found");
+  }
+
+  let isSaved = false;
+  if (currentUserId) {
+    const savedJob = await prisma.savedJob.findUnique({
+      where: {
+        userId_jobId: { userId: currentUserId, jobId: result.id },
+      },
+    });
+    if (savedJob) isSaved = true;
+  }
+
+  return { ...result, isSaved };
 };
 
 const updateJob = async (
@@ -472,7 +499,7 @@ const deleteJob = async (userId: string, jobId: string) => {
     throw new AppError(httpStatus.FORBIDDEN, "You are not authorized to delete this job");
   }
 
-  if (isJobExists?.isActive) {
+  if (isJobExists?.status === "ACTIVE") {
     throw new AppError(httpStatus.BAD_REQUEST, "Job is active, cannot delete");
   }
 
@@ -492,6 +519,7 @@ const deleteJob = async (userId: string, jobId: string) => {
 const jobService = {
   createJob,
   getJobs,
+  getMyJobs,
   getJobById,
   updateJob,
   deleteJob,

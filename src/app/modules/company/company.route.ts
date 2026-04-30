@@ -45,9 +45,28 @@ router.delete(
 );
 
 router.get(
+  "/overview-statistics",
+  authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  companyController.getCompanyOverviewStatistics,
+);
+
+router.get(
   "/my-company",
   authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
   companyController.getMyCompany,
+);
+
+// Company settings routes
+router.get(
+  "/:companyId/settings",
+  authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  companyController.getSettings,
+);
+router.patch(
+  "/:companyId/settings",
+  authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  // requestValidator(companyValidation.updateSettings), // Uncomment if you add validation
+  companyController.updateSettings,
 );
 
 const companyRoute = router;

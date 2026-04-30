@@ -4,7 +4,16 @@ const PreferredContactMethodEnum = z.enum(["email", "phone", "both"]);
 
 const createApplication = z.object({
   jobId: z.string().min(1, { message: "Job ID is required" }),
+  fullName: z.string().min(2, "Full name must be at least 2 characters").optional(),
+  email: z.string().email("Please enter a valid email").optional(),
+  phone: z.string().min(10, "Please enter a valid phone number").optional(),
+  location: z.string().optional(),
+  currentRole: z.string().optional(),
+  experience: z.string().optional(),
+  portfolio: z.string().optional(),
   coverLetter: z.string().optional(),
+  resumeFile: z.string().optional(),
+  agreeTerms: z.boolean().optional(),
   preferredContactMethod: PreferredContactMethodEnum.default("email"),
   applicationData: z.string().optional(),
   folderName: z.string().optional(),
