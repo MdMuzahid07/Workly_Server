@@ -12,6 +12,9 @@ import candidateRoute from "../modules/candidate/candidate.route.js";
 import { followRoute } from "../modules/follow/follow.route.js";
 import { profileViewRoute } from "../modules/profileView/profileView.route.js";
 import { jobViewRoute } from "../modules/jobView/jobView.route.js";
+import workExperienceRoute from "../modules/workExperience/workExperience.route.js";
+import certificationRoute from "../modules/certification/certification.route.js";
+import projectRoute from "../modules/project/project.route.js";
 
 const router = express.Router();
 
@@ -67,6 +70,18 @@ const routeConfigs = [
   {
     path: "/job-view",
     route: jobViewRoute,
+  },
+  {
+    path: "/work-experience",
+    route: workExperienceRoute,
+  },
+  {
+    path: "/certification",
+    route: certificationRoute,
+  },
+  {
+    path: "/project",
+    route: projectRoute,
   },
 ];
 

@@ -1,8 +1,7 @@
 import httpStatus from "http-status";
-import type { Profile } from "../../../generated/prisma/index.js";
 import prisma from "../../../utils/prismaClient.js";
 import AppError from "../../error/AppError.js";
-import type { IPreference, IProfile, ISkill } from "./profile.interface.js";
+import type { IProfile, ISkill } from "./profile.interface.js";
 
 const createProfile = async (userId: string, payload: IProfile) => {
   const isUserExits = await prisma.user.findUnique({
@@ -40,6 +39,7 @@ const createProfile = async (userId: string, payload: IProfile) => {
         resumeUrl: payload.resumeUrl || "",
         linkedInUrl: payload.linkedInUrl || "",
         websiteUrl: payload.websiteUrl || "",
+        githubUrl: payload.githubUrl || "",
       },
     });
 
@@ -102,6 +102,13 @@ const myProfile = async (userId: string) => {
           education: true,
           workExperiences: true,
           certifications: true,
+          projects: true,
+          volunteers: true,
+          awards: true,
+          publications: true,
+          references: true,
+          languages: true,
+          address: true,
         },
       },
       company: true,
@@ -121,10 +128,8 @@ const myProfile = async (userId: string) => {
   return rest;
 };
 
-const updateMyProfile = async (
-  userId: string,
-  payload: Profile & { skills: ISkill[]; preference: IPreference; phone?: string },
-) => {
+const updateMyProfile = async (userId: string, payload: Partial<IProfile> & { phone?: string }) => {
+  console.log("Updating profile for user:", userId, "Payload keys:", Object.keys(payload));
   if (!userId) {
     throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
   }
@@ -155,34 +160,37 @@ const updateMyProfile = async (
       });
     }
 
+    const profileUpdateData = {
+      bio: payload.bio || "",
+      location: payload.location || "",
+      avatarUrl: payload.avatarUrl || "",
+      coverUrl: payload.coverUrl || "",
+      resumeUrl: payload.resumeUrl || "",
+      linkedInUrl: payload.linkedInUrl || "",
+      websiteUrl: payload.websiteUrl || "",
+      githubUrl: payload.githubUrl || "",
+      headline: payload.headline || "",
+      totalExperienceYears: payload.totalExperienceYears
+        ? Number(payload.totalExperienceYears)
+        : undefined,
+    };
+
     const userProfile = await transactor.profile.upsert({
       where: {
         userId: userId,
       },
-      update: {
-        bio: payload.bio || "",
-        location: payload.location || "",
-        avatarUrl: payload.avatarUrl || "",
-        coverUrl: payload.coverUrl || "",
-        resumeUrl: payload.resumeUrl || "",
-        linkedInUrl: payload.linkedInUrl || "",
-        websiteUrl: payload.websiteUrl || "",
-        headline: payload.headline ?? undefined,
-        totalExperienceYears: payload.totalExperienceYears ?? undefined,
-      },
+      update: profileUpdateData,
       create: {
+        ...profileUpdateData,
         userId: userId,
-        bio: payload.bio || "",
-        location: payload.location || "",
-        avatarUrl: payload.avatarUrl || "",
-        coverUrl: payload.coverUrl || "",
-        resumeUrl: payload.resumeUrl || "",
-        linkedInUrl: payload.linkedInUrl || "",
-        websiteUrl: payload.websiteUrl || "",
-        headline: payload.headline ?? undefined,
-        totalExperienceYears: payload.totalExperienceYears ?? undefined,
       },
     });
+
+    // --- Helper function to strip extra fields ---
+    const stripFields = (data: any) => {
+      const { id, profileId, createdAt, updatedAt, ...rest } = data;
+      return rest;
+    };
 
     if (!isUserExits.profileId) {
       await transactor.user.update({
@@ -212,56 +220,264 @@ const updateMyProfile = async (
       });
 
       for (const skill of payload.skills) {
+        const skillData = {
+          skillName: skill.skillName,
+          experienceYears: skill.experienceYears ? Number(skill.experienceYears) : 0,
+        };
         if (skill.id) {
-          await transactor.skill.upsert({
-            where: {
-              id: skill.id,
-            },
-            update: {
-              skillName: skill.skillName,
-              experienceYears: skill.experienceYears,
-            },
-            create: {
-              skillName: skill.skillName,
-              experienceYears: skill.experienceYears,
-              profileId: userProfile.id,
-            },
+          await transactor.skill.update({
+            where: { id: skill.id },
+            data: skillData,
           });
         } else {
           await transactor.skill.create({
-            data: {
-              skillName: skill.skillName,
-              experienceYears: skill.experienceYears,
-              profileId: userProfile.id,
-            },
+            data: { ...skillData, profileId: userProfile.id },
           });
         }
       }
     }
 
     if (payload.preference) {
+      const cleanedPreference = stripFields(payload.preference);
       await transactor.preference.upsert({
-        where: {
-          profileId: userProfile.id,
-        },
-        update: {
-          jobType: payload.preference.jobType || "FULL_TIME",
-          expectedSalary: payload.preference.expectedSalary || 0,
-          preferredLocation: payload.preference.preferredLocation || "",
-          remoteWork: payload.preference.remoteWork || false,
-          industry: payload.preference.industry || "",
-          workExperience: payload.preference.workExperience || "",
-        },
-        create: {
-          profileId: userProfile.id,
-          jobType: payload.preference.jobType || "FULL_TIME",
-          expectedSalary: payload.preference.expectedSalary || 0,
-          preferredLocation: payload.preference.preferredLocation || "",
-          remoteWork: payload.preference.remoteWork || false,
-          industry: payload.preference.industry || "",
-          workExperience: payload.preference.workExperience || "",
-        },
+        where: { profileId: userProfile.id },
+        update: cleanedPreference,
+        create: { ...cleanedPreference, profileId: userProfile.id },
       });
+    }
+
+    // --- Sync Education ---
+    if (payload.education !== undefined) {
+      const currentIds = payload.education.filter((e: any) => e.id).map((e: any) => e.id as string);
+      await transactor.education.deleteMany({
+        where: { profileId: userProfile.id, NOT: { id: { in: currentIds } } },
+      });
+      for (const edu of payload.education) {
+        const cleanedData = stripFields(edu);
+        const dates = {
+          startDate: edu.startDate ? new Date(edu.startDate) : undefined,
+          endDate: edu.endDate ? new Date(edu.endDate) : undefined,
+        };
+        if (edu.id) {
+          await transactor.education.update({
+            where: { id: edu.id },
+            data: { ...cleanedData, ...dates },
+          });
+        } else {
+          await transactor.education.create({
+            data: { ...cleanedData, ...dates, profileId: userProfile.id },
+          });
+        }
+      }
+    }
+
+    // --- Sync Work Experience ---
+    if (payload.workExperiences !== undefined) {
+      const currentIds = payload.workExperiences
+        .filter((w: any) => w.id)
+        .map((w: any) => w.id as string);
+      await transactor.workExperience.deleteMany({
+        where: { profileId: userProfile.id, NOT: { id: { in: currentIds } } },
+      });
+      for (const work of payload.workExperiences) {
+        const cleanedData = stripFields(work);
+        const dates = {
+          startDate: work.startDate ? new Date(work.startDate) : undefined,
+          endDate: work.endDate ? new Date(work.endDate) : undefined,
+        };
+        if (work.id) {
+          await transactor.workExperience.update({
+            where: { id: work.id },
+            data: { ...cleanedData, ...dates },
+          });
+        } else {
+          await transactor.workExperience.create({
+            data: { ...cleanedData, ...dates, profileId: userProfile.id },
+          });
+        }
+      }
+    }
+
+    // --- Sync Certifications ---
+    if (payload.certifications !== undefined) {
+      const currentIds = payload.certifications
+        .filter((c: any) => c.id)
+        .map((c: any) => c.id as string);
+      await transactor.certification.deleteMany({
+        where: { profileId: userProfile.id, NOT: { id: { in: currentIds } } },
+      });
+      for (const cert of payload.certifications) {
+        const cleanedData = stripFields(cert);
+        const dates = {
+          issueDate: cert.issueDate ? new Date(cert.issueDate) : undefined,
+          expiryDate: cert.expiryDate ? new Date(cert.expiryDate) : undefined,
+        };
+        if (cert.id) {
+          await transactor.certification.update({
+            where: { id: cert.id },
+            data: { ...cleanedData, ...dates },
+          });
+        } else {
+          await transactor.certification.create({
+            data: { ...cleanedData, ...dates, profileId: userProfile.id },
+          });
+        }
+      }
+    }
+
+    // --- Sync Projects ---
+    if (payload.projects !== undefined) {
+      const currentIds = payload.projects.filter((p: any) => p.id).map((p: any) => p.id as string);
+      await transactor.project.deleteMany({
+        where: { profileId: userProfile.id, NOT: { id: { in: currentIds } } },
+      });
+      for (const project of payload.projects) {
+        const cleanedData = stripFields(project);
+        const dates = {
+          startDate: project.startDate ? new Date(project.startDate) : undefined,
+          endDate: project.endDate ? new Date(project.endDate) : undefined,
+        };
+        if (project.id) {
+          await transactor.project.update({
+            where: { id: project.id },
+            data: { ...cleanedData, ...dates },
+          });
+        } else {
+          await transactor.project.create({
+            data: { ...cleanedData, ...dates, profileId: userProfile.id },
+          });
+        }
+      }
+    }
+
+    // --- Sync Address ---
+    if (payload.address) {
+      await transactor.address.upsert({
+        where: { profileId: userProfile.id },
+        update: payload.address,
+        create: { ...payload.address, profileId: userProfile.id },
+      });
+    }
+
+    // --- Sync Volunteers ---
+    if (payload.volunteers !== undefined) {
+      const currentIds = payload.volunteers
+        .filter((v: any) => v.id)
+        .map((v: any) => v.id as string);
+      await transactor.volunteer.deleteMany({
+        where: { profileId: userProfile.id, NOT: { id: { in: currentIds } } },
+      });
+      for (const vol of payload.volunteers) {
+        const cleanedData = stripFields(vol);
+        const dates = {
+          startDate: vol.startDate ? new Date(vol.startDate) : undefined,
+          endDate: vol.endDate ? new Date(vol.endDate) : undefined,
+        };
+        if (vol.id) {
+          await transactor.volunteer.update({
+            where: { id: vol.id },
+            data: { ...cleanedData, ...dates },
+          });
+        } else {
+          await transactor.volunteer.create({
+            data: { ...cleanedData, ...dates, profileId: userProfile.id },
+          });
+        }
+      }
+    }
+
+    // --- Sync Awards ---
+    if (payload.awards !== undefined) {
+      const currentIds = payload.awards.filter((a: any) => a.id).map((a: any) => a.id as string);
+      await transactor.award.deleteMany({
+        where: { profileId: userProfile.id, NOT: { id: { in: currentIds } } },
+      });
+      for (const award of payload.awards) {
+        const cleanedData = stripFields(award);
+        const dates = {
+          issueDate: award.issueDate ? new Date(award.issueDate) : undefined,
+        };
+        if (award.id) {
+          await transactor.award.update({
+            where: { id: award.id },
+            data: { ...cleanedData, ...dates },
+          });
+        } else {
+          await transactor.award.create({
+            data: { ...cleanedData, ...dates, profileId: userProfile.id },
+          });
+        }
+      }
+    }
+
+    // --- Sync Publications ---
+    if (payload.publications !== undefined) {
+      const currentIds = payload.publications
+        .filter((p: any) => p.id)
+        .map((p: any) => p.id as string);
+      await transactor.publication.deleteMany({
+        where: { profileId: userProfile.id, NOT: { id: { in: currentIds } } },
+      });
+      for (const pub of payload.publications) {
+        const cleanedData = stripFields(pub);
+        const dates = {
+          publishDate: pub.publishDate ? new Date(pub.publishDate) : undefined,
+        };
+        if (pub.id) {
+          await transactor.publication.update({
+            where: { id: pub.id },
+            data: { ...cleanedData, ...dates },
+          });
+        } else {
+          await transactor.publication.create({
+            data: { ...cleanedData, ...dates, profileId: userProfile.id },
+          });
+        }
+      }
+    }
+
+    // --- Sync References ---
+    if (payload.references !== undefined) {
+      const currentIds = payload.references
+        .filter((r: any) => r.id)
+        .map((r: any) => r.id as string);
+      await transactor.reference.deleteMany({
+        where: { profileId: userProfile.id, NOT: { id: { in: currentIds } } },
+      });
+      for (const ref of payload.references) {
+        const cleanedData = stripFields(ref);
+        if (ref.id) {
+          await transactor.reference.update({
+            where: { id: ref.id },
+            data: cleanedData,
+          });
+        } else {
+          await transactor.reference.create({
+            data: { ...cleanedData, profileId: userProfile.id },
+          });
+        }
+      }
+    }
+
+    // --- Sync Languages ---
+    if (payload.languages !== undefined) {
+      const currentIds = payload.languages.filter((l: any) => l.id).map((l: any) => l.id as string);
+      await transactor.language.deleteMany({
+        where: { profileId: userProfile.id, NOT: { id: { in: currentIds } } },
+      });
+      for (const lang of payload.languages) {
+        const cleanedData = stripFields(lang);
+        if (lang.id) {
+          await transactor.language.update({
+            where: { id: lang.id },
+            data: cleanedData,
+          });
+        } else {
+          await transactor.language.create({
+            data: { ...cleanedData, profileId: userProfile.id },
+          });
+        }
+      }
     }
 
     return userProfile;

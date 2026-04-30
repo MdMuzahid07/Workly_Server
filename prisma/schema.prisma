@@ -161,6 +161,7 @@ model Profile {
   resumeUrl            String?          @db.VarChar(500)
   linkedInUrl          String?          @db.VarChar(500)
   websiteUrl           String?          @db.VarChar(500)
+  githubUrl            String?          @db.VarChar(500)
   //* ==== professional ======>
   headline             String?          @db.VarChar(255)
   totalExperienceYears Float?
@@ -171,6 +172,13 @@ model Profile {
   education            Education[]
   workExperiences      WorkExperience[]
   certifications       Certification[]
+  projects             Project[]
+  volunteers           Volunteer[]
+  awards               Award[]
+  publications         Publication[]
+  references           Reference[]
+  languages            Language[]
+  address              Address?
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @default(now()) @updatedAt
 
@@ -250,6 +258,25 @@ model Skill {
   @@index([profileId])
   @@index([skillName])
   @@map("skills")
+}
+
+model Project {
+  id           String    @id @default(uuid())
+  profileId    String
+  title        String    @db.VarChar(255)
+  description  String?
+  link         String?   @db.VarChar(500)
+  technologies String[]  @default([])
+  startDate    DateTime?
+  endDate      DateTime?
+  current      Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  //* ==== relations ======>
+  profile      Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@map("projects")
 }
 
 model Preference {
@@ -824,4 +851,97 @@ model RateLimit {
   @@index([windowStart])
   @@index([resets])
   @@map("rate_limits")
+}
+
+model Address {
+  id         String   @id @default(uuid())
+  profileId  String   @unique
+  street     String?  @db.VarChar(255)
+  city       String?  @db.VarChar(100)
+  state      String?  @db.VarChar(100)
+  zipCode    String?  @db.VarChar(20)
+  country    String?  @db.VarChar(100)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  profile    Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("addresses")
+}
+
+model Volunteer {
+  id           String    @id @default(uuid())
+  profileId    String
+  role         String    @db.VarChar(255)
+  organization String    @db.VarChar(255)
+  cause        String?   @db.VarChar(255)
+  startDate    DateTime?
+  endDate      DateTime?
+  current      Boolean   @default(false)
+  description  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  profile      Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@map("volunteer_work")
+}
+
+model Award {
+  id          String    @id @default(uuid())
+  profileId   String
+  title       String    @db.VarChar(255)
+  issuer      String    @db.VarChar(255)
+  issueDate   DateTime?
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  profile     Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@map("awards")
+}
+
+model Publication {
+  id          String    @id @default(uuid())
+  profileId   String
+  title       String    @db.VarChar(255)
+  publisher   String    @db.VarChar(255)
+  publishDate DateTime?
+  link        String?   @db.VarChar(500)
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  profile     Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@map("publications")
+}
+
+model Reference {
+  id          String   @id @default(uuid())
+  profileId   String
+  name        String   @db.VarChar(255)
+  relationship String   @db.VarChar(255)
+  company     String?  @db.VarChar(255)
+  email       String?  @db.VarChar(255)
+  phone       String?  @db.VarChar(50)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@map("references")
+}
+
+model Language {
+  id         String   @id @default(uuid())
+  profileId  String
+  language   String   @db.VarChar(100)
+  proficiency String   @db.VarChar(50)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  profile    Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@map("languages")
 }
