@@ -9,6 +9,7 @@ import profileRoute from "../modules/profile/profile.route.js";
 import resumeRoute from "../modules/resume/resume.route.js";
 import uploadRoute from "../modules/upload/upload.route.js";
 import candidateRoute from "../modules/candidate/candidate.route.js";
+import { followRoute } from "../modules/follow/follow.route.js";
 
 const router = express.Router();
 
@@ -52,6 +53,10 @@ const routeConfigs = [
   {
     path: "/candidate",
     route: candidateRoute,
+  },
+  {
+    path: "/follow",
+    route: followRoute,
   },
 ];
 

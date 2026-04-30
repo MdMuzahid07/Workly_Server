@@ -459,6 +459,7 @@ model Application {
   interviewScheduledAt   DateTime?
   interviewNotes         String?
   withdrawnAt            DateTime?
+  deletedAt              DateTime?
   createdAt              DateTime               @default(now())
   updatedAt              DateTime               @updatedAt
   applicantId            String
@@ -474,6 +475,7 @@ model Application {
   @@index([jobId, status])
   @@index([createdAt])
   @@index([statusChangedAt])
+  @@index([deletedAt])
   @@map("applications")
 }
 
@@ -762,11 +764,12 @@ model Resume {
   fileSize   Int? // in bytes
   isDefault  Boolean  @default(false)
   uploadDate DateTime @default(now())
+  deletedAt  DateTime?
   //* ==== relations ======>
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, fileName])
   @@index([userId])
+  @@index([deletedAt])
   @@map("resumes")
 }
 
