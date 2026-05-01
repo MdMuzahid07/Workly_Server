@@ -66,6 +66,18 @@ const educationSchema = z.object({
   description: z.string().optional().nullable(),
 });
 
+const certificationSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().optional(),
+  issuingOrg: z.string().optional(),
+  organization: z.string().optional(),
+  issueDate: z.string().optional().nullable(),
+  expiryDate: z.string().optional().nullable(),
+  expirationDate: z.string().optional().nullable(),
+  credentialId: z.string().optional().nullable(),
+  credentialUrl: z.string().optional().nullable(),
+});
+
 const workExperienceSchema = z.object({
   id: z.string().optional(),
   jobTitle: z.string().optional(),
@@ -184,6 +196,7 @@ const createProfile = z.object({
   education: z.array(educationSchema).optional(),
   workExperiences: z.array(workExperienceSchema).optional(),
   projects: z.array(projectSchema).optional(),
+  certifications: z.array(certificationSchema).optional(),
   volunteers: z.array(volunteerSchema).optional(),
   awards: z.array(awardSchema).optional(),
   publications: z.array(publicationSchema).optional(),
