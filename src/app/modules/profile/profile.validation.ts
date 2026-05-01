@@ -1,13 +1,25 @@
 import z from "zod";
 
+const dateLikeSchema = z.union([z.string(), z.date()]).optional().nullable();
+const numberLikeSchema = z
+  .union([z.number(), z.string(), z.null(), z.undefined()])
+  .transform((value) => {
+    if (value === null || value === undefined || value === "") return undefined;
+    const num = Number(value);
+    return Number.isNaN(num) ? undefined : num;
+  });
+
 const skillSchema = z.object({
   id: z.string().optional(),
   skillName: z.string().optional(),
   skill: z.string().optional(),
-  experienceYears: z
-    .number()
-    .min(0, { message: "Experience cannot be negative" })
-    .max(50, { message: "Experience cannot exceed 35 years" })
+  experienceYears: numberLikeSchema
+    .pipe(
+      z
+        .number()
+        .min(0, { message: "Experience cannot be negative" })
+        .max(50, { message: "Experience cannot exceed 35 years" }),
+    )
     .optional()
     .nullable(),
   type: z.string().optional(),
@@ -18,12 +30,18 @@ const preferenceSchema = z.object({
     message:
       "Job type must be one of: FULL_TIME, PART_TIME, CONTRACT, INTERNSHIP, FREELANCE,REMOTE",
   }),
-  expectedSalary: z
-    .number({
-      message: "Expected salary must be a number",
-    })
-    .int({ message: "Salary must be a whole number" })
-    .min(0, { message: "Salary cannot be negative" })
+  expectedSalary: numberLikeSchema
+    .pipe(
+      z.number({
+        message: "Expected salary must be a number",
+      }),
+    )
+    .pipe(
+      z
+        .number()
+        .int({ message: "Salary must be a whole number" })
+        .min(0, { message: "Salary cannot be negative" }),
+    )
     .optional()
     .nullable(),
   preferredLocation: z
@@ -53,16 +71,16 @@ const preferenceSchema = z.object({
 
 const educationSchema = z.object({
   id: z.string().optional(),
-  institution: z.string().optional(),
-  institute: z.string().optional(),
-  degree: z.string().optional(),
-  fieldOfStudy: z.string().optional(),
-  level: z.string().optional(),
-  year: z.string().optional(),
-  startDate: z.string().optional().nullable(),
-  endDate: z.string().optional().nullable(),
-  grade: z.string().optional(),
-  result: z.string().optional(),
+  institution: z.string().optional().nullable(),
+  institute: z.string().optional().nullable(),
+  degree: z.string().optional().nullable(),
+  fieldOfStudy: z.string().optional().nullable(),
+  level: z.string().optional().nullable(),
+  year: z.string().optional().nullable(),
+  startDate: dateLikeSchema,
+  endDate: dateLikeSchema,
+  grade: z.string().optional().nullable(),
+  result: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
 });
 
@@ -71,11 +89,12 @@ const certificationSchema = z.object({
   name: z.string().optional(),
   issuingOrg: z.string().optional(),
   organization: z.string().optional(),
-  issueDate: z.string().optional().nullable(),
-  expiryDate: z.string().optional().nullable(),
-  expirationDate: z.string().optional().nullable(),
+  issueDate: dateLikeSchema,
+  expiryDate: dateLikeSchema,
+  expirationDate: dateLikeSchema,
   credentialId: z.string().optional().nullable(),
   credentialUrl: z.string().optional().nullable(),
+  file: z.any().optional(),
 });
 
 const workExperienceSchema = z.object({
@@ -85,8 +104,8 @@ const workExperienceSchema = z.object({
   company: z.string().optional(),
   location: z.string().optional().nullable(),
   employmentType: z.string().optional(),
-  startDate: z.string().optional().nullable(),
-  endDate: z.string().optional().nullable(),
+  startDate: dateLikeSchema,
+  endDate: dateLikeSchema,
   description: z.string().optional().nullable(),
   current: z.boolean().optional(),
   currentlyWorking: z.boolean().optional(),
@@ -99,16 +118,16 @@ const projectSchema = z.object({
   technologies: z.array(z.string()).optional(),
   projectUrl: z.string().optional().nullable(),
   repoUrl: z.string().optional().nullable(),
-  startDate: z.string().optional().nullable(),
-  endDate: z.string().optional().nullable(),
+  startDate: dateLikeSchema,
+  endDate: dateLikeSchema,
 });
 
 const volunteerSchema = z.object({
   id: z.string().optional(),
   role: z.string().optional(),
   organization: z.string().optional(),
-  startDate: z.string().optional().nullable(),
-  endDate: z.string().optional().nullable(),
+  startDate: dateLikeSchema,
+  endDate: dateLikeSchema,
   description: z.string().optional().nullable(),
   current: z.boolean().optional(),
   currentlyVolunteering: z.boolean().optional(),
@@ -118,8 +137,8 @@ const awardSchema = z.object({
   id: z.string().optional(),
   title: z.string().optional(),
   issuer: z.string().optional(),
-  issueDate: z.string().optional().nullable(),
-  date: z.string().optional().nullable(),
+  issueDate: dateLikeSchema,
+  date: dateLikeSchema,
   description: z.string().optional().nullable(),
 });
 
@@ -127,8 +146,8 @@ const publicationSchema = z.object({
   id: z.string().optional(),
   title: z.string().optional(),
   publisher: z.string().optional(),
-  publishDate: z.string().optional().nullable(),
-  date: z.string().optional().nullable(),
+  publishDate: dateLikeSchema,
+  date: dateLikeSchema,
   url: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
 });
@@ -158,6 +177,9 @@ const addressSchema = z.object({
 });
 
 const createProfile = z.object({
+  fullName: z.string().optional(),
+  email: z.string().optional(),
+  phone: z.string().optional().nullable(),
   bio: z.string().optional().nullable(),
   headline: z.string().optional().nullable(),
   location: z
