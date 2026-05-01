@@ -3,23 +3,30 @@ import type { JobType } from "../../../generated/prisma/index.js";
 export type IEducation = {
   id?: string;
   institution: string;
+  institute?: string; // from frontend
   degree: string;
   fieldOfStudy?: string;
   startDate?: string | Date;
   endDate?: string | Date;
   grade?: string;
+  result?: string; // from frontend
   description?: string;
+  year?: string; // from frontend
+  level?: string; // from frontend
 };
 
 export type IWorkExperience = {
   id?: string;
   jobTitle: string;
+  designation?: string; // from frontend
   company: string;
   location?: string;
   startDate?: string | Date;
   endDate?: string | Date;
   description?: string;
   current?: boolean;
+  currentlyWorking?: boolean; // from frontend
+  employmentType?: string; // from frontend
 };
 
 export type ICertification = {
@@ -74,6 +81,7 @@ export type IVolunteer = {
   startDate?: string | Date;
   endDate?: string | Date;
   current?: boolean;
+  currentlyVolunteering?: boolean; // from frontend
   description?: string;
 };
 
@@ -82,6 +90,7 @@ export type IAward = {
   title: string;
   issuer: string;
   issueDate?: string | Date;
+  date?: string | Date; // from frontend
   description?: string;
 };
 
@@ -90,6 +99,7 @@ export type IPublication = {
   title: string;
   publisher: string;
   publishDate?: string | Date;
+  date?: string | Date; // from frontend
   link?: string;
   description?: string;
 };

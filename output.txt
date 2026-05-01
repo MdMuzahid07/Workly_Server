@@ -1,0 +1,43 @@
+Updating profile for user: af5e5899-02e6-4579-a57d-d6a970119c32 Payload keys: [ 'projects' ]
+Error updating profile project: PrismaClientValidationError: 
+Invalid `transactor.project.create()` invocation in
+/home/muzahid/MainDrive/Developments/MyPortfolio/PERN-Stack/Workly-Job/Web/Workly_Server/src/app/modules/profile/profile.service.ts:369:36
+
+  366     data: { ...cleanedData, ...dates },
+  367   });
+  368 } else {
+→ 369   await transactor.project.create({
+          data: {
+            title: "My React App",
+            description: "This is a great app.",
+            technologies: [
+              "React",
+              "Node.js"
+            ],
+            projectUrl: "",
+            ~~~~~~~~~~
+            repoUrl: "",
+            startDate: new Date("2026-01-01T00:00:00.000Z"),
+            endDate: undefined,
+            profileId: "90f58e15-7dcd-4a0f-a818-8cbef78c4b2d",
+        ?   id?: String,
+        ?   link?: String | Null,
+        ?   current?: Boolean,
+        ?   createdAt?: DateTime,
+        ?   updatedAt?: DateTime
+          }
+        })
+
+Unknown argument `projectUrl`. Available options are marked with ?.
+    at ar (/home/muzahid/MainDrive/Developments/MyPortfolio/PERN-Stack/Workly-Job/Web/Workly_Server/src/generated/prisma/runtime/client.js:14:1374)
+    at zr.handleRequestError (/home/muzahid/MainDrive/Developments/MyPortfolio/PERN-Stack/Workly-Job/Web/Workly_Server/src/generated/prisma/runtime/client.js:69:7929)
+    at zr.handleAndLogRequestError (/home/muzahid/MainDrive/Developments/MyPortfolio/PERN-Stack/Workly-Job/Web/Workly_Server/src/generated/prisma/runtime/client.js:69:7581)
+    at zr.request (/home/muzahid/MainDrive/Developments/MyPortfolio/PERN-Stack/Workly-Job/Web/Workly_Server/src/generated/prisma/runtime/client.js:69:7288)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async a (/home/muzahid/MainDrive/Developments/MyPortfolio/PERN-Stack/Workly-Job/Web/Workly_Server/src/generated/prisma/runtime/client.js:79:6862)
+    at async <anonymous> (/home/muzahid/MainDrive/Developments/MyPortfolio/PERN-Stack/Workly-Job/Web/Workly_Server/src/app/modules/profile/profile.service.ts:369:11)
+    at async Proxy._transactionWithCallback (/home/muzahid/MainDrive/Developments/MyPortfolio/PERN-Stack/Workly-Job/Web/Workly_Server/src/generated/prisma/runtime/client.js:79:4800)
+    at async Object.updateMyProfile (/home/muzahid/MainDrive/Developments/MyPortfolio/PERN-Stack/Workly-Job/Web/Workly_Server/src/app/modules/profile/profile.service.ts:151:18)
+    at async testProjectUpdate (/home/muzahid/MainDrive/Developments/MyPortfolio/PERN-Stack/Workly-Job/Web/Workly_Server/test-project.ts:25:5) {
+  clientVersion: '7.8.0'
+}

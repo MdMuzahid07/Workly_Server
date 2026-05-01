@@ -192,6 +192,8 @@ model Education {
   institution  String    @db.VarChar(255)
   degree       String    @db.VarChar(255)
   fieldOfStudy String?   @db.VarChar(255)
+  level        String?   @db.VarChar(100)
+  year         String?   @db.VarChar(10)
   startDate    DateTime?
   endDate      DateTime?
   grade        String?   @db.VarChar(50)
@@ -207,17 +209,18 @@ model Education {
 }
 
 model WorkExperience {
-  id          String    @id @default(uuid())
-  profileId   String
-  jobTitle    String    @db.VarChar(255)
-  company     String    @db.VarChar(255)
-  location    String?   @db.VarChar(255)
-  startDate   DateTime?
-  endDate     DateTime?
-  description String?
-  current     Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id             String    @id @default(uuid())
+  profileId      String
+  jobTitle       String    @db.VarChar(255)
+  company        String    @db.VarChar(255)
+  location       String?   @db.VarChar(255)
+  employmentType String?   @db.VarChar(100)
+  startDate      DateTime?
+  endDate        DateTime?
+  description    String?
+  current        Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   //* ==== relations ======>
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
@@ -266,6 +269,7 @@ model Project {
   title        String    @db.VarChar(255)
   description  String?
   link         String?   @db.VarChar(500)
+  repoUrl      String?   @db.VarChar(500)
   technologies String[]  @default([])
   startDate    DateTime?
   endDate      DateTime?
@@ -883,7 +887,7 @@ model Volunteer {
   profile      Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@index([profileId])
-  @@map("volunteer_work")
+  @@map("volunteers")
 }
 
 model Award {
@@ -923,6 +927,7 @@ model Reference {
   name        String   @db.VarChar(255)
   relationship String   @db.VarChar(255)
   company     String?  @db.VarChar(255)
+  position    String?  @db.VarChar(255)
   email       String?  @db.VarChar(255)
   phone       String?  @db.VarChar(50)
   createdAt   DateTime @default(now())

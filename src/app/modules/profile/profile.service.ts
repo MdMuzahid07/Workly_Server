@@ -221,7 +221,7 @@ const updateMyProfile = async (userId: string, payload: Partial<IProfile> & { ph
 
       for (const skill of payload.skills) {
         const skillData = {
-          skillName: skill.skillName,
+          skillName: skill.skillName || (skill as any).skill || "",
           experienceYears: skill.experienceYears ? Number(skill.experienceYears) : 0,
         };
         if (skill.id) {
@@ -254,6 +254,17 @@ const updateMyProfile = async (userId: string, payload: Partial<IProfile> & { ph
       });
       for (const edu of payload.education) {
         const cleanedData = stripFields(edu);
+        // Map frontend fields to schema fields
+        const mappedData = {
+          institution: cleanedData.institute || cleanedData.institution,
+          degree: cleanedData.degree,
+          fieldOfStudy: cleanedData.fieldOfStudy,
+          level: cleanedData.level,
+          year: cleanedData.year,
+          grade: cleanedData.result || cleanedData.grade,
+          description: cleanedData.description,
+        };
+
         const dates = {
           startDate: edu.startDate ? new Date(edu.startDate) : undefined,
           endDate: edu.endDate ? new Date(edu.endDate) : undefined,
@@ -261,11 +272,11 @@ const updateMyProfile = async (userId: string, payload: Partial<IProfile> & { ph
         if (edu.id) {
           await transactor.education.update({
             where: { id: edu.id },
-            data: { ...cleanedData, ...dates },
+            data: { ...mappedData, ...dates },
           });
         } else {
           await transactor.education.create({
-            data: { ...cleanedData, ...dates, profileId: userProfile.id },
+            data: { ...mappedData, ...dates, profileId: userProfile.id },
           });
         }
       }
@@ -281,6 +292,16 @@ const updateMyProfile = async (userId: string, payload: Partial<IProfile> & { ph
       });
       for (const work of payload.workExperiences) {
         const cleanedData = stripFields(work);
+        // Map frontend fields to schema fields
+        const mappedData = {
+          jobTitle: cleanedData.designation || cleanedData.jobTitle,
+          company: cleanedData.company,
+          location: cleanedData.location,
+          employmentType: cleanedData.employmentType,
+          description: cleanedData.description,
+          current: cleanedData.currentlyWorking || cleanedData.current || false,
+        };
+
         const dates = {
           startDate: work.startDate ? new Date(work.startDate) : undefined,
           endDate: work.endDate ? new Date(work.endDate) : undefined,
@@ -288,11 +309,11 @@ const updateMyProfile = async (userId: string, payload: Partial<IProfile> & { ph
         if (work.id) {
           await transactor.workExperience.update({
             where: { id: work.id },
-            data: { ...cleanedData, ...dates },
+            data: { ...mappedData, ...dates },
           });
         } else {
           await transactor.workExperience.create({
-            data: { ...cleanedData, ...dates, profileId: userProfile.id },
+            data: { ...mappedData, ...dates, profileId: userProfile.id },
           });
         }
       }
@@ -308,18 +329,27 @@ const updateMyProfile = async (userId: string, payload: Partial<IProfile> & { ph
       });
       for (const cert of payload.certifications) {
         const cleanedData = stripFields(cert);
+        const mappedData = {
+          name: cleanedData.name,
+          issuingOrg: cleanedData.organization || cleanedData.issuingOrg,
+          credentialId: cleanedData.credentialId,
+          credentialUrl: cleanedData.credentialUrl,
+        };
         const dates = {
           issueDate: cert.issueDate ? new Date(cert.issueDate) : undefined,
-          expiryDate: cert.expiryDate ? new Date(cert.expiryDate) : undefined,
+          expiryDate:
+            (cert as any).expirationDate || cert.expiryDate
+              ? new Date((cert as any).expirationDate || cert.expiryDate)
+              : undefined,
         };
         if (cert.id) {
           await transactor.certification.update({
             where: { id: cert.id },
-            data: { ...cleanedData, ...dates },
+            data: { ...mappedData, ...dates },
           });
         } else {
           await transactor.certification.create({
-            data: { ...cleanedData, ...dates, profileId: userProfile.id },
+            data: { ...mappedData, ...dates, profileId: userProfile.id },
           });
         }
       }
@@ -333,6 +363,13 @@ const updateMyProfile = async (userId: string, payload: Partial<IProfile> & { ph
       });
       for (const project of payload.projects) {
         const cleanedData = stripFields(project);
+        const mappedData = {
+          title: cleanedData.title,
+          description: cleanedData.description,
+          technologies: cleanedData.technologies || [],
+          link: cleanedData.projectUrl || cleanedData.link,
+          repoUrl: cleanedData.repoUrl,
+        };
         const dates = {
           startDate: project.startDate ? new Date(project.startDate) : undefined,
           endDate: project.endDate ? new Date(project.endDate) : undefined,
@@ -340,11 +377,11 @@ const updateMyProfile = async (userId: string, payload: Partial<IProfile> & { ph
         if (project.id) {
           await transactor.project.update({
             where: { id: project.id },
-            data: { ...cleanedData, ...dates },
+            data: { ...mappedData, ...dates },
           });
         } else {
           await transactor.project.create({
-            data: { ...cleanedData, ...dates, profileId: userProfile.id },
+            data: { ...mappedData, ...dates, profileId: userProfile.id },
           });
         }
       }
@@ -359,7 +396,7 @@ const updateMyProfile = async (userId: string, payload: Partial<IProfile> & { ph
       });
     }
 
-    // --- Sync Volunteers ---
+    // --- Sync Volunteer ---
     if (payload.volunteers !== undefined) {
       const currentIds = payload.volunteers
         .filter((v: any) => v.id)
@@ -369,6 +406,12 @@ const updateMyProfile = async (userId: string, payload: Partial<IProfile> & { ph
       });
       for (const vol of payload.volunteers) {
         const cleanedData = stripFields(vol);
+        const mappedData = {
+          role: cleanedData.role,
+          organization: cleanedData.organization,
+          description: cleanedData.description,
+          current: cleanedData.currentlyVolunteering || cleanedData.current || false,
+        };
         const dates = {
           startDate: vol.startDate ? new Date(vol.startDate) : undefined,
           endDate: vol.endDate ? new Date(vol.endDate) : undefined,
@@ -376,11 +419,11 @@ const updateMyProfile = async (userId: string, payload: Partial<IProfile> & { ph
         if (vol.id) {
           await transactor.volunteer.update({
             where: { id: vol.id },
-            data: { ...cleanedData, ...dates },
+            data: { ...mappedData, ...dates },
           });
         } else {
           await transactor.volunteer.create({
-            data: { ...cleanedData, ...dates, profileId: userProfile.id },
+            data: { ...mappedData, ...dates, profileId: userProfile.id },
           });
         }
       }
@@ -394,17 +437,23 @@ const updateMyProfile = async (userId: string, payload: Partial<IProfile> & { ph
       });
       for (const award of payload.awards) {
         const cleanedData = stripFields(award);
+        const mappedData = {
+          title: cleanedData.title,
+          issuer: cleanedData.organization || cleanedData.issuer,
+          description: cleanedData.description,
+        };
+        const dateValue = award.date || award.issueDate;
         const dates = {
-          issueDate: award.issueDate ? new Date(award.issueDate) : undefined,
+          issueDate: dateValue ? new Date(dateValue) : undefined,
         };
         if (award.id) {
           await transactor.award.update({
             where: { id: award.id },
-            data: { ...cleanedData, ...dates },
+            data: { ...mappedData, ...dates },
           });
         } else {
           await transactor.award.create({
-            data: { ...cleanedData, ...dates, profileId: userProfile.id },
+            data: { ...mappedData, ...dates, profileId: userProfile.id },
           });
         }
       }
@@ -420,17 +469,24 @@ const updateMyProfile = async (userId: string, payload: Partial<IProfile> & { ph
       });
       for (const pub of payload.publications) {
         const cleanedData = stripFields(pub);
+        const mappedData = {
+          title: cleanedData.title,
+          publisher: cleanedData.publisher,
+          link: cleanedData.url || cleanedData.link,
+          description: cleanedData.description,
+        };
+        const dateValue = pub.date || pub.publishDate;
         const dates = {
-          publishDate: pub.publishDate ? new Date(pub.publishDate) : undefined,
+          publishDate: dateValue ? new Date(dateValue) : undefined,
         };
         if (pub.id) {
           await transactor.publication.update({
             where: { id: pub.id },
-            data: { ...cleanedData, ...dates },
+            data: { ...mappedData, ...dates },
           });
         } else {
           await transactor.publication.create({
-            data: { ...cleanedData, ...dates, profileId: userProfile.id },
+            data: { ...mappedData, ...dates, profileId: userProfile.id },
           });
         }
       }
@@ -446,14 +502,22 @@ const updateMyProfile = async (userId: string, payload: Partial<IProfile> & { ph
       });
       for (const ref of payload.references) {
         const cleanedData = stripFields(ref);
+        const mappedData = {
+          name: cleanedData.name,
+          relationship: cleanedData.relationship,
+          company: cleanedData.company,
+          position: cleanedData.position,
+          email: cleanedData.email,
+          phone: cleanedData.phone,
+        };
         if (ref.id) {
           await transactor.reference.update({
             where: { id: ref.id },
-            data: cleanedData,
+            data: mappedData,
           });
         } else {
           await transactor.reference.create({
-            data: { ...cleanedData, profileId: userProfile.id },
+            data: { ...mappedData, profileId: userProfile.id },
           });
         }
       }
