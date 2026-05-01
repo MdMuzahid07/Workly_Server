@@ -26,10 +26,31 @@ const logProfileView = async (
   return result;
 };
 
-const getProfileViewStats = async (userId: string) => {
+const getProfileViewStats = async (userId: string, period: string = "7days") => {
   const now = new Date();
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(now.getDate() - 7);
+  const startDate = new Date();
+
+  let interval = "day";
+  switch (period) {
+    case "14days":
+      startDate.setDate(now.getDate() - 14);
+      break;
+    case "lastMonth":
+      startDate.setMonth(now.getMonth() - 1);
+      break;
+    case "3months":
+      startDate.setMonth(now.getMonth() - 3);
+      interval = "week";
+      break;
+    case "overall":
+      startDate.setFullYear(now.getFullYear() - 1); // last 1 year
+      interval = "month";
+      break;
+    case "7days":
+    default:
+      startDate.setDate(now.getDate() - 7);
+      break;
+  }
 
   // Total views
   const totalViews = await prisma.profileView.count({
@@ -60,14 +81,14 @@ const getProfileViewStats = async (userId: string) => {
     },
   });
 
-  // Chart data: Views per day for last 7 days
+  // Chart data: Views per day/week/month for selected period
   const chartDataRaw = await prisma.$queryRaw`
     SELECT 
-      DATE_TRUNC('day', "viewedAt") as date,
+      DATE_TRUNC(${interval}, "viewedAt") as date,
       COUNT(*)::int as count
     FROM "profile_views"
     WHERE "viewedUserId" = ${userId}
-      AND "viewedAt" >= ${sevenDaysAgo}
+      AND "viewedAt" >= ${startDate}
     GROUP BY 1
     ORDER BY 1 ASC
   `;

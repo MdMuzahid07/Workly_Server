@@ -28,8 +28,9 @@ const logProfileView = asyncHandler(async (req, res) => {
 const getProfileViewStats = asyncHandler(async (req, res) => {
   //@ts-ignore
   const userId = req.user.userId;
+  const { period } = req.query as { period: string };
 
-  const result = await profileViewService.getProfileViewStats(userId);
+  const result = await profileViewService.getProfileViewStats(userId, period);
 
   sendApiResponse(res, {
     statusCode: httpStatus.OK,

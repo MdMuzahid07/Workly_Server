@@ -423,6 +423,48 @@ const getMyCompanyApplications = async (employerId: string, query: any) => {
   return { data, meta: pagination };
 };
 
+const getApplicationStats = async (userId: string, period: string = "7days") => {
+  const now = new Date();
+  const startDate = new Date();
+
+  let interval = "day";
+  switch (period) {
+    case "14days":
+      startDate.setDate(now.getDate() - 14);
+      break;
+    case "lastMonth":
+      startDate.setMonth(now.getMonth() - 1);
+      break;
+    case "3months":
+      startDate.setMonth(now.getMonth() - 3);
+      interval = "week";
+      break;
+    case "overall":
+      startDate.setFullYear(now.getFullYear() - 1); // last 1 year
+      interval = "month";
+      break;
+    case "7days":
+    default:
+      startDate.setDate(now.getDate() - 7);
+      break;
+  }
+
+  // Raw query for aggregation
+  // For Postgres: DATE_TRUNC(interval, "createdAt")
+  const stats = await prisma.$queryRaw`
+    SELECT 
+      DATE_TRUNC(${interval}, "createdAt") as date,
+      COUNT(*)::int as count
+    FROM "applications"
+    WHERE "applicantId" = ${userId}
+      AND "createdAt" >= ${startDate}
+    GROUP BY 1
+    ORDER BY 1 ASC
+  `;
+
+  return stats;
+};
+
 const applicationService = {
   createApplication,
   getMyApplications,
@@ -434,6 +476,7 @@ const applicationService = {
   scheduleInterview,
   updateNotes,
   getJobSummary,
+  getApplicationStats,
 };
 
 export default applicationService;

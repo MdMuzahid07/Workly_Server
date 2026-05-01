@@ -147,6 +147,19 @@ const getJobSummary = asyncHandler(async (req, res) => {
   });
 });
 
+const getApplicationStats = asyncHandler(async (req, res) => {
+  //@ts-ignore
+  const userId = req.user.userId;
+  const { period } = req.query as { period: string };
+  const result = await applicationService.getApplicationStats(userId, period);
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Application stats fetched successfully",
+    data: result,
+  });
+});
+
 const applicationController = {
   createApplication,
   getMyApplications,
@@ -158,6 +171,7 @@ const applicationController = {
   scheduleInterview,
   updateNotes,
   getJobSummary,
+  getApplicationStats,
 };
 
 export default applicationController;
