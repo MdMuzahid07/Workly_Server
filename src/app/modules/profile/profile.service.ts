@@ -203,7 +203,7 @@ const updateMyProfile = async (userId: string, payload: Partial<IProfile> & { ph
       });
     }
 
-    if (payload.skills !== undefined && payload.skills.length > 0) {
+    if (payload.skills !== undefined) {
       const currentSkillIds = payload.skills
         .filter((skill): skill is ISkill & { id: string } => !!skill.id)
         .map((skill: ISkill) => skill.id);
