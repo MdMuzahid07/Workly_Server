@@ -15,6 +15,12 @@ router.post(
 );
 
 router.get("/me", authValidator(UserRole.JOB_SEEKER), applicationController.getMyApplications);
+router.get(
+  "/me/summary",
+  authValidator(UserRole.JOB_SEEKER),
+  applicationController.getMyApplicationSummary,
+);
+router.get("/stats", authValidator(UserRole.JOB_SEEKER), applicationController.getApplicationStats);
 
 router.get(
   "/job/:jobId",
@@ -26,6 +32,12 @@ router.get(
   "/my-company-applications",
   authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
   applicationController.getMyCompanyApplications,
+);
+
+router.get(
+  "/my-company-summary",
+  authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  applicationController.getMyCompanyApplicationSummary,
 );
 
 router.get(

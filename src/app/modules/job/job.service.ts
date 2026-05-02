@@ -30,6 +30,40 @@ const getDateFromPeriod = (period: string) => {
   return days ? new Date(now.getTime() - days * 24 * 60 * 60 * 1000) : null;
 };
 
+const getPublicJobUnavailableReason = (
+  job: Pick<Job, "status" | "deletedAt" | "applicationDeadline" | "expiresAt">,
+) => {
+  const now = new Date();
+
+  if (job.deletedAt) return "Job not found";
+  if (job.status !== "ACTIVE") return "Job not found";
+  if (job.applicationDeadline && job.applicationDeadline <= now) {
+    return "This job is no longer accepting applications";
+  }
+  if (job.expiresAt && job.expiresAt <= now) {
+    return "This job posting has expired";
+  }
+
+  return null;
+};
+
+const canUserManageJob = async (
+  userId: string | null | undefined,
+  job: Pick<Job, "postedById" | "companyId">,
+) => {
+  if (!userId) return false;
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId, isActive: true },
+    select: { id: true, role: true, companyId: true },
+  });
+
+  if (!user) return false;
+  if (user.role === "ADMIN" || user.role === "SUPER_ADMIN") return true;
+
+  return user.id === job.postedById || (!!user.companyId && user.companyId === job.companyId);
+};
+
 //* ===================== services =========================>
 
 const createJob = async (userId: string, payload: Job & { skillsRequired: JobSkill[] }) => {
@@ -99,7 +133,7 @@ const createJob = async (userId: string, payload: Job & { skillsRequired: JobSki
         postedById: userId,
         companyId: rest.companyId,
         slug,
-        status: "DRAFT",
+        status: rest.status ?? "DRAFT",
       },
     });
 
@@ -141,7 +175,11 @@ const createJob = async (userId: string, payload: Job & { skillsRequired: JobSki
   return result;
 };
 
-const getJobs = async (query: any, currentUserId?: string | null) => {
+const getJobs = async (
+  query: any,
+  currentUserId?: string | null,
+  options: { publicOnly?: boolean } = { publicOnly: true },
+) => {
   const {
     search,
     location,
@@ -172,6 +210,20 @@ const getJobs = async (query: any, currentUserId?: string | null) => {
     whereIn: {},
   };
 
+  if (options.publicOnly) {
+    filterQuery.where.status = "ACTIVE";
+    filterQuery.customWhere = {
+      AND: [
+        {
+          OR: [{ applicationDeadline: null }, { applicationDeadline: { gt: new Date() } }],
+        },
+        {
+          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+        },
+      ],
+    };
+  }
+
   // text search ===============>
   if (search) {
     filterQuery.search = search.trim();
@@ -181,7 +233,7 @@ const getJobs = async (query: any, currentUserId?: string | null) => {
   // exact matches =============>
   if (companyId) filterQuery.where.companyId = companyId;
 
-  if (status) {
+  if (!options.publicOnly && status) {
     filterQuery.where.status = status;
   }
 
@@ -301,7 +353,7 @@ const getMyJobs = async (userId: string, query: any) => {
   query.companyId = user.companyId;
 
   // Use the existing getJobs logic which handles all sorting, pagination, etc.
-  return getJobs(query);
+  return getJobs(query, userId, { publicOnly: false });
 };
 
 const getJobById = async (jobId: string, currentUserId?: string | null) => {
@@ -337,6 +389,14 @@ const getJobById = async (jobId: string, currentUserId?: string | null) => {
 
   if (!result) {
     throw new AppError(httpStatus.NOT_FOUND, "Job not found");
+  }
+
+  const canManageJob = await canUserManageJob(currentUserId, result);
+  if (!canManageJob) {
+    const unavailableReason = getPublicJobUnavailableReason(result);
+    if (unavailableReason) {
+      throw new AppError(httpStatus.NOT_FOUND, unavailableReason);
+    }
   }
 
   let isSaved = false;

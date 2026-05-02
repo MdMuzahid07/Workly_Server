@@ -135,7 +135,7 @@ const createJobFilter = (prisma: any) => {
 
     // ========== Boolean/Exact match filters ==========
     "isRemote",
-    "isActive",
+    "status",
     "isFeatured",
     "companyId",
     "postedById",

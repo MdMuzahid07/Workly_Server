@@ -31,6 +31,18 @@ const getMyApplications = asyncHandler(async (req, res) => {
   });
 });
 
+const getMyApplicationSummary = asyncHandler(async (req, res) => {
+  //@ts-ignore
+  const userId = req.user.userId;
+  const result = await applicationService.getMyApplicationSummary(userId);
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Application summary fetched successfully",
+    data: result,
+  });
+});
+
 const getJobApplications = asyncHandler(async (req, res) => {
   //@ts-ignore
   const employerId = req.user.userId;
@@ -55,6 +67,18 @@ const getMyCompanyApplications = asyncHandler(async (req, res) => {
     message: "Company applications fetched successfully",
     data: result.data,
     meta: result.meta,
+  });
+});
+
+const getMyCompanyApplicationSummary = asyncHandler(async (req, res) => {
+  //@ts-ignore
+  const employerId = req.user.userId;
+  const result = await applicationService.getMyCompanyApplicationSummary(employerId);
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Company application summary fetched successfully",
+    data: result,
   });
 });
 
@@ -147,17 +171,33 @@ const getJobSummary = asyncHandler(async (req, res) => {
   });
 });
 
+const getApplicationStats = asyncHandler(async (req, res) => {
+  //@ts-ignore
+  const userId = req.user.userId;
+  const { period } = req.query as { period: string };
+  const result = await applicationService.getApplicationStats(userId, period);
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Application stats fetched successfully",
+    data: result,
+  });
+});
+
 const applicationController = {
   createApplication,
   getMyApplications,
+  getMyApplicationSummary,
   getJobApplications,
   getMyCompanyApplications,
+  getMyCompanyApplicationSummary,
   getApplicationById,
   updateStatus,
   withdraw,
   scheduleInterview,
   updateNotes,
   getJobSummary,
+  getApplicationStats,
 };
 
 export default applicationController;
