@@ -15,6 +15,11 @@ router.post(
 );
 
 router.get("/me", authValidator(UserRole.JOB_SEEKER), applicationController.getMyApplications);
+router.get(
+  "/me/summary",
+  authValidator(UserRole.JOB_SEEKER),
+  applicationController.getMyApplicationSummary,
+);
 router.get("/stats", authValidator(UserRole.JOB_SEEKER), applicationController.getApplicationStats);
 
 router.get(

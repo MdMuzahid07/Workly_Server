@@ -1,7 +1,56 @@
 import httpStatus from "http-status";
+import { type Job } from "../../../generated/prisma/index.js";
 import factoryFunctions from "../../../utils/FactoryFunctionsWithFilterEngine.js";
 import prisma from "../../../utils/prismaClient.js";
 import AppError from "../../error/AppError.js";
+
+const APPLICATION_STATUSES = [
+  "SUBMITTED",
+  "REVIEWING",
+  "SHORTLISTED",
+  "INTERVIEWED",
+  "REJECTED",
+  "OFFERED",
+  "ACCEPTED",
+  "WITHDRAWN",
+] as const;
+
+const getApplicationDateRange = (dateFilter?: string) => {
+  const now = new Date();
+  const start = new Date(now);
+
+  switch (dateFilter) {
+    case "today":
+      start.setHours(0, 0, 0, 0);
+      return { start, end: now };
+    case "last_7_days":
+      start.setDate(now.getDate() - 7);
+      return { start, end: now };
+    case "this_month":
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
+      return { start, end: now };
+    default:
+      return undefined;
+  }
+};
+
+const getApplicationClosedReason = (
+  job: Pick<Job, "status" | "deletedAt" | "applicationDeadline" | "expiresAt"> | null,
+) => {
+  const now = new Date();
+
+  if (!job || job.deletedAt) return "Job not found";
+  if (job.status !== "ACTIVE") return "This job is not accepting applications";
+  if (job.applicationDeadline && job.applicationDeadline <= now) {
+    return "The application deadline has passed";
+  }
+  if (job.expiresAt && job.expiresAt <= now) {
+    return "This job posting has expired";
+  }
+
+  return null;
+};
 
 const createApplication = async (userId: string, payload: any) => {
   if (!userId) {
@@ -16,17 +65,18 @@ const createApplication = async (userId: string, payload: any) => {
     throw new AppError(httpStatus.BAD_REQUEST, "User not found or inactive");
   }
 
-  const job = await prisma.job.findFirst({
+  const job = await prisma.job.findUnique({
     where: {
       id: payload.jobId,
-      status: "ACTIVE",
-      deletedAt: null,
-      expiresAt: { gt: new Date() },
     },
   });
 
-  if (!job) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Job not found, inactive, or expired");
+  const closedReason = getApplicationClosedReason(job);
+  if (closedReason) {
+    throw new AppError(
+      closedReason === "Job not found" ? httpStatus.NOT_FOUND : httpStatus.BAD_REQUEST,
+      closedReason,
+    );
   }
 
   const existingApplication = await prisma.application.findUnique({
@@ -42,9 +92,15 @@ const createApplication = async (userId: string, payload: any) => {
     throw new AppError(httpStatus.CONFLICT, "You have already applied for this job");
   }
 
-  if (job.maxApplications) {
+  if (job?.maxApplications) {
     const applicationCount = await prisma.application.count({
-      where: { jobId: payload.jobId },
+      where: {
+        jobId: payload.jobId,
+        deletedAt: null,
+        status: {
+          not: "WITHDRAWN",
+        },
+      },
     });
 
     if (applicationCount >= job.maxApplications) {
@@ -52,50 +108,62 @@ const createApplication = async (userId: string, payload: any) => {
     }
   }
 
-  // try {
-  const result = await prisma.application.create({
-    data: {
-      jobId: payload.jobId,
-      applicantId: userId,
-      fullName: payload.fullName,
-      email: payload.email,
-      phone: payload.phone,
-      resumeUrl: payload.resumeFile, // Map frontend resumeFile to resumeUrl
-      currentLocation: payload.location,
-      yearsOfExperience: payload.experience ? Number(payload.experience) : 0,
-      agreedTerms: payload.agreeTerms ?? true,
-      coverLetter: payload.coverLetter,
-      preferredContactMethod: (payload.preferredContactMethod?.toUpperCase() as any) || "EMAIL",
-      folderName: payload.folderName,
-    },
-    include: {
-      job: {
-        include: {
-          company: {
-            select: {
-              id: true,
-              name: true,
-              logoUrl: true,
+  const result = await prisma.$transaction(async (tx) => {
+    const application = await tx.application.create({
+      data: {
+        jobId: payload.jobId,
+        applicantId: userId,
+        fullName: payload.fullName,
+        email: payload.email,
+        phone: payload.phone,
+        resumeUrl: payload.resumeFile,
+        currentLocation: payload.location,
+        yearsOfExperience: payload.experience ? Number(payload.experience) : 0,
+        agreedTerms: payload.agreeTerms ?? true,
+        coverLetter: payload.coverLetter,
+        preferredContactMethod: (payload.preferredContactMethod?.toUpperCase() as any) || "EMAIL",
+        folderName: payload.folderName,
+      },
+      include: {
+        job: {
+          include: {
+            company: {
+              select: {
+                id: true,
+                name: true,
+                logoUrl: true,
+              },
+            },
+          },
+        },
+        applicant: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true,
+            role: true,
+            profile: {
+              select: {
+                skills: true,
+                preference: true,
+              },
             },
           },
         },
       },
-      applicant: {
-        select: {
-          id: true,
-          fullName: true,
-          email: true,
-          phone: true,
-          role: true,
-          profile: {
-            select: {
-              skills: true,
-              preference: true,
-            },
-          },
+    });
+
+    await tx.job.update({
+      where: { id: payload.jobId },
+      data: {
+        applyCount: {
+          increment: 1,
         },
       },
-    },
+    });
+
+    return application;
   });
 
   return result;
@@ -119,6 +187,39 @@ const getMyApplications = async (userId: string, query: any) => {
     filterOptions.where.status = query.status;
   }
 
+  const dateRange = getApplicationDateRange(query.dateFilter);
+  if (dateRange) {
+    filterOptions.dateRange = {
+      createdAt: dateRange,
+    };
+  }
+
+  const searchTerm = typeof query.q === "string" ? query.q.trim() : "";
+  if (searchTerm) {
+    filterOptions.customWhere = {
+      OR: [
+        {
+          job: {
+            title: {
+              contains: searchTerm,
+              mode: "insensitive",
+            },
+          },
+        },
+        {
+          job: {
+            company: {
+              name: {
+                contains: searchTerm,
+                mode: "insensitive",
+              },
+            },
+          },
+        },
+      ],
+    };
+  }
+
   const { where, orderBy, skip, take, pagination } = await applicationFilter.filter(filterOptions);
 
   const data = await prisma.application.findMany({
@@ -131,7 +232,16 @@ const getMyApplications = async (userId: string, query: any) => {
         select: {
           id: true,
           title: true,
-          company: { select: { id: true, name: true, logoUrl: true } },
+          slug: true,
+          location: true,
+          isRemote: true,
+          salaryMin: true,
+          salaryMax: true,
+          currency: true,
+          jobType: true,
+          requirements: true,
+          JobSkill: { select: { id: true, skillName: true } },
+          company: { select: { id: true, name: true, slug: true, logoUrl: true } },
         },
       },
       applicant: { select: { id: true, fullName: true, email: true } },
@@ -139,6 +249,45 @@ const getMyApplications = async (userId: string, query: any) => {
   });
 
   return { data, meta: pagination };
+};
+
+const getMyApplicationSummary = async (userId: string) => {
+  if (!userId) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+  }
+
+  const groupedStatusCounts = await prisma.application.groupBy({
+    by: ["status"],
+    where: {
+      applicantId: userId,
+      deletedAt: null,
+    },
+    _count: {
+      status: true,
+    },
+  });
+
+  const byStatus = Object.fromEntries(APPLICATION_STATUSES.map((status) => [status, 0])) as Record<
+    (typeof APPLICATION_STATUSES)[number],
+    number
+  >;
+
+  groupedStatusCounts.forEach((item) => {
+    byStatus[item.status] = item._count.status;
+  });
+
+  const total = Object.values(byStatus).reduce((sum, count) => sum + count, 0);
+
+  return {
+    total,
+    inReview: byStatus.SUBMITTED + byStatus.REVIEWING + byStatus.SHORTLISTED,
+    interviewing: byStatus.INTERVIEWED,
+    offer: byStatus.OFFERED,
+    accepted: byStatus.ACCEPTED,
+    rejected: byStatus.REJECTED,
+    withdrawn: byStatus.WITHDRAWN,
+    byStatus,
+  };
 };
 
 //* ========== Helper functions to check if a user is an employer of a job ==========>
@@ -468,6 +617,7 @@ const getApplicationStats = async (userId: string, period: string = "7days") => 
 const applicationService = {
   createApplication,
   getMyApplications,
+  getMyApplicationSummary,
   getJobApplications,
   getMyCompanyApplications,
   getApplicationById,

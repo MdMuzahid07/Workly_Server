@@ -10,6 +10,7 @@ const JobTypeEnum = z.enum([
 ]);
 
 const JobSkillPriorityEnum = z.enum(["HIGH", "MEDIUM", "LOW", "GOOD_TO_HAVE"]);
+const JobStatusEnum = z.enum(["DRAFT", "ACTIVE", "CLOSED", "EXPIRED"]);
 
 const jobSkillSchema = z.object({
   skillName: z.string().min(1, { message: "Skill name is required" }),
@@ -42,7 +43,7 @@ export const createJob = z.object({
     .nonnegative({ message: "Max applications cannot be negative" })
     .optional(),
   autoCloseApplications: z.boolean().optional(),
-  isActive: z.boolean().optional(),
+  status: JobStatusEnum.default("DRAFT"),
   isFeatured: z.boolean().optional(),
   expiresAt: z.string().optional(),
   benefits: z.array(z.string()).optional(),
