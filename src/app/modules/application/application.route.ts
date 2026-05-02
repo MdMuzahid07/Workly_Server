@@ -35,6 +35,12 @@ router.get(
 );
 
 router.get(
+  "/my-company-summary",
+  authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  applicationController.getMyCompanyApplicationSummary,
+);
+
+router.get(
   "/:id",
   authValidator(UserRole.JOB_SEEKER, UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
   applicationController.getApplicationById,

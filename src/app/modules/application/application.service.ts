@@ -309,6 +309,55 @@ const assertEmployerOwnsJob = async (employerId: string, jobId: string) => {
   }
 };
 
+const getEmployerCompanyId = async (employerId: string) => {
+  const employer = await prisma.user.findUnique({
+    where: { id: employerId, isActive: true },
+    select: { companyId: true },
+  });
+
+  if (!employer || !employer.companyId) {
+    throw new AppError(httpStatus.FORBIDDEN, "Not authorized or no company associated");
+  }
+
+  return employer.companyId;
+};
+
+const getPaginationOptions = (query: any) => {
+  const page = Math.max(Number(query.page) || 1, 1);
+  const limit = Math.min(Math.max(Number(query.limit) || 10, 1), 100);
+  const skip = (page - 1) * limit;
+
+  return { page, limit, skip };
+};
+
+const getApplicationSortOptions = (query: any) => {
+  const allowedSortFields = new Set(["createdAt", "updatedAt", "statusChangedAt"]);
+  const sortBy =
+    typeof query.sortBy === "string" && allowedSortFields.has(query.sortBy)
+      ? query.sortBy
+      : "createdAt";
+  const sortOrder = query.sortOrder === "asc" ? "asc" : "desc";
+
+  return { sortBy, sortOrder };
+};
+
+const buildApplicationSearchWhere = (searchTerm: string) => {
+  const contains = {
+    contains: searchTerm,
+    mode: "insensitive" as const,
+  };
+
+  return [
+    { fullName: contains },
+    { email: contains },
+    { phone: contains },
+    { applicant: { fullName: contains } },
+    { applicant: { email: contains } },
+    { applicant: { phone: contains } },
+    { job: { title: contains } },
+  ];
+};
+
 const getJobApplications = async (employerId: string, jobId: string, query: any) => {
   if (!employerId) {
     throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
@@ -316,45 +365,65 @@ const getJobApplications = async (employerId: string, jobId: string, query: any)
 
   await assertEmployerOwnsJob(employerId, jobId);
 
-  const applicationFilter = factoryFunctions.createApplicationFilter(prisma);
-  const filterOptions: any = {
-    where: { jobId },
-    page: Number(query.page) || 1,
-    limit: Number(query.limit) || 10,
-    sortBy: query.sortBy || "createdAt",
-    sortOrder: (query.sortOrder as "asc" | "desc") || "desc",
-  };
+  const { page, limit, skip } = getPaginationOptions(query);
+  const { sortBy, sortOrder } = getApplicationSortOptions(query);
+  const where: any = { jobId, deletedAt: null };
 
   if (query.status) {
-    filterOptions.where.status = query.status;
+    where.status = query.status;
   }
 
-  if (query.q) {
-    filterOptions.search = query.q;
-    filterOptions.searchIn = ["applicant.fullName", "applicant.email"];
+  const searchTerm = typeof query.q === "string" ? query.q.trim() : "";
+  if (searchTerm) {
+    where.OR = buildApplicationSearchWhere(searchTerm);
   }
 
-  const { where, orderBy, skip, take, pagination } = await applicationFilter.filter(filterOptions);
-
-  const data = await prisma.application.findMany({
-    where,
-    orderBy,
-    skip,
-    take,
-    include: {
-      applicant: {
-        select: {
-          id: true,
-          fullName: true,
-          email: true,
-          phone: true,
-          profile: { select: { skills: true, preference: true } },
+  const [total, data] = await prisma.$transaction([
+    prisma.application.count({ where }),
+    prisma.application.findMany({
+      where,
+      orderBy: { [sortBy]: sortOrder },
+      skip,
+      take: limit,
+      include: {
+        job: {
+          select: {
+            id: true,
+            title: true,
+            location: true,
+            isRemote: true,
+          },
+        },
+        applicant: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true,
+            profile: {
+              select: {
+                avatarUrl: true,
+                headline: true,
+                location: true,
+                skills: true,
+                preference: true,
+              },
+            },
+          },
         },
       },
-    },
-  });
+    }),
+  ]);
 
-  return { data, meta: pagination };
+  return {
+    data,
+    meta: {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit) || 0,
+    },
+  };
 };
 
 const getApplicationById = async (requesterId: string, applicationId: string) => {
@@ -507,69 +576,135 @@ const getMyCompanyApplications = async (employerId: string, query: any) => {
     throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
   }
 
-  const employer = await prisma.user.findUnique({
-    where: { id: employerId, isActive: true },
-    select: { companyId: true, role: true },
-  });
-
-  if (!employer || !employer.companyId) {
-    throw new AppError(httpStatus.FORBIDDEN, "Not authorized or no company associated");
-  }
-
-  const applicationFilter = factoryFunctions.createApplicationFilter(prisma);
-  const filterOptions: any = {
-    where: {
-      job: {
-        companyId: employer.companyId,
-      },
-      deletedAt: null,
-    },
-    page: Number(query.page) || 1,
-    limit: Number(query.limit) || 10,
-    sortBy: query.sortBy || "createdAt",
-    sortOrder: (query.sortOrder as "asc" | "desc") || "desc",
+  const companyId = await getEmployerCompanyId(employerId);
+  const { page, limit, skip } = getPaginationOptions(query);
+  const { sortBy, sortOrder } = getApplicationSortOptions(query);
+  const where: any = {
+    job: { companyId },
+    deletedAt: null,
   };
 
   if (query.status) {
-    filterOptions.where.status = query.status;
+    where.status = query.status;
   }
 
   if (query.jobId) {
-    filterOptions.where.jobId = query.jobId;
+    where.jobId = query.jobId;
   }
 
-  if (query.q) {
-    filterOptions.search = query.q;
-    filterOptions.searchIn = ["applicant.fullName", "applicant.email"];
+  const searchTerm = typeof query.q === "string" ? query.q.trim() : "";
+  if (searchTerm) {
+    where.OR = buildApplicationSearchWhere(searchTerm);
   }
 
-  const { where, orderBy, skip, take, pagination } = await applicationFilter.filter(filterOptions);
+  const [total, data] = await prisma.$transaction([
+    prisma.application.count({ where }),
+    prisma.application.findMany({
+      where,
+      orderBy: { [sortBy]: sortOrder },
+      skip,
+      take: limit,
+      include: {
+        job: {
+          select: {
+            id: true,
+            title: true,
+            location: true,
+            isRemote: true,
+            slug: true,
+          },
+        },
+        applicant: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true,
+            profile: {
+              select: {
+                avatarUrl: true,
+                headline: true,
+                location: true,
+                skills: true,
+                preference: true,
+              },
+            },
+          },
+        },
+      },
+    }),
+  ]);
 
-  const data = await prisma.application.findMany({
-    where,
-    orderBy,
-    skip,
-    take,
-    include: {
-      job: {
-        select: {
-          id: true,
-          title: true,
-        },
-      },
-      applicant: {
-        select: {
-          id: true,
-          fullName: true,
-          email: true,
-          phone: true,
-          profile: { select: { skills: true, preference: true } },
-        },
-      },
+  return {
+    data,
+    meta: {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit) || 0,
+    },
+  };
+};
+
+const getMyCompanyApplicationSummary = async (employerId: string) => {
+  if (!employerId) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+  }
+
+  const companyId = await getEmployerCompanyId(employerId);
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - 7);
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const groupedStatusCounts = await prisma.application.groupBy({
+    by: ["status"],
+    where: {
+      job: { companyId },
+      deletedAt: null,
+    },
+    _count: {
+      status: true,
     },
   });
 
-  return { data, meta: pagination };
+  const byStatus = Object.fromEntries(APPLICATION_STATUSES.map((status) => [status, 0])) as Record<
+    (typeof APPLICATION_STATUSES)[number],
+    number
+  >;
+
+  groupedStatusCounts.forEach((item) => {
+    byStatus[item.status] = item._count.status;
+  });
+
+  const [newThisWeek, rejectedThisMonth] = await prisma.$transaction([
+    prisma.application.count({
+      where: {
+        job: { companyId },
+        deletedAt: null,
+        createdAt: { gte: weekStart, lte: now },
+      },
+    }),
+    prisma.application.count({
+      where: {
+        job: { companyId },
+        deletedAt: null,
+        status: "REJECTED",
+        statusChangedAt: { gte: monthStart, lte: now },
+      },
+    }),
+  ]);
+
+  const total = Object.values(byStatus).reduce((sum, count) => sum + count, 0);
+
+  return {
+    total,
+    newThisWeek,
+    inReview: byStatus.SUBMITTED + byStatus.REVIEWING + byStatus.SHORTLISTED,
+    rejected: byStatus.REJECTED,
+    rejectedThisMonth,
+    byStatus,
+  };
 };
 
 const getApplicationStats = async (userId: string, period: string = "7days") => {
@@ -620,6 +755,7 @@ const applicationService = {
   getMyApplicationSummary,
   getJobApplications,
   getMyCompanyApplications,
+  getMyCompanyApplicationSummary,
   getApplicationById,
   updateStatus,
   withdraw,

@@ -70,6 +70,18 @@ const getMyCompanyApplications = asyncHandler(async (req, res) => {
   });
 });
 
+const getMyCompanyApplicationSummary = asyncHandler(async (req, res) => {
+  //@ts-ignore
+  const employerId = req.user.userId;
+  const result = await applicationService.getMyCompanyApplicationSummary(employerId);
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Company application summary fetched successfully",
+    data: result,
+  });
+});
+
 const getApplicationById = asyncHandler(async (req, res) => {
   //@ts-ignore
   const requesterId = req.user.userId;
@@ -178,6 +190,7 @@ const applicationController = {
   getMyApplicationSummary,
   getJobApplications,
   getMyCompanyApplications,
+  getMyCompanyApplicationSummary,
   getApplicationById,
   updateStatus,
   withdraw,
