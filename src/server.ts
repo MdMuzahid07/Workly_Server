@@ -1,6 +1,7 @@
-import type { Server } from "http";
+import http, { type Server } from "http";
 import app from "./app.js";
 import config from "./config/index.js";
+import { initSocket } from "./socket/index.js";
 
 const port = config.port || 5000;
 
@@ -16,7 +17,10 @@ const port = config.port || 5000;
  */
 
 async function main() {
-  const server: Server = app.listen(Number(port), "0.0.0.0", () => {
+  const server: Server = http.createServer(app);
+  initSocket(server);
+
+  server.listen(Number(port), "0.0.0.0", () => {
     console.log(`Server running 🚀🚀 on => port  ${port}`);
   });
 
