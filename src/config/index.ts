@@ -28,7 +28,7 @@ export default {
   // CORS Allowed Origins
   allowed_origins: process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(",")
-    : ["http://localhost:3000", "http://localhost:8081"],
+    : ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:8081"],
   // Cloudinary configuration
   cloudinary: {
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,

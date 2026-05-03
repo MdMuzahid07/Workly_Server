@@ -2,6 +2,7 @@ import httpStatus from "http-status";
 import asyncHandler from "../../../utils/asyncHandler.js";
 import sendApiResponse from "../../../utils/sendApiResponse.js";
 import companyService from "./company.service.js";
+import { employerAnalyticsQuery } from "./company.validation.js";
 
 const getCompanies = asyncHandler(async (req, res) => {
   const query = req.query;
@@ -123,6 +124,22 @@ const getCompanyOverviewStatistics = asyncHandler(async (req, res) => {
   });
 });
 
+const getEmployerAnalytics = asyncHandler(async (req, res) => {
+  //@ts-ignore
+  const userId = req.user.userId;
+  const parsed = employerAnalyticsQuery.safeParse(req.query);
+  const period = parsed.success ? parsed.data.period : "30d";
+
+  const result = await companyService.getEmployerAnalytics(userId, period);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Employer analytics fetched successfully",
+    data: result,
+  });
+});
+
 const getMyCompany = asyncHandler(async (req, res) => {
   //@ts-ignore
   const userId = req.user.userId;
@@ -174,6 +191,7 @@ const companyController = {
   addEmployee,
   removeEmployee,
   getCompanyOverviewStatistics,
+  getEmployerAnalytics,
   getMyCompany,
   getSettings,
   updateSettings,

@@ -56,6 +56,12 @@ router.get(
   companyController.getMyCompany,
 );
 
+router.get(
+  "/employer-analytics",
+  authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  companyController.getEmployerAnalytics,
+);
+
 // Company settings routes
 router.get(
   "/:companyId/settings",
