@@ -41,4 +41,34 @@ router.delete(
   adminController.deleteEmployer,
 );
 
+router.get(
+  "/job-seekers/stats",
+  authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  adminController.getJobSeekerStats,
+);
+
+router.get(
+  "/job-seekers",
+  authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  adminController.getJobSeekersList,
+);
+
+router.patch(
+  "/job-seekers/:userId/suspend",
+  authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  adminController.suspendJobSeeker,
+);
+
+router.patch(
+  "/job-seekers/:userId/reactivate",
+  authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  adminController.reactivateJobSeeker,
+);
+
+router.delete(
+  "/job-seekers/:userId",
+  authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  adminController.deleteJobSeeker,
+);
+
 export default router;

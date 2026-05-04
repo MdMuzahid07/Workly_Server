@@ -14,3 +14,10 @@ export const companyIdParams = z.object({
 export const userIdParams = z.object({
   userId: z.string().min(1),
 });
+
+export const jobSeekerAdminListQuery = z.object({
+  page: z.coerce.number().min(1).optional().default(1),
+  limit: z.coerce.number().min(1).max(100).optional().default(20),
+  q: z.string().optional(),
+  status: z.enum(["Hired", "Looking", "Active", "Suspended"]).optional(),
+});

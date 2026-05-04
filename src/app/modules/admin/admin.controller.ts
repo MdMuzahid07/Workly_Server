@@ -2,7 +2,12 @@ import httpStatus from "http-status";
 import asyncHandler from "../../../utils/asyncHandler.js";
 import sendApiResponse from "../../../utils/sendApiResponse.js";
 import adminService from "./admin.service.js";
-import { companyIdParams, employerAdminListQuery, userIdParams } from "./admin.validation.js";
+import {
+  companyIdParams,
+  employerAdminListQuery,
+  jobSeekerAdminListQuery,
+  userIdParams,
+} from "./admin.validation.js";
 
 const getEmployerStats = asyncHandler(async (_req, res) => {
   const result = await adminService.getEmployerStats();
@@ -83,6 +88,60 @@ const adminController = {
   suspendEmployer,
   reactivateEmployer,
   deleteEmployer,
+  getJobSeekerStats: asyncHandler(async (_req, res) => {
+    const result = await adminService.getJobSeekerStats();
+    sendApiResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Job seeker stats fetched successfully",
+      data: result,
+    });
+  }),
+  getJobSeekersList: asyncHandler(async (req, res) => {
+    const parsed = jobSeekerAdminListQuery.safeParse(req.query);
+    const query = parsed.success ? parsed.data : (req.query as any);
+    const result = await adminService.getJobSeekersList(query);
+    sendApiResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Job seekers fetched successfully",
+      data: result.data,
+      meta: result.meta,
+    });
+  }),
+  suspendJobSeeker: asyncHandler(async (req, res) => {
+    const parsed = userIdParams.safeParse(req.params);
+    const userId = parsed.success ? parsed.data.userId : (req.params.userId as string);
+    const result = await adminService.suspendJobSeeker(userId);
+    sendApiResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Job seeker suspended successfully",
+      data: result,
+    });
+  }),
+  reactivateJobSeeker: asyncHandler(async (req, res) => {
+    const parsed = userIdParams.safeParse(req.params);
+    const userId = parsed.success ? parsed.data.userId : (req.params.userId as string);
+    const result = await adminService.reactivateJobSeeker(userId);
+    sendApiResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Job seeker reactivated successfully",
+      data: result,
+    });
+  }),
+  deleteJobSeeker: asyncHandler(async (req, res) => {
+    const parsed = userIdParams.safeParse(req.params);
+    const userId = parsed.success ? parsed.data.userId : (req.params.userId as string);
+    const result = await adminService.deleteJobSeeker(userId);
+    sendApiResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Job seeker deleted successfully",
+      data: result,
+    });
+  }),
 };
 
 export default adminController;
