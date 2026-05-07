@@ -369,6 +369,115 @@ const adminService = {
       data: { isActive: false, deletedAt: new Date() },
     });
   },
+
+  getActiveJobsStats: async () => {
+    const now = new Date();
+    const today = new Date(now.setHours(0, 0, 0, 0));
+
+    const [totalActiveJobs, newToday, totalApplications, expiringSoon] = await Promise.all([
+      prisma.job.count({
+        where: { status: "ACTIVE", deletedAt: null },
+      }),
+      prisma.job.count({
+        where: {
+          status: "ACTIVE",
+          deletedAt: null,
+          createdAt: { gte: today },
+        },
+      }),
+      prisma.application.count({
+        where: { deletedAt: null },
+      }),
+      prisma.job.count({
+        where: {
+          status: "ACTIVE",
+          deletedAt: null,
+          expiresAt: {
+            gt: new Date(),
+            lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Next 7 days
+          },
+        },
+      }),
+    ]);
+
+    return {
+      totalActiveJobs,
+      newToday,
+      totalApplications,
+      expiringSoon,
+    };
+  },
+
+  getActiveJobsList: async (query: { page: number; limit: number; q?: string; type?: string }) => {
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 20;
+    const skip = (page - 1) * limit;
+    const q = query.q?.trim();
+
+    const where: any = {
+      status: "ACTIVE",
+      deletedAt: null,
+    };
+
+    if (q) {
+      where.OR = [
+        { title: { contains: q, mode: "insensitive" } },
+        { company: { name: { contains: q, mode: "insensitive" } } },
+      ];
+    }
+
+    if (query.type) {
+      where.jobType = query.type;
+    }
+
+    const [jobs, total] = await Promise.all([
+      prisma.job.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+        include: {
+          company: {
+            select: {
+              name: true,
+              logoUrl: true,
+            },
+          },
+          _count: {
+            select: {
+              applications: true,
+            },
+          },
+        },
+      }),
+      prisma.job.count({ where }),
+    ]);
+
+    const rows = jobs.map((job) => ({
+      id: job.id,
+      title: job.title,
+      company: job.company?.name || "Unknown Company",
+      logo: job.company?.logoUrl ?? "",
+      location: job.location,
+      type: job.jobType,
+      category: job.discipline,
+      posted: job.createdAt,
+      expires: job.expiresAt,
+      views: job.viewCount,
+      applications: job._count.applications,
+      status: job.status,
+    }));
+
+    return {
+      data: rows,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPage: Math.ceil(total / limit) || 1,
+      },
+    };
+  },
 };
 
 export default adminService;

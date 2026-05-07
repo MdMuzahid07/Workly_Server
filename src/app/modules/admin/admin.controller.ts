@@ -142,6 +142,25 @@ const adminController = {
       data: result,
     });
   }),
+  getActiveJobsStats: asyncHandler(async (_req, res) => {
+    const result = await adminService.getActiveJobsStats();
+    sendApiResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Active jobs stats fetched successfully",
+      data: result,
+    });
+  }),
+  getActiveJobsList: asyncHandler(async (req, res) => {
+    const result = await adminService.getActiveJobsList(req.query as any);
+    sendApiResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Active jobs fetched successfully",
+      data: result.data,
+      meta: result.meta,
+    });
+  }),
 };
 
 export default adminController;

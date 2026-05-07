@@ -71,4 +71,16 @@ router.delete(
   adminController.deleteJobSeeker,
 );
 
+router.get(
+  "/jobs/stats",
+  authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  adminController.getActiveJobsStats,
+);
+
+router.get(
+  "/jobs",
+  authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  adminController.getActiveJobsList,
+);
+
 export default router;
