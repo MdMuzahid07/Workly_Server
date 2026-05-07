@@ -21,3 +21,10 @@ export const jobSeekerAdminListQuery = z.object({
   q: z.string().optional(),
   status: z.enum(["Hired", "Looking", "Active", "Suspended"]).optional(),
 });
+
+export const adminJobListQuery = z.object({
+  page: z.coerce.number().min(1).optional().default(1),
+  limit: z.coerce.number().min(1).max(100).optional().default(20),
+  q: z.string().optional(),
+  type: z.string().optional(),
+});

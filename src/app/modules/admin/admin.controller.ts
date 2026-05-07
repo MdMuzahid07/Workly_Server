@@ -3,6 +3,7 @@ import asyncHandler from "../../../utils/asyncHandler.js";
 import sendApiResponse from "../../../utils/sendApiResponse.js";
 import adminService from "./admin.service.js";
 import {
+  adminJobListQuery,
   companyIdParams,
   employerAdminListQuery,
   jobSeekerAdminListQuery,
@@ -152,7 +153,9 @@ const adminController = {
     });
   }),
   getActiveJobsList: asyncHandler(async (req, res) => {
-    const result = await adminService.getActiveJobsList(req.query as any);
+    const parsed = adminJobListQuery.safeParse(req.query);
+    const query = parsed.success ? parsed.data : (req.query as any);
+    const result = await adminService.getActiveJobsList(query);
     sendApiResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
