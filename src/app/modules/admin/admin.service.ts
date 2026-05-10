@@ -693,6 +693,123 @@ const adminService = {
       },
     };
   },
+
+  getDashboardOverviewStats: async () => {
+    const now = new Date();
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+
+    // Execute queries independently to prevent one failure from breaking the whole dashboard
+    const [
+      totalUsers,
+      totalUsersLastMonth,
+      activeJobs,
+      activeJobsLastMonth,
+      pendingApprovals,
+      unverifiedCompanies,
+      totalRevenueResult,
+      totalRevenueLastMonthResult,
+    ] = await Promise.all([
+      prisma.user.count({ where: { deletedAt: null } }).catch(() => 0),
+      prisma.user
+        .count({ where: { deletedAt: null, createdAt: { lt: lastMonth } } })
+        .catch(() => 0),
+      prisma.job.count({ where: { status: "ACTIVE", deletedAt: null } }).catch(() => 0),
+      prisma.job
+        .count({ where: { status: "ACTIVE", deletedAt: null, createdAt: { lt: lastMonth } } })
+        .catch(() => 0),
+      prisma.job.count({ where: { status: "DRAFT", deletedAt: null } }).catch(() => 0),
+      prisma.company.count({ where: { isVerified: false, deletedAt: null } }).catch(() => 0),
+      prisma.invoice
+        .aggregate({
+          where: { status: "PAID" },
+          _sum: { amount: true },
+        })
+        .catch(() => ({ _sum: { amount: 0 } })),
+      prisma.invoice
+        .aggregate({
+          where: { status: "PAID", paidAt: { lt: lastMonth } },
+          _sum: { amount: true },
+        })
+        .catch(() => ({ _sum: { amount: 0 } })),
+    ]);
+
+    const totalRevenue = (totalRevenueResult as any)?._sum?.amount || 0;
+    const totalRevenueLastMonth = (totalRevenueLastMonthResult as any)?._sum?.amount || 0;
+
+    const calculateChange = (current: number, previous: number) => {
+      if (previous === 0) return current > 0 ? "+100%" : "0%";
+      const change = ((current - previous) / previous) * 100;
+      return `${change >= 0 ? "+" : ""}${change.toFixed(1)}%`;
+    };
+
+    return {
+      totalUsers: {
+        value: totalUsers,
+        change: `${calculateChange(totalUsers, totalUsersLastMonth)} from last month`,
+        trend: totalUsers >= totalUsersLastMonth ? "up" : "down",
+      },
+      activeJobs: {
+        value: activeJobs,
+        change: `${calculateChange(activeJobs, activeJobsLastMonth)} from last month`,
+        trend: activeJobs >= activeJobsLastMonth ? "up" : "down",
+      },
+      pendingApprovals: {
+        value: pendingApprovals + unverifiedCompanies,
+        change: "Awaiting review",
+        trend: "neutral",
+      },
+      globalRevenue: {
+        value: totalRevenue,
+        change: `${calculateChange(totalRevenue, totalRevenueLastMonth)} from last month`,
+        trend: totalRevenue >= totalRevenueLastMonth ? "up" : "down",
+      },
+    };
+  },
+
+  getRecentUsers: async (limit = 5) => {
+    const users = await prisma.user.findMany({
+      where: { deletedAt: null },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        role: true,
+        isActive: true,
+        isVerified: true,
+        createdAt: true,
+      },
+    });
+
+    return users.map((u) => ({
+      id: u.id,
+      name: u.fullName,
+      email: u.email,
+      role: u.role,
+      status: u.isVerified ? "Verified" : "New",
+      joinedAt: u.createdAt,
+    }));
+  },
+
+  getModerationQueue: async (limit = 5) => {
+    const jobs = await prisma.job.findMany({
+      where: { status: "DRAFT", deletedAt: null },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      include: {
+        company: { select: { name: true } },
+      },
+    });
+
+    return jobs.map((j: any) => ({
+      id: j.id,
+      title: j.title,
+      company: j.company?.name || "Unknown",
+      status: j.status,
+      createdAt: j.createdAt,
+    }));
+  },
 };
 
 export default adminService;

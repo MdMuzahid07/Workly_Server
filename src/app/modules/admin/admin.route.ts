@@ -108,6 +108,24 @@ router.patch(
 );
 
 router.get(
+  "/overview/stats",
+  authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  adminController.getDashboardOverviewStats,
+);
+
+router.get(
+  "/overview/recent-users",
+  authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  adminController.getRecentUsers,
+);
+
+router.get(
+  "/overview/moderation-queue",
+  authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  adminController.getModerationQueue,
+);
+
+router.get(
   "/audit-logs",
   authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
   adminController.getAuditLogs,

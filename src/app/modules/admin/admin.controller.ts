@@ -224,6 +224,35 @@ const adminController = {
       meta: result.meta,
     });
   }),
+  getDashboardOverviewStats: asyncHandler(async (_req, res) => {
+    const result = await adminService.getDashboardOverviewStats();
+    sendApiResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Dashboard stats fetched successfully",
+      data: result,
+    });
+  }),
+  getRecentUsers: asyncHandler(async (req, res) => {
+    const limit = Number(req.query.limit) || 5;
+    const result = await adminService.getRecentUsers(limit);
+    sendApiResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Recent users fetched successfully",
+      data: result,
+    });
+  }),
+  getModerationQueue: asyncHandler(async (req, res) => {
+    const limit = Number(req.query.limit) || 5;
+    const result = await adminService.getModerationQueue(limit);
+    sendApiResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Moderation queue fetched successfully",
+      data: result,
+    });
+  }),
 };
 
 export default adminController;
