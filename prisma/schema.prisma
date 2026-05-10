@@ -950,3 +950,16 @@ model Language {
   @@index([profileId])
   @@map("languages")
 }
+
+model LegalDocument {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  title       String
+  intro       String   @db.Text
+  content     String   @db.Text
+  lastUpdated String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("legal_documents")
+}

@@ -25,6 +25,15 @@ app.use(
         return callback(null, true);
       }
 
+      // Development: same machine, any port (localhost vs 127.0.0.1 mismatch breaks CORS otherwise)
+      if (
+        config.environment !== "production" &&
+        (/^https?:\/\/localhost(?::\d+)?$/i.test(origin) ||
+          /^https?:\/\/127\.0\.0\.1(?::\d+)?$/i.test(origin))
+      ) {
+        return callback(null, true);
+      }
+
       // Development-specific: Allow local network access (192.168.x.x)
       if (config.environment !== "production" && origin.startsWith("http://192.168.")) {
         return callback(null, true);

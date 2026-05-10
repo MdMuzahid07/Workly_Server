@@ -22,8 +22,13 @@ const globalErrorHandler = (
     return;
   }
 
-  const statusCode = error.statusCode || 500;
-  const message = error.name || "Something went wrong!";
+  let statusCode = error.statusCode || 500;
+  let message = error.name || "Something went wrong!";
+
+  if (error.name === "TokenExpiredError" || error.name === "JsonWebTokenError") {
+    statusCode = 401;
+    message = error.name;
+  }
 
   res.status(statusCode).json({
     success: false,

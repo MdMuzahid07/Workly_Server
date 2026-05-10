@@ -15,6 +15,9 @@ import { jobViewRoute } from "../modules/jobView/jobView.route.js";
 import workExperienceRoute from "../modules/workExperience/workExperience.route.js";
 import certificationRoute from "../modules/certification/certification.route.js";
 import projectRoute from "../modules/project/project.route.js";
+import notificationRoute from "../modules/notification/notification.route.js";
+import adminRoute from "../modules/admin/admin.route.js";
+import legalRoute from "../modules/legal/legal.route.js";
 
 const router = express.Router();
 
@@ -82,6 +85,18 @@ const routeConfigs = [
   {
     path: "/project",
     route: projectRoute,
+  },
+  {
+    path: "/notification",
+    route: notificationRoute,
+  },
+  {
+    path: "/admin",
+    route: adminRoute,
+  },
+  {
+    path: "/legal",
+    route: legalRoute,
   },
 ];
 

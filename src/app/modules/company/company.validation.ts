@@ -71,6 +71,11 @@ const createCompany = z.object({
 
 const updateCompany = createCompany.partial();
 
+/** GET /company/employer-analytics ?period=… */
+export const employerAnalyticsQuery = z.object({
+  period: z.enum(["7d", "30d", "90d", "1y"]).optional().default("30d"),
+});
+
 const companyValidation = {
   createCompany,
   updateCompany,
