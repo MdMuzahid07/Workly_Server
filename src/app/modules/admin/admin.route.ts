@@ -83,4 +83,34 @@ router.get(
   adminController.getActiveJobsList,
 );
 
+router.get(
+  "/staff/stats",
+  authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  adminController.getStaffStats,
+);
+
+router.get(
+  "/staff",
+  authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  adminController.getStaffList,
+);
+
+router.post(
+  "/staff",
+  authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  adminController.createStaff,
+);
+
+router.patch(
+  "/staff/:userId/status",
+  authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  adminController.setStaffStatus,
+);
+
+router.get(
+  "/audit-logs",
+  authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  adminController.getAuditLogs,
+);
+
 export default router;

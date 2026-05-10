@@ -4,9 +4,12 @@ import sendApiResponse from "../../../utils/sendApiResponse.js";
 import adminService from "./admin.service.js";
 import {
   adminJobListQuery,
+  auditLogQuery,
   companyIdParams,
+  createStaffZodSchema,
   employerAdminListQuery,
   jobSeekerAdminListQuery,
+  staffAdminListQuery,
   userIdParams,
 } from "./admin.validation.js";
 
@@ -160,6 +163,63 @@ const adminController = {
       statusCode: httpStatus.OK,
       success: true,
       message: "Active jobs fetched successfully",
+      data: result.data,
+      meta: result.meta,
+    });
+  }),
+  getStaffStats: asyncHandler(async (_req, res) => {
+    const result = await adminService.getStaffStats();
+    sendApiResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Staff stats fetched successfully",
+      data: result,
+    });
+  }),
+  getStaffList: asyncHandler(async (req, res) => {
+    const parsed = staffAdminListQuery.safeParse(req.query);
+    const query = parsed.success ? parsed.data : (req.query as any);
+    const result = await adminService.getStaffList(query);
+    sendApiResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Staff list fetched successfully",
+      data: result.data,
+      meta: result.meta,
+    });
+  }),
+  createStaff: asyncHandler(async (req, res) => {
+    const parsed = createStaffZodSchema.safeParse(req.body);
+    if (!parsed.success) {
+      throw new (await import("zod")).ZodError(parsed.error.issues);
+    }
+    const result = await adminService.createStaff(parsed.data, req.user as any);
+    sendApiResponse(res, {
+      statusCode: httpStatus.CREATED,
+      success: true,
+      message: "Staff member created successfully",
+      data: result,
+    });
+  }),
+  setStaffStatus: asyncHandler(async (req, res) => {
+    const { userId } = userIdParams.parse(req.params);
+    const { isActive } = req.body;
+    const result = await adminService.setStaffStatus(userId, isActive, req.user as any);
+    sendApiResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: `Staff member ${isActive ? "activated" : "deactivated"} successfully`,
+      data: result,
+    });
+  }),
+  getAuditLogs: asyncHandler(async (req, res) => {
+    const parsed = auditLogQuery.safeParse(req.query);
+    const query = parsed.success ? parsed.data : (req.query as any);
+    const result = await adminService.getAuditLogs(query);
+    sendApiResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Audit logs fetched successfully",
       data: result.data,
       meta: result.meta,
     });

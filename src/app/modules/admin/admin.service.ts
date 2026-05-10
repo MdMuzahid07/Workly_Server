@@ -478,6 +478,221 @@ const adminService = {
       },
     };
   },
+
+  getStaffStats: async () => {
+    const [totalAdmins, activeNow, totalAuditLogs, riskItems] = await Promise.all([
+      prisma.user.count({
+        where: { role: { in: ["ADMIN", "SUPER_ADMIN"] }, deletedAt: null },
+      }),
+      prisma.user.count({
+        where: {
+          role: { in: ["ADMIN", "SUPER_ADMIN"] },
+          deletedAt: null,
+          isActive: true,
+          lastLogin: { gte: new Date(Date.now() - 30 * 60 * 1000) }, // Active in last 30 mins
+        },
+      }),
+      prisma.auditLog.count(),
+      0, // Placeholder for Risk Items logic
+    ]);
+
+    return {
+      totalAdmins,
+      activeNow,
+      totalAuditLogs,
+      riskItems,
+    };
+  },
+
+  getStaffList: async (query: {
+    page: number;
+    limit: number;
+    q?: string;
+    role?: "ADMIN" | "SUPER_ADMIN";
+  }) => {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+    const q = query.q?.trim();
+
+    const where: any = {
+      role: { in: ["ADMIN", "SUPER_ADMIN"] },
+      deletedAt: null,
+    };
+
+    if (q) {
+      where.OR = [
+        { fullName: { contains: q, mode: "insensitive" } },
+        { email: { contains: q, mode: "insensitive" } },
+      ];
+    }
+
+    if (query.role) {
+      where.role = query.role;
+    }
+
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          role: true,
+          isActive: true,
+          lastLogin: true,
+          createdAt: true,
+        },
+      }),
+      prisma.user.count({ where }),
+    ]);
+
+    const rows = users.map((u) => ({
+      id: u.id,
+      name: u.fullName,
+      email: u.email,
+      role: u.role,
+      status: u.isActive ? "Active" : "Inactive",
+      lastLogin: u.lastLogin,
+    }));
+
+    return {
+      data: rows,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPage: Math.ceil(total / limit) || 1,
+      },
+    };
+  },
+
+  createStaff: async (payload: any, actor: { id: string; role: string }) => {
+    // Role logic: only super admin can create super admin, or admin. admin can only create admin.
+    if (actor.role === "ADMIN" && payload.role === "SUPER_ADMIN") {
+      throw new AppError(httpStatus.FORBIDDEN, "Admins can only create other Admins");
+    }
+
+    const isExists = await prisma.user.findUnique({ where: { email: payload.email } });
+    if (isExists) {
+      throw new AppError(httpStatus.BAD_REQUEST, "User already exists with this email");
+    }
+
+    // Hash a placeholder password since they will use magic link
+    const placeholderPassword = "TemporaryPassword123!";
+    const passwordHash = await (await import("bcrypt")).default.hash(placeholderPassword, 12);
+
+    const user = await prisma.user.create({
+      data: {
+        email: payload.email,
+        fullName: payload.fullName,
+        phone: payload.phone,
+        role: payload.role,
+        passwordHash,
+        isVerified: true,
+        isActive: true,
+      },
+    });
+
+    // Create Audit Log
+    await prisma.auditLog.create({
+      data: {
+        entityType: "Staff",
+        entityId: user.id,
+        action: "CREATE",
+        newValues: { role: payload.role, email: payload.email },
+        userId: actor.id,
+      },
+    });
+
+    return user;
+  },
+
+  setStaffStatus: async (
+    userId: string,
+    isActive: boolean,
+    actor: { id: string; role: string },
+  ) => {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user || user.deletedAt) throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    if (!["ADMIN", "SUPER_ADMIN"].includes(user.role)) {
+      throw new AppError(httpStatus.BAD_REQUEST, "User is not a staff member");
+    }
+
+    // Role logic: Admins cannot deactivate/activate Super Admins
+    if (actor.role === "ADMIN" && user.role === "SUPER_ADMIN") {
+      throw new AppError(httpStatus.FORBIDDEN, "Admins cannot manage Super Administrators");
+    }
+
+    const updated = await prisma.user.update({ where: { id: userId }, data: { isActive } });
+
+    // Create Audit Log
+    await prisma.auditLog.create({
+      data: {
+        entityType: "Staff",
+        entityId: userId,
+        action: isActive ? "ACTIVATE" : "DEACTIVATE",
+        oldValues: { isActive: user.isActive },
+        newValues: { isActive },
+        userId: actor.id,
+      },
+    });
+
+    return updated;
+  },
+
+  getAuditLogs: async (query: {
+    page: number;
+    limit: number;
+    entityType?: string;
+    action?: string;
+  }) => {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (query.entityType) where.entityType = query.entityType;
+    if (query.action) where.action = query.action;
+
+    const [logs, total] = await Promise.all([
+      prisma.auditLog.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+        include: {
+          user: {
+            select: { fullName: true, role: true },
+          },
+        },
+      }),
+      prisma.auditLog.count({ where }),
+    ]);
+
+    const rows = logs.map((log) => ({
+      id: log.id,
+      action: log.action,
+      entityType: log.entityType,
+      target: log.entityId, // Or a more descriptive target name if stored in values
+      actor: log.user?.fullName || "System",
+      actorRole: log.user?.role || "SYSTEM",
+      createdAt: log.createdAt,
+    }));
+
+    return {
+      data: rows,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPage: Math.ceil(total / limit) || 1,
+      },
+    };
+  },
 };
 
 export default adminService;
