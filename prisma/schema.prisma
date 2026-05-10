@@ -141,6 +141,7 @@ model User {
   userSettings       UserSettings?
   sentMessages       Message[]                 @relation("SenderMessages")
   auditLogs          AuditLog[]
+  reports            JobReport[]
 
   @@index([email, isActive])
   @@index([role, isActive])
@@ -437,6 +438,7 @@ model Job {
   savedByUsers          SavedJob[]
   skillsRequired        Skill[]
   jobViews              JobView[]
+  reports               JobReport[]
 
   @@index([companyId])
   @@index([location, isRemote])
@@ -962,4 +964,39 @@ model LegalDocument {
   updatedAt   DateTime @updatedAt
 
   @@map("legal_documents")
+}
+
+enum ReportSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ReportStatus {
+  OPEN
+  PENDING
+  RESOLVED
+  DISMISSED
+}
+
+model JobReport {
+  id         String         @id @default(uuid())
+  jobId      String
+  reporterId String
+  reason     String         @db.VarChar(255)
+  comment    String?        @db.Text
+  severity   ReportSeverity @default(LOW)
+  status     ReportStatus   @default(OPEN)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  // Relations
+  job      Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  reporter User @relation(fields: [reporterId], references: [id])
+
+  @@index([jobId])
+  @@index([reporterId])
+  @@index([status])
+  @@map("job_reports")
 }
