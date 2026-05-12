@@ -253,6 +253,74 @@ const adminController = {
       data: result,
     });
   }),
+  getJobReports: asyncHandler(async (req, res) => {
+    const result = await adminService.getJobReports(req.query);
+    sendApiResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Job reports fetched successfully",
+      data: result.data,
+      meta: result.meta,
+    });
+  }),
+  getJobReportStats: asyncHandler(async (_req, res) => {
+    const result = await adminService.getJobReportStats();
+    sendApiResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Job report stats fetched successfully",
+      data: result,
+    });
+  }),
+  updateJobReportStatus: asyncHandler(async (req, res) => {
+    const { reportId } = req.params as any;
+    const { status } = req.body;
+    const result = await adminService.updateJobReportStatus(reportId, status);
+    sendApiResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Job report status updated successfully",
+      data: result,
+    });
+  }),
+  deactivateJob: asyncHandler(async (req, res) => {
+    const { jobId } = req.params as any;
+    const result = await adminService.deactivateJob(jobId);
+    sendApiResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Job deactivated successfully",
+      data: result,
+    });
+  }),
+  deleteJobListing: asyncHandler(async (req, res) => {
+    const { jobId } = req.params as any;
+    const result = await adminService.deleteJobListing(jobId);
+    sendApiResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Job listing deleted successfully",
+      data: result,
+    });
+  }),
+  getSystemSettings: asyncHandler(async (_req, res) => {
+    const result = await adminService.getSystemSettings();
+    sendApiResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "System settings fetched successfully",
+      data: result,
+    });
+  }),
+  updateSystemSettings: asyncHandler(async (req, res) => {
+    const result = await adminService.updateSystemSettings(req.body);
+    sendApiResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "System settings updated successfully",
+      data: result,
+    });
+  }),
 };
 
 export default adminController;

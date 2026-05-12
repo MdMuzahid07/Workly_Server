@@ -176,56 +176,63 @@ const addressSchema = z.object({
   country: z.string().optional().nullable(),
 });
 
-const createProfile = z.object({
-  fullName: z.string().optional(),
-  email: z.string().optional(),
-  phone: z.string().optional().nullable(),
-  bio: z.string().optional().nullable(),
-  headline: z.string().optional().nullable(),
-  location: z
-    .string()
-    .max(255, { message: "Location cannot exceed 255 characters" })
-    .optional()
-    .nullable(),
-  avatarUrl: z
-    .string({ message: "Invalid avatar URL" })
-    .max(500, { message: "Avatar URL cannot exceed 500 characters" })
-    .optional()
-    .nullable(),
-  coverUrl: z
-    .string({ message: "Invalid cover URL" })
-    .max(500, { message: "Cover URL cannot exceed 500 characters" })
-    .optional()
-    .nullable(),
-  resumeUrl: z
-    .string({ message: "Invalid resume URL" })
-    .max(500, { message: "Resume URL cannot exceed 500 characters" })
-    .optional()
-    .nullable(),
-  linkedInUrl: z
-    .string({ message: "Invalid LinkedIn URL" })
-    .max(500, { message: "LinkedIn URL cannot exceed 500 characters" })
-    .optional()
-    .nullable(),
-  websiteUrl: z
-    .string({ message: "Invalid website URL" })
-    .max(500, { message: "Website URL cannot exceed 500 characters" })
-    .optional()
-    .nullable(),
-  githubUrl: z.string().optional().nullable(),
-  skills: z.array(skillSchema).optional(),
-  preference: preferenceSchema.optional().nullable(),
-  education: z.array(educationSchema).optional(),
-  workExperiences: z.array(workExperienceSchema).optional(),
-  projects: z.array(projectSchema).optional(),
-  certifications: z.array(certificationSchema).optional(),
-  volunteers: z.array(volunteerSchema).optional(),
-  awards: z.array(awardSchema).optional(),
-  publications: z.array(publicationSchema).optional(),
-  references: z.array(referenceSchema).optional(),
-  languages: z.array(languageSchema).optional(),
-  address: addressSchema.optional().nullable(),
-});
+const createProfile = z
+  .object({
+    fullName: z.string().optional(),
+    email: z.string().optional(),
+    phone: z.string().optional().nullable(),
+    bio: z.string().optional().nullable(),
+    headline: z.string().optional().nullable(),
+    location: z
+      .string()
+      .max(255, { message: "Location cannot exceed 255 characters" })
+      .optional()
+      .nullable(),
+    avatarUrl: z
+      .string({ message: "Invalid avatar URL" })
+      .max(500, { message: "Avatar URL cannot exceed 500 characters" })
+      .optional()
+      .nullable(),
+    profilePicture: z
+      .string({ message: "Invalid profile picture URL" })
+      .max(500, { message: "Profile picture URL cannot exceed 500 characters" })
+      .optional()
+      .nullable(),
+    coverUrl: z
+      .string({ message: "Invalid cover URL" })
+      .max(500, { message: "Cover URL cannot exceed 500 characters" })
+      .optional()
+      .nullable(),
+    resumeUrl: z
+      .string({ message: "Invalid resume URL" })
+      .max(500, { message: "Resume URL cannot exceed 500 characters" })
+      .optional()
+      .nullable(),
+    linkedInUrl: z
+      .string({ message: "Invalid LinkedIn URL" })
+      .max(500, { message: "LinkedIn URL cannot exceed 500 characters" })
+      .optional()
+      .nullable(),
+    websiteUrl: z
+      .string({ message: "Invalid website URL" })
+      .max(500, { message: "Website URL cannot exceed 500 characters" })
+      .optional()
+      .nullable(),
+    githubUrl: z.string().optional().nullable(),
+    skills: z.array(skillSchema).optional(),
+    preference: preferenceSchema.optional().nullable(),
+    education: z.array(educationSchema).optional(),
+    workExperiences: z.array(workExperienceSchema).optional(),
+    projects: z.array(projectSchema).optional(),
+    certifications: z.array(certificationSchema).optional(),
+    volunteers: z.array(volunteerSchema).optional(),
+    awards: z.array(awardSchema).optional(),
+    publications: z.array(publicationSchema).optional(),
+    references: z.array(referenceSchema).optional(),
+    languages: z.array(languageSchema).optional(),
+    address: addressSchema.optional().nullable(),
+  })
+  .passthrough();
 
 const updateProfile = createProfile.partial().refine(
   (data) => {

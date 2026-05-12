@@ -583,7 +583,7 @@ const adminService = {
 
     // Hash a placeholder password since they will use magic link
     const placeholderPassword = "TemporaryPassword123!";
-    const passwordHash = await (await import("bcrypt")).default.hash(placeholderPassword, 12);
+    const passwordHash = await (await import("bcrypt")).hash(placeholderPassword, 12);
 
     const user = await prisma.user.create({
       data: {
@@ -809,6 +809,135 @@ const adminService = {
       status: j.status,
       createdAt: j.createdAt,
     }));
+  },
+
+  getSystemSettings: async () => {
+    let settings = await prisma.systemSettings.findFirst();
+    if (!settings) {
+      settings = await prisma.systemSettings.create({
+        data: {},
+      });
+    }
+    return settings;
+  },
+
+  updateSystemSettings: async (data: any) => {
+    const settings = await prisma.systemSettings.findFirst();
+    if (!settings) {
+      return prisma.systemSettings.create({
+        data,
+      });
+    }
+    return prisma.systemSettings.update({
+      where: { id: settings.id },
+      data,
+    });
+  },
+
+  getJobReports: async (query: any) => {
+    const { page = 1, limit = 10, status, severity, q } = query;
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const where: any = {};
+    if (status) where.status = status;
+    if (severity) where.severity = severity;
+    if (q) {
+      where.OR = [
+        { job: { title: { contains: q, mode: "insensitive" } } },
+        { job: { company: { name: { contains: q, mode: "insensitive" } } } },
+        { reason: { contains: q, mode: "insensitive" } },
+      ];
+    }
+
+    const [reports, total] = await Promise.all([
+      prisma.jobReport.findMany({
+        where,
+        skip,
+        take: Number(limit),
+        orderBy: { createdAt: "desc" },
+        include: {
+          job: {
+            select: {
+              id: true,
+              title: true,
+              company: { select: { name: true, logoUrl: true } },
+            },
+          },
+          reporter: {
+            select: {
+              fullName: true,
+            },
+          },
+        },
+      }),
+      prisma.jobReport.count({ where }),
+    ]);
+
+    return {
+      data: (reports as any[]).map((r) => ({
+        id: r.id,
+        jobId: r.job.id,
+        title: r.job.title,
+        company: r.job.company.name,
+        logo: r.job.company.logoUrl,
+        reporter: r.reporter.fullName,
+        reason: r.reason,
+        severity: r.severity,
+        reportedAt: r.createdAt,
+        comment: r.comment,
+        status: r.status,
+      })),
+      meta: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+      },
+    };
+  },
+
+  getJobReportStats: async () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const [open, pending, resolvedToday, critical] = await Promise.all([
+      prisma.jobReport.count({ where: { status: "OPEN" } }),
+      prisma.jobReport.count({ where: { status: "PENDING" } }),
+      prisma.jobReport.count({
+        where: {
+          status: "RESOLVED",
+          updatedAt: { gte: today },
+        },
+      }),
+      prisma.jobReport.count({ where: { severity: "CRITICAL", status: "OPEN" } }),
+    ]);
+
+    return {
+      openReports: open,
+      pendingReview: pending,
+      resolvedToday,
+      criticalAlerts: critical,
+    };
+  },
+
+  updateJobReportStatus: async (reportId: string, status: any) => {
+    return await prisma.jobReport.update({
+      where: { id: reportId },
+      data: { status },
+    });
+  },
+
+  deactivateJob: async (jobId: string) => {
+    return await prisma.job.update({
+      where: { id: jobId },
+      data: { status: "CLOSED" },
+    });
+  },
+
+  deleteJobListing: async (jobId: string) => {
+    return await prisma.job.update({
+      where: { id: jobId },
+      data: { deletedAt: new Date() },
+    });
   },
 };
 

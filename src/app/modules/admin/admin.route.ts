@@ -131,4 +131,46 @@ router.get(
   adminController.getAuditLogs,
 );
 
+router.get(
+  "/job-reports/stats",
+  authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  adminController.getJobReportStats,
+);
+
+router.get(
+  "/job-reports",
+  authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  adminController.getJobReports,
+);
+
+router.patch(
+  "/job-reports/:reportId",
+  authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  adminController.updateJobReportStatus,
+);
+
+router.patch(
+  "/jobs/:jobId/deactivate",
+  authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  adminController.deactivateJob,
+);
+
+router.delete(
+  "/jobs/:jobId",
+  authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  adminController.deleteJobListing,
+);
+
+router.get(
+  "/settings",
+  authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  adminController.getSystemSettings,
+);
+
+router.patch(
+  "/settings",
+  authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  adminController.updateSystemSettings,
+);
+
 export default router;

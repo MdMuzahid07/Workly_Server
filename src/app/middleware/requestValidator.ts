@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
-import type { ZodObject, ZodRawShape } from "zod";
+import type { ZodTypeAny } from "zod";
 
-const requestValidator = (schema: ZodObject<ZodRawShape>) => {
+const requestValidator = (schema: ZodTypeAny) => {
   return async (
     req: Request,
     //@ts-ignore

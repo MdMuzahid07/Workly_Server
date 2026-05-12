@@ -1001,6 +1001,7 @@ const getMyCompany = async (userId: string) => {
       industry: true,
       socialLinks: true,
       benefits: true,
+      companySettings: true,
       _count: {
         select: {
           employees: {
@@ -1034,11 +1035,29 @@ const getSettings = async (companyId: string) => {
   return settings;
 };
 
+// Update company settings
 const updateSettings = async (companyId: string, data: any) => {
   return prisma.companySettings.upsert({
     where: { companyId },
-    update: data,
-    create: { companyId, ...data },
+    update: {
+      emailNotifications: data.emailNotifications,
+      applicationAlerts: data.applicationAlerts,
+      jobExpiryReminders: data.jobExpiryReminders,
+      weeklyReports: data.weeklyReports,
+      profileVisibility: data.profileVisibility,
+      showEmployeeCount: data.showEmployeeCount,
+      allowDirectMessages: data.allowDirectMessages,
+    },
+    create: {
+      companyId,
+      emailNotifications: data.emailNotifications ?? true,
+      applicationAlerts: data.applicationAlerts ?? true,
+      jobExpiryReminders: data.jobExpiryReminders ?? true,
+      weeklyReports: data.weeklyReports ?? true,
+      profileVisibility: data.profileVisibility ?? true,
+      showEmployeeCount: data.showEmployeeCount ?? true,
+      allowDirectMessages: data.allowDirectMessages ?? true,
+    },
   });
 };
 
