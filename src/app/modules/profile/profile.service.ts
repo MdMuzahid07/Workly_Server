@@ -128,7 +128,10 @@ const myProfile = async (userId: string) => {
   return rest;
 };
 
-const updateMyProfile = async (userId: string, payload: Partial<IProfile> & { phone?: string }) => {
+const updateMyProfile = async (
+  userId: string,
+  payload: Partial<IProfile> & { phone?: string; fullName?: string },
+) => {
   console.log("Updating profile for user:", userId, "Payload keys:", Object.keys(payload));
   if (!userId) {
     throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
@@ -149,31 +152,35 @@ const updateMyProfile = async (userId: string, payload: Partial<IProfile> & { ph
   }
 
   const result = await prisma.$transaction(async (transactor) => {
-    if (payload.phone !== undefined) {
+    if (payload.phone !== undefined || payload.fullName !== undefined) {
       await transactor.user.update({
         where: {
           id: userId,
         },
         data: {
           phone: payload.phone,
+          fullName: payload.fullName,
         },
       });
     }
 
-    const profileUpdateData = {
-      bio: payload.bio || "",
-      location: payload.location || "",
-      avatarUrl: payload.avatarUrl || "",
-      coverUrl: payload.coverUrl || "",
-      resumeUrl: payload.resumeUrl || "",
-      linkedInUrl: payload.linkedInUrl || "",
-      websiteUrl: payload.websiteUrl || "",
-      githubUrl: payload.githubUrl || "",
-      headline: payload.headline || "",
-      totalExperienceYears: payload.totalExperienceYears
+    const profileUpdateData: any = {};
+    if (payload.bio !== undefined) profileUpdateData.bio = payload.bio;
+    if (payload.location !== undefined) profileUpdateData.location = payload.location;
+    if (payload.avatarUrl !== undefined) profileUpdateData.avatarUrl = payload.avatarUrl;
+    if ((payload as any).profilePicture !== undefined)
+      profileUpdateData.avatarUrl = (payload as any).profilePicture;
+    if (payload.coverUrl !== undefined) profileUpdateData.coverUrl = payload.coverUrl;
+    if (payload.resumeUrl !== undefined) profileUpdateData.resumeUrl = payload.resumeUrl;
+    if (payload.linkedInUrl !== undefined) profileUpdateData.linkedInUrl = payload.linkedInUrl;
+    if (payload.websiteUrl !== undefined) profileUpdateData.websiteUrl = payload.websiteUrl;
+    if (payload.githubUrl !== undefined) profileUpdateData.githubUrl = payload.githubUrl;
+    if (payload.headline !== undefined) profileUpdateData.headline = payload.headline;
+    if (payload.totalExperienceYears !== undefined) {
+      profileUpdateData.totalExperienceYears = payload.totalExperienceYears
         ? Number(payload.totalExperienceYears)
-        : undefined,
-    };
+        : null;
+    }
 
     const userProfile = await transactor.profile.upsert({
       where: {
@@ -793,6 +800,26 @@ const updateSavedJob = async (
   return result;
 };
 
+const getUserSettings = async (userId: string) => {
+  const settings = await prisma.userSettings.findUnique({
+    where: { userId },
+  });
+  if (!settings) {
+    return prisma.userSettings.create({
+      data: { userId },
+    });
+  }
+  return settings;
+};
+
+const updateUserSettings = async (userId: string, data: any) => {
+  return prisma.userSettings.upsert({
+    where: { userId },
+    update: data,
+    create: { userId, ...data },
+  });
+};
+
 //****  for employee (saved profiles) ==========================> ****//
 
 const profileService = {
@@ -802,6 +829,8 @@ const profileService = {
   saveJobs,
   getSavedJobs,
   updateSavedJob,
+  getUserSettings,
+  updateUserSettings,
 };
 
 export default profileService;

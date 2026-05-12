@@ -185,6 +185,19 @@ const googleOAuth = asyncHandler(async (req, res) => {
   return res.redirect(redirectUrl.toString());
 });
 
+const changePassword: RequestHandler = asyncHandler(async (req, res) => {
+  //@ts-ignore
+  const userId = req.user.userId;
+  const payload = req.body;
+  const result = await authService.changePassword(userId, payload);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.message,
+  });
+});
+
 const authController = {
   register,
   login,
@@ -196,6 +209,7 @@ const authController = {
   resendVerificationEmail,
   getCurrentUser,
   googleOAuth,
+  changePassword,
 };
 
 export default authController;

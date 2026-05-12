@@ -16,6 +16,7 @@ router
   .post("/forgot-password", authController.forgotPassword)
   .post("/reset-password", authController.resetPassword)
   .post("/verify-email", requestValidator(authValidation.verifyEmail), authController.verifyEmail)
+  .post("/change-password", authValidator(), authController.changePassword)
   .get("/me", authValidator(), authController.getCurrentUser);
 
 // Google OAuth routes - check if strategy is configured

@@ -303,6 +303,24 @@ const adminController = {
       data: result,
     });
   }),
+  getSystemSettings: asyncHandler(async (_req, res) => {
+    const result = await adminService.getSystemSettings();
+    sendApiResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "System settings fetched successfully",
+      data: result,
+    });
+  }),
+  updateSystemSettings: asyncHandler(async (req, res) => {
+    const result = await adminService.updateSystemSettings(req.body);
+    sendApiResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "System settings updated successfully",
+      data: result,
+    });
+  }),
 };
 
 export default adminController;

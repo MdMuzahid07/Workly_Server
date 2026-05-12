@@ -161,4 +161,16 @@ router.delete(
   adminController.deleteJobListing,
 );
 
+router.get(
+  "/settings",
+  authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  adminController.getSystemSettings,
+);
+
+router.patch(
+  "/settings",
+  authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  adminController.updateSystemSettings,
+);
+
 export default router;

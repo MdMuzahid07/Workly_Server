@@ -811,6 +811,29 @@ const adminService = {
     }));
   },
 
+  getSystemSettings: async () => {
+    let settings = await prisma.systemSettings.findFirst();
+    if (!settings) {
+      settings = await prisma.systemSettings.create({
+        data: {},
+      });
+    }
+    return settings;
+  },
+
+  updateSystemSettings: async (data: any) => {
+    const settings = await prisma.systemSettings.findFirst();
+    if (!settings) {
+      return prisma.systemSettings.create({
+        data,
+      });
+    }
+    return prisma.systemSettings.update({
+      where: { id: settings.id },
+      data,
+    });
+  },
+
   getJobReports: async (query: any) => {
     const { page = 1, limit = 10, status, severity, q } = query;
     const skip = (Number(page) - 1) * Number(limit);

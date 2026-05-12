@@ -540,6 +540,36 @@ const googleOAuth = async (
   };
 };
 
+const changePassword = async (userId: string, payload: any) => {
+  const { oldPassword, newPassword } = payload;
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  const isPasswordMatch = await bcrypt.compare(oldPassword, user.passwordHash);
+  if (!isPasswordMatch) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Incorrect old password");
+  }
+
+  const newPasswordHash = await bcrypt.hash(newPassword, Number(config.bcrypt_salt_rounds));
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      passwordHash: newPasswordHash,
+    },
+  });
+
+  return {
+    message: "Password changed successfully",
+  };
+};
+
 const authService = {
   register,
   login,
@@ -550,5 +580,6 @@ const authService = {
   verifyEmail,
   resendVerificationEmail,
   googleOAuth,
+  changePassword,
 };
 export default authService;

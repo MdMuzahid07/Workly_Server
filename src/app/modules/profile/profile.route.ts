@@ -42,6 +42,16 @@ router
     authValidator(UserRole.JOB_SEEKER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
     requestValidator(profileValidation.updateSavedJob),
     profileController.updateSavedJob,
+  )
+  .get(
+    "/settings",
+    authValidator(UserRole.ADMIN, UserRole.JOB_SEEKER, UserRole.EMPLOYER, UserRole.SUPER_ADMIN),
+    profileController.getUserSettings,
+  )
+  .patch(
+    "/settings",
+    authValidator(UserRole.ADMIN, UserRole.JOB_SEEKER, UserRole.EMPLOYER, UserRole.SUPER_ADMIN),
+    profileController.updateUserSettings,
   );
 
 const profileRoute = router;

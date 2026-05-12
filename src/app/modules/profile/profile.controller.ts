@@ -106,6 +106,32 @@ const updateSavedJob = asyncHandler(async (req, res) => {
   });
 });
 
+const getUserSettings = asyncHandler(async (req, res) => {
+  //@ts-ignore
+  const userId = req.user.userId;
+  const result = await profileService.getUserSettings(userId);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "User settings fetched successfully",
+    data: result,
+  });
+});
+
+const updateUserSettings = asyncHandler(async (req, res) => {
+  //@ts-ignore
+  const userId = req.user.userId;
+  const result = await profileService.updateUserSettings(userId, req.body);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "User settings updated successfully",
+    data: result,
+  });
+});
+
 const profileController = {
   createProfile,
   myProfile,
@@ -113,5 +139,7 @@ const profileController = {
   saveJob,
   getSavedJobs,
   updateSavedJob,
+  getUserSettings,
+  updateUserSettings,
 };
 export default profileController;

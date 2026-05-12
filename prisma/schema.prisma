@@ -758,6 +758,10 @@ model CompanySettings {
   applicationAlerts  Boolean @default(true)
   jobExpiryReminders Boolean @default(true)
   weeklyReports      Boolean @default(true)
+  //* ==== privacy ====>
+  profileVisibility  Boolean @default(true)
+  showEmployeeCount  Boolean @default(true)
+  allowDirectMessages Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -778,6 +782,8 @@ model UserSettings {
   interviewUpdates   Boolean           @default(true)
   //* ==== privacy ====>
   profileVisibility  ProfileVisibility @default(PUBLIC)
+  profileViews       Boolean           @default(true)
+  searchVisibility   Boolean           @default(true)
   showEmail          Boolean           @default(false)
   showPhone          Boolean           @default(false)
   createdAt          DateTime          @default(now())
@@ -999,4 +1005,20 @@ model JobReport {
   @@index([reporterId])
   @@index([status])
   @@map("job_reports")
+}
+
+model SystemSettings {
+  id                   String   @id @default(uuid())
+  aiMatchmaking        Boolean  @default(true)
+  publicRegistration   Boolean  @default(true)
+  globalNotifications  Boolean  @default(true)
+  extendedAuditLogging Boolean  @default(true)
+  maintenanceMode      Boolean  @default(false)
+  siteName             String   @default("Workly")
+  siteSlogan           String?
+  siteLogo             String?
+  supportEmail         String?
+  updatedAt            DateTime @updatedAt
+
+  @@map("system_settings")
 }
