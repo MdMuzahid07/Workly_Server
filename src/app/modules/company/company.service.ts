@@ -11,6 +11,19 @@ import generateUniqueSlug from "../../../utils/generateUniqueSlug.js";
 import prisma from "../../../utils/prismaClient.js";
 import AppError from "../../error/AppError.js";
 
+//* ============ helper functions ============>
+
+const parseArray = (value: any) => {
+  if (!value) return undefined;
+  return Array.isArray(value) ? value : value.split(",").map((v: string) => v.trim());
+};
+
+const parseBool = (value: any) => {
+  if (value === "true" || value === true) return true;
+  if (value === "false" || value === false) return false;
+  return undefined;
+};
+
 const createCompany = async (
   userId: string,
   payload: Company & { socialLinks: SocialLink[]; benefits: Benefits[] },
@@ -163,10 +176,65 @@ const getCompanyBySlug = async (slug: string) => {
 
   return result;
 };
-
 const getCompanies = async (query: any) => {
+  const {
+    search,
+    industry,
+    location,
+    size,
+    isVerified,
+    sortBy = "createdAt",
+    sortOrder = "desc",
+    page,
+    limit,
+  } = query;
+
+  // build filter query ==========>
+  const filterQuery: any = {
+    sortBy,
+    sortOrder,
+    page: page ? parseInt(page) : 1,
+    limit: limit ? parseInt(limit) : 10,
+    where: {},
+  };
+
+  // text search ===============>
+  if (search) {
+    filterQuery.search = search.trim();
+    filterQuery.searchIn = ["name", "description"];
+  }
+
+  const verified = parseBool(isVerified);
+  if (verified !== undefined) filterQuery.where.isVerified = verified;
+
   const companyFilter = factoryFunctions.createCompanyFilter(prisma);
-  const { where, orderBy, skip, take, pagination } = await companyFilter.filter(query);
+  const { where, orderBy, skip, take, pagination } = await companyFilter.filter(filterQuery);
+
+  if (location && location.trim()) {
+    where.location = {
+      contains: location.trim(),
+      mode: "insensitive",
+    };
+  }
+
+  // Company size filter
+  if (size && size.trim()) {
+    const sizes = parseArray(size);
+    if (sizes?.length) {
+      where.size = { in: sizes };
+    }
+  }
+
+  // Industry filter (relation with industry)
+  if (industry && industry.trim()) {
+    const industries = parseArray(industry);
+    if (industries?.length) {
+      where.industry = {
+        name: { in: industries, mode: "insensitive" },
+      };
+    }
+  }
+
   const result = await prisma.company.findMany({
     where,
     orderBy,
