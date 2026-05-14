@@ -8,6 +8,7 @@ const getConversations = async (userId: string) => {
       conversationParticipants: {
         some: {
           userId,
+          deletedAt: null,
         },
       },
     },
@@ -77,7 +78,17 @@ const getMessages = async (conversationId: string, userId: string) => {
   return result;
 };
 
-const sendMessage = async (conversationId: string, senderId: string, content: string) => {
+const sendMessage = async (
+  conversationId: string,
+  senderId: string,
+  payload: {
+    content: string;
+    messageType?: "TEXT" | "IMAGE" | "FILE" | "LINK";
+    fileUrl?: string;
+    fileName?: string;
+    fileSize?: number;
+  },
+) => {
   const participant = await prisma.conversationParticipant.findFirst({
     where: {
       conversationId,
@@ -89,12 +100,45 @@ const sendMessage = async (conversationId: string, senderId: string, content: st
     throw new AppError(httpStatus.FORBIDDEN, "You are not a participant of this conversation");
   }
 
+  if (participant.isBlocked) {
+    throw new AppError(httpStatus.FORBIDDEN, "You cannot send messages to a blocked conversation");
+  }
+
+  // Check if the other person has blocked you
+  const otherParticipant = await prisma.conversationParticipant.findFirst({
+    where: {
+      conversationId,
+      userId: { not: senderId },
+    },
+  });
+
+  if (otherParticipant?.isBlocked) {
+    throw new AppError(httpStatus.FORBIDDEN, "The other participant has blocked you");
+  }
+
   const result = await prisma.$transaction(async (tx) => {
     const message = await tx.message.create({
       data: {
         conversationId,
         senderId,
-        content,
+        content: payload.content,
+        messageType: payload.messageType || "TEXT",
+        fileUrl: payload.fileUrl,
+        fileName: payload.fileName,
+        fileSize: payload.fileSize,
+      },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            fullName: true,
+            profile: {
+              select: {
+                avatarUrl: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -145,6 +189,45 @@ const createConversation = async (participantIds: string[], applicationId?: stri
   return result;
 };
 
+const blockUser = async (conversationId: string, userId: string) => {
+  const participant = await prisma.conversationParticipant.findFirst({
+    where: { conversationId, userId },
+  });
+
+  if (!participant) {
+    throw new AppError(httpStatus.NOT_FOUND, "Participant not found");
+  }
+
+  const result = await prisma.conversationParticipant.update({
+    where: { id: participant.id },
+    data: {
+      isBlocked: !participant.isBlocked,
+      blockedAt: !participant.isBlocked ? new Date() : null,
+    },
+  });
+
+  return result;
+};
+
+const deleteConversation = async (conversationId: string, userId: string) => {
+  const participant = await prisma.conversationParticipant.findFirst({
+    where: { conversationId, userId },
+  });
+
+  if (!participant) {
+    throw new AppError(httpStatus.NOT_FOUND, "Participant not found");
+  }
+
+  await prisma.conversationParticipant.update({
+    where: { id: participant.id },
+    data: {
+      deletedAt: new Date(),
+    },
+  });
+
+  return { success: true };
+};
+
 const markAsRead = async (conversationId: string, userId: string) => {
   await prisma.message.updateMany({
     where: {
@@ -177,6 +260,8 @@ const messageService = {
   sendMessage,
   createConversation,
   markAsRead,
+  blockUser,
+  deleteConversation,
 };
 
 export default messageService;

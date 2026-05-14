@@ -41,13 +41,19 @@ const getMessages = asyncHandler(async (req, res) => {
 const sendMessage = asyncHandler(async (req, res) => {
   const userId = (req as any).user?.userId;
   const { conversationId } = req.params as { conversationId: string };
-  const { content, recipientId } = req.body;
+  const { content, recipientId, messageType, fileUrl, fileName, fileSize } = req.body;
 
   if (!userId) {
     throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated");
   }
 
-  const result = await messageService.sendMessage(conversationId, userId, content);
+  const result = await messageService.sendMessage(conversationId, userId, {
+    content,
+    messageType,
+    fileUrl,
+    fileName,
+    fileSize,
+  });
 
   // Real-time broadcast
   const io = getIO();
@@ -90,6 +96,42 @@ const createConversation = asyncHandler(async (req, res) => {
   });
 });
 
+const blockUser = asyncHandler(async (req, res) => {
+  const userId = (req as any).user?.userId;
+  const { conversationId } = req.params as { conversationId: string };
+
+  if (!userId) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated");
+  }
+
+  const result = await messageService.blockUser(conversationId, userId);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.isBlocked ? "User blocked" : "User unblocked",
+    data: result,
+  });
+});
+
+const deleteConversation = asyncHandler(async (req, res) => {
+  const userId = (req as any).user?.userId;
+  const { conversationId } = req.params as { conversationId: string };
+
+  if (!userId) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated");
+  }
+
+  const result = await messageService.deleteConversation(conversationId, userId);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Conversation deleted",
+    data: result,
+  });
+});
+
 const markAsRead = asyncHandler(async (req, res) => {
   const userId = (req as any).user?.userId;
   const { conversationId } = req.params as { conversationId: string };
@@ -123,6 +165,8 @@ const messageController = {
   sendMessage,
   createConversation,
   markAsRead,
+  blockUser,
+  deleteConversation,
 };
 
 export default messageController;

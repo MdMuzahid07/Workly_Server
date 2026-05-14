@@ -14,4 +14,8 @@ router.post("/create-conversation", authValidator(), messageController.createCon
 
 router.patch("/read/:conversationId", authValidator(), messageController.markAsRead);
 
+router.post("/block/:conversationId", authValidator(), messageController.blockUser);
+
+router.delete("/delete/:conversationId", authValidator(), messageController.deleteConversation);
+
 export const messageRoutes = router;
