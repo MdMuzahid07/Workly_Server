@@ -121,6 +121,7 @@ model User {
   role              UserRole          @default(JOB_SEEKER)
   isVerified        Boolean           @default(false)
   isActive          Boolean           @default(true)
+  isPremium         Boolean           @default(false)
   profileId         String?           @unique
   profileVisibility ProfileVisibility @default(PUBLIC)
   companyId         String?
