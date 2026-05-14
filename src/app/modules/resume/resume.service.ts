@@ -19,6 +19,21 @@ const uploadResume = async (userId: string, file: Express.Multer.File, isDefault
     throw new Error("Failed to upload resume to Cloudinary");
   }
 
+  // Premium validation
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { isPremium: true },
+  });
+
+  if (!user?.isPremium) {
+    const resumeCount = await prisma.resume.count({ where: { userId } });
+    if (resumeCount >= 1) {
+      throw new Error(
+        "Free users can only maintain one resume version. Upgrade to Premium for unlimited uploads!",
+      );
+    }
+  }
+
   const resume = await prisma.resume.create({
     data: {
       userId,
