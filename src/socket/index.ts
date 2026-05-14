@@ -23,14 +23,11 @@ function extractToken(handshake: {
 }): string | null {
   const authToken =
     typeof handshake.auth?.token === "string" ? (handshake.auth.token as string) : null;
-  if (authToken) return authToken;
 
-  const headerAuth =
-    typeof handshake.headers?.authorization === "string"
-      ? (handshake.headers.authorization as string)
-      : null;
-  if (!headerAuth) return null;
-  return headerAuth.startsWith("Bearer ") ? (headerAuth.split(" ")[1] ?? null) : headerAuth;
+  const rawToken = authToken || (handshake.headers?.authorization as string);
+  if (!rawToken) return null;
+
+  return rawToken.startsWith("Bearer ") ? (rawToken.split(" ")[1] ?? null) : rawToken;
 }
 
 export const initSocket = (server: HttpServer) => {
@@ -60,7 +57,29 @@ export const initSocket = (server: HttpServer) => {
     const userId = socket.data?.user?.userId as string | undefined;
     if (userId) {
       socket.join(`user:${userId}`);
+      console.log(`User connected: ${userId} (Socket: ${socket.id})`);
     }
+
+    // Join a conversation room
+    socket.on("join_conversation", (conversationId: string) => {
+      socket.join(`conversation:${conversationId}`);
+      console.log(`Socket ${socket.id} joined conversation: ${conversationId}`);
+    });
+
+    // Leave a conversation room
+    socket.on("leave_conversation", (conversationId: string) => {
+      socket.leave(`conversation:${conversationId}`);
+      console.log(`Socket ${socket.id} left conversation: ${conversationId}`);
+    });
+
+    // Handle typing status
+    socket.on("typing", (data: { conversationId: string; userId: string; isTyping: boolean }) => {
+      socket.to(`conversation:${data.conversationId}`).emit("user_typing", data);
+    });
+
+    socket.on("disconnect", () => {
+      console.log(`User disconnected: ${userId}`);
+    });
   });
 
   return io;
