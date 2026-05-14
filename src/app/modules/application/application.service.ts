@@ -65,6 +65,26 @@ const createApplication = async (userId: string, payload: any) => {
     throw new AppError(httpStatus.BAD_REQUEST, "User not found or inactive");
   }
 
+  // Monthly application limit for free job seekers (Premium users have no limit)
+  if (!user.isPremium && user.role === "JOB_SEEKER") {
+    const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const monthlyApplicationCount = await prisma.application.count({
+      where: {
+        applicantId: userId,
+        createdAt: {
+          gte: monthStart,
+        },
+      },
+    });
+
+    if (monthlyApplicationCount >= 30) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        "Monthly application limit reached (30/month). Upgrade to Premium to apply for unlimited jobs and fast-track your career!",
+      );
+    }
+  }
+
   const job = await prisma.job.findUnique({
     where: {
       id: payload.jobId,
@@ -278,8 +298,19 @@ const getMyApplicationSummary = async (userId: string) => {
 
   const total = Object.values(byStatus).reduce((sum, count) => sum + count, 0);
 
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  const monthlyCount = await prisma.application.count({
+    where: {
+      applicantId: userId,
+      createdAt: {
+        gte: monthStart,
+      },
+    },
+  });
+
   return {
     total,
+    monthlyCount,
     inReview: byStatus.SUBMITTED + byStatus.REVIEWING + byStatus.SHORTLISTED,
     interviewing: byStatus.INTERVIEWED,
     offer: byStatus.OFFERED,
