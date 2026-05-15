@@ -2,7 +2,22 @@ import httpStatus from "http-status";
 import prisma from "../../../utils/prismaClient.js";
 import AppError from "../../error/AppError.js";
 
+const checkPremiumStatus = async (userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { isPremium: true },
+  });
+
+  if (!user?.isPremium) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "Messaging is a premium feature. Please upgrade your plan to continue.",
+    );
+  }
+};
+
 const getConversations = async (userId: string) => {
+  await checkPremiumStatus(userId);
   const result = await prisma.conversation.findMany({
     where: {
       conversationParticipants: {
@@ -41,6 +56,7 @@ const getConversations = async (userId: string) => {
 };
 
 const getMessages = async (conversationId: string, userId: string) => {
+  await checkPremiumStatus(userId);
   // Check if user is participant
   const participant = await prisma.conversationParticipant.findFirst({
     where: {
@@ -89,6 +105,7 @@ const sendMessage = async (
     fileSize?: number;
   },
 ) => {
+  await checkPremiumStatus(senderId);
   const participant = await prisma.conversationParticipant.findFirst({
     where: {
       conversationId,
@@ -163,6 +180,9 @@ const createConversation = async (participantIds: string[], applicationId?: stri
     throw new AppError(httpStatus.BAD_REQUEST, "Currently only support 1-on-1 conversations");
   }
 
+  // Check if the initiator (first participant) is premium
+  await checkPremiumStatus(participantIds[0] as string);
+
   const existing = await prisma.conversation.findFirst({
     where: {
       AND: [
@@ -190,6 +210,7 @@ const createConversation = async (participantIds: string[], applicationId?: stri
 };
 
 const blockUser = async (conversationId: string, userId: string) => {
+  await checkPremiumStatus(userId);
   const participant = await prisma.conversationParticipant.findFirst({
     where: { conversationId, userId },
   });
@@ -210,6 +231,7 @@ const blockUser = async (conversationId: string, userId: string) => {
 };
 
 const deleteConversation = async (conversationId: string, userId: string) => {
+  await checkPremiumStatus(userId);
   const participant = await prisma.conversationParticipant.findFirst({
     where: { conversationId, userId },
   });
@@ -229,6 +251,7 @@ const deleteConversation = async (conversationId: string, userId: string) => {
 };
 
 const markAsRead = async (conversationId: string, userId: string) => {
+  await checkPremiumStatus(userId);
   await prisma.message.updateMany({
     where: {
       conversationId,
