@@ -102,6 +102,7 @@ enum MessageStatus {
   DELIVERED
   READ
   FAILED
+  DELETED
 }
 
 enum MessageType {
@@ -606,6 +607,7 @@ model Message {
   readAt                     DateTime?
   createdAt                  DateTime      @default(now())
   updatedAt                  DateTime      @updatedAt
+  deletedAt                  DateTime?
   //* ==== relations ======>
   conversation               Conversation  @relation("ConversationMessages", fields: [conversationId], references: [id], onDelete: Cascade)
   sender                     User          @relation("SenderMessages", fields: [senderId], references: [id], onDelete: Cascade)

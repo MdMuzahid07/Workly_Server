@@ -159,6 +159,33 @@ const markAsRead = asyncHandler(async (req, res) => {
   });
 });
 
+const deleteMessage = asyncHandler(async (req, res) => {
+  const userId = (req as any).user?.userId;
+  const { messageId } = req.params as { messageId: string };
+
+  if (!userId) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated");
+  }
+
+  const result = await messageService.deleteMessage(messageId, userId);
+
+  // Real-time broadcast
+  const io = getIO();
+  if (io) {
+    io.to(`conversation:${result.conversationId}`).emit("message_deleted", {
+      messageId: result.id,
+      conversationId: result.conversationId,
+    });
+  }
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Message deleted successfully",
+    data: result,
+  });
+});
+
 const messageController = {
   getConversations,
   getMessages,
@@ -167,6 +194,7 @@ const messageController = {
   markAsRead,
   blockUser,
   deleteConversation,
+  deleteMessage,
 };
 
 export default messageController;

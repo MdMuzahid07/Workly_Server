@@ -17,5 +17,6 @@ router.patch("/read/:conversationId", authValidator(), messageController.markAsR
 router.post("/block/:conversationId", authValidator(), messageController.blockUser);
 
 router.delete("/delete/:conversationId", authValidator(), messageController.deleteConversation);
+router.delete("/message/:messageId", authValidator(), messageController.deleteMessage);
 
 export const messageRoutes = router;

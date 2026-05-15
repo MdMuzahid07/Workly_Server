@@ -254,6 +254,34 @@ const markAsRead = async (conversationId: string, userId: string) => {
   return { success: true };
 };
 
+const deleteMessage = async (messageId: string, userId: string) => {
+  const message = await prisma.message.findUnique({
+    where: { id: messageId },
+  });
+
+  if (!message) {
+    throw new AppError(httpStatus.NOT_FOUND, "Message not found");
+  }
+
+  if (message.senderId !== userId) {
+    throw new AppError(httpStatus.FORBIDDEN, "You can only delete your own messages");
+  }
+
+  const result = await prisma.message.update({
+    where: { id: messageId },
+    data: {
+      status: "DELETED",
+      deletedAt: new Date(),
+      content: "This message was deleted",
+      fileUrl: null,
+      fileName: null,
+      fileSize: null,
+    },
+  });
+
+  return result;
+};
+
 const messageService = {
   getConversations,
   getMessages,
@@ -262,6 +290,7 @@ const messageService = {
   markAsRead,
   blockUser,
   deleteConversation,
+  deleteMessage,
 };
 
 export default messageService;
