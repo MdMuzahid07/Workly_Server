@@ -478,7 +478,22 @@ const removeEmployee = async (companyId: string, adminId: string, employeeId: st
 
 // ============== company Statistics ================>
 
+const checkPremiumStatus = async (userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { isPremium: true },
+  });
+
+  if (!user?.isPremium) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "This is a premium feature. Please upgrade your plan to continue.",
+    );
+  }
+};
+
 const getCompanyOverviewStatistics = async (userId: string) => {
+  await checkPremiumStatus(userId);
   const user = await prisma.user.findUnique({
     where: { id: userId, isActive: true },
     include: { company: true },
@@ -705,6 +720,7 @@ const emptyEmployerAnalytics = (period: AnalyticsPeriod, hasCompany: boolean) =>
 
 //* ========= Employer hiring analytics =========>
 const getEmployerAnalytics = async (userId: string, rawPeriod: string) => {
+  await checkPremiumStatus(userId);
   const user = await prisma.user.findUnique({
     where: { id: userId, isActive: true },
   });
