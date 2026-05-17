@@ -1,5 +1,7 @@
+import type { Response } from "express";
 import httpStatus from "http-status";
 import { type Job } from "../../../generated/prisma/index.js";
+import { streamPdfToClient } from "../../../services/file/fileStream.service.js";
 import factoryFunctions from "../../../utils/FactoryFunctionsWithFilterEngine.js";
 import prisma from "../../../utils/prismaClient.js";
 import AppError from "../../error/AppError.js";
@@ -480,6 +482,42 @@ const getApplicationById = async (requesterId: string, applicationId: string) =>
   return app;
 };
 
+const streamApplicationResume = async (
+  requesterId: string,
+  applicationId: string,
+  res: Response,
+) => {
+  const app = await prisma.application.findUnique({
+    where: { id: applicationId },
+    include: {
+      applicant: { select: { id: true, fullName: true } },
+    },
+  });
+
+  if (!app) {
+    throw new AppError(httpStatus.NOT_FOUND, "Application not found");
+  }
+
+  if (app.applicantId === requesterId) {
+    // applicant may view own resume
+  } else {
+    await assertEmployerOwnsJob(requesterId, app.jobId);
+  }
+
+  if (!app.resumeUrl) {
+    throw new AppError(httpStatus.NOT_FOUND, "Resume not found for this application");
+  }
+
+  const applicantName = app.fullName || app.applicant?.fullName || "applicant";
+  const filename = `${applicantName.replace(/\s+/g, "_")}_resume.pdf`;
+
+  await streamPdfToClient({
+    res,
+    fileUrl: app.resumeUrl,
+    filename,
+  });
+};
+
 const updateStatus = async (
   employerId: string,
   applicationId: string,
@@ -788,6 +826,7 @@ const applicationService = {
   getMyCompanyApplications,
   getMyCompanyApplicationSummary,
   getApplicationById,
+  streamApplicationResume,
   updateStatus,
   withdraw,
   scheduleInterview,

@@ -53,6 +53,14 @@ const setDefaultResume = asyncHandler(async (req, res) => {
   });
 });
 
+// Stream resume PDF (proxied through server to avoid Cloudinary 401/CORS)
+const streamResumeFile = asyncHandler(async (req, res) => {
+  //@ts-ignore
+  const userId = req.user.userId;
+  const { resumeId } = req.params;
+  await resumeService.streamResumeFile(userId, resumeId as string, res);
+});
+
 // Delete a resume
 const deleteResume = asyncHandler(async (req, res) => {
   //@ts-ignore
@@ -71,6 +79,7 @@ const resumeController = {
   listResumes,
   uploadResume,
   setDefaultResume,
+  streamResumeFile,
   deleteResume,
 };
 export default resumeController;
