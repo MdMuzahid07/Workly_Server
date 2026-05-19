@@ -576,6 +576,116 @@ const deleteJob = async (userId: string, jobId: string) => {
   return result;
 };
 
+const getRecommendedJobs = async (userId: string, query: any) => {
+  const { page = 1, limit = 10 } = query;
+  const skip = (parseInt(page) - 1) * parseInt(limit);
+  const take = parseInt(limit);
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId, isActive: true },
+    include: {
+      profile: {
+        include: {
+          skills: true,
+        },
+      },
+    },
+  });
+
+  if (!user || !user.profile) {
+    throw new AppError(httpStatus.NOT_FOUND, "User profile not found");
+  }
+
+  const userSkillNames = user.profile.skills.map((s) => s.skillName.toLowerCase());
+
+  // If user has no skills, return recent active jobs
+  if (userSkillNames.length === 0) {
+    const jobs = await prisma.job.findMany({
+      where: { status: "ACTIVE", deletedAt: null },
+      include: { JobSkill: true, company: true },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take,
+    });
+    const total = await prisma.job.count({ where: { status: "ACTIVE", deletedAt: null } });
+    return {
+      data: jobs.map((j) => ({ ...j, matchScore: 70, matchReason: "Relevant for your profile." })),
+      meta: { page: parseInt(page), limit: take, total, pages: Math.ceil(total / take) },
+    };
+  }
+
+  // Matching logic: Find jobs with overlapping skills
+  const matchingJobs = await prisma.job.findMany({
+    where: {
+      status: "ACTIVE",
+      deletedAt: null,
+      OR: [
+        {
+          JobSkill: {
+            some: {
+              skillName: { in: userSkillNames, mode: "insensitive" },
+            },
+          },
+        },
+        {
+          title: {
+            contains: userSkillNames[0],
+            mode: "insensitive",
+          },
+        },
+      ],
+    },
+    include: {
+      JobSkill: true,
+      company: true,
+    },
+  });
+
+  // Calculate match scores and filter/sort
+  const scoredJobs = matchingJobs
+    .map((job) => {
+      const jobSkillNames = job.JobSkill.map((s) => s.skillName.toLowerCase());
+      const matches = jobSkillNames.filter((s) => userSkillNames.includes(s));
+      const matchCount = matches.length;
+
+      // Score calculation: (matches / required) * 100
+      let matchScore = 0;
+      if (jobSkillNames.length > 0) {
+        matchScore = Math.round((matchCount / jobSkillNames.length) * 100);
+      } else {
+        matchScore = 75; // Baseline if no skills defined for job
+      }
+
+      // Cap score at 100
+      matchScore = Math.min(matchScore, 100);
+      // Ensure a decent base score for relevant matches
+      if (matchCount > 0 && matchScore < 60) matchScore = 65;
+
+      return {
+        ...job,
+        matchScore,
+        matchReason:
+          matchCount > 0
+            ? `Matches ${matchCount} of the required skills for this position.`
+            : "Matches your career interests and background.",
+      };
+    })
+    .sort((a, b) => b.matchScore - a.matchScore);
+
+  const paginatedData = scoredJobs.slice(skip, skip + take);
+  const total = scoredJobs.length;
+
+  return {
+    data: paginatedData,
+    meta: {
+      page: parseInt(page),
+      limit: take,
+      total,
+      pages: Math.ceil(total / take),
+    },
+  };
+};
+
 const jobService = {
   createJob,
   getJobs,
@@ -583,6 +693,7 @@ const jobService = {
   getJobById,
   updateJob,
   deleteJob,
+  getRecommendedJobs,
 };
 
 export default jobService;

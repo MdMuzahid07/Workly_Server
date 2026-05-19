@@ -55,8 +55,9 @@ const createCategory = async (payload: CategoryPayload) => {
 
 const getCategories = async (query: Record<string, unknown>) => {
   const search = (query.search as string)?.trim() ?? "";
+  const type = query.type as string;
 
-  const where = {
+  const where: any = {
     isDeleted: false,
     ...(search && {
       OR: [
@@ -66,6 +67,12 @@ const getCategories = async (query: Record<string, unknown>) => {
       ],
     }),
   };
+
+  if (type === "company") {
+    where.companies = { some: { deletedAt: null } };
+  } else if (type === "job") {
+    where.jobs = { some: { deletedAt: null } };
+  }
 
   const categoryClient = (prisma as any).industry;
 

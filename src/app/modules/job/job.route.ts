@@ -22,6 +22,8 @@ router.get(
   jobController.getMyJobs,
 );
 
+router.get("/recommended", authValidator(UserRole.JOB_SEEKER), jobController.getRecommendedJobs);
+
 router.get("/job/:jobId", jobController.getJobById);
 
 router.patch(

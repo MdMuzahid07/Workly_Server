@@ -104,6 +104,20 @@ const deleteJob = asyncHandler(async (req, res) => {
   });
 });
 
+const getRecommendedJobs = asyncHandler(async (req, res) => {
+  //@ts-ignore
+  const userId = req.user.userId;
+  const { data, meta } = await jobService.getRecommendedJobs(userId, req.query);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Recommended jobs fetched successfully",
+    data,
+    meta,
+  });
+});
+
 const jobController = {
   createJob,
   getJobs,
@@ -111,6 +125,7 @@ const jobController = {
   getJobById,
   updateJob,
   deleteJob,
+  getRecommendedJobs,
 };
 
 export default jobController;

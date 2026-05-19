@@ -32,6 +32,13 @@ router.patch(
   resumeController.setDefaultResume,
 );
 
+// Stream resume PDF
+router.get(
+  "/resumes/:resumeId/file",
+  authValidator(UserRole.JOB_SEEKER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  resumeController.streamResumeFile,
+);
+
 // Delete resume
 router.delete(
   "/resumes/:resumeId",

@@ -18,6 +18,7 @@ import projectRoute from "../modules/project/project.route.js";
 import notificationRoute from "../modules/notification/notification.route.js";
 import adminRoute from "../modules/admin/admin.route.js";
 import legalRoute from "../modules/legal/legal.route.js";
+import { messageRoutes } from "../modules/message/message.route.js";
 
 const router = express.Router();
 
@@ -97,6 +98,10 @@ const routeConfigs = [
   {
     path: "/legal",
     route: legalRoute,
+  },
+  {
+    path: "/message",
+    route: messageRoutes,
   },
 ];
 

@@ -95,6 +95,13 @@ const getApplicationById = asyncHandler(async (req, res) => {
   });
 });
 
+const streamApplicationResume = asyncHandler(async (req, res) => {
+  //@ts-ignore
+  const requesterId = req.user.userId;
+  const { id } = req.params as { id: string };
+  await applicationService.streamApplicationResume(requesterId, id, res);
+});
+
 const updateStatus = asyncHandler(async (req, res) => {
   //@ts-ignore
   const employerId = req.user.userId;
@@ -192,6 +199,7 @@ const applicationController = {
   getMyCompanyApplications,
   getMyCompanyApplicationSummary,
   getApplicationById,
+  streamApplicationResume,
   updateStatus,
   withdraw,
   scheduleInterview,

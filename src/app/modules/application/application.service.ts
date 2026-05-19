@@ -1,5 +1,7 @@
+import type { Response } from "express";
 import httpStatus from "http-status";
 import { type Job } from "../../../generated/prisma/index.js";
+import { streamPdfToClient } from "../../../services/file/fileStream.service.js";
 import factoryFunctions from "../../../utils/FactoryFunctionsWithFilterEngine.js";
 import prisma from "../../../utils/prismaClient.js";
 import AppError from "../../error/AppError.js";
@@ -63,6 +65,26 @@ const createApplication = async (userId: string, payload: any) => {
 
   if (!user) {
     throw new AppError(httpStatus.BAD_REQUEST, "User not found or inactive");
+  }
+
+  // Monthly application limit for free job seekers (Premium users have no limit)
+  if (!user.isPremium && user.role === "JOB_SEEKER") {
+    const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const monthlyApplicationCount = await prisma.application.count({
+      where: {
+        applicantId: userId,
+        createdAt: {
+          gte: monthStart,
+        },
+      },
+    });
+
+    if (monthlyApplicationCount >= 30) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        "Monthly application limit reached (30/month). Upgrade to Premium to apply for unlimited jobs and fast-track your career!",
+      );
+    }
   }
 
   const job = await prisma.job.findUnique({
@@ -278,8 +300,19 @@ const getMyApplicationSummary = async (userId: string) => {
 
   const total = Object.values(byStatus).reduce((sum, count) => sum + count, 0);
 
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  const monthlyCount = await prisma.application.count({
+    where: {
+      applicantId: userId,
+      createdAt: {
+        gte: monthStart,
+      },
+    },
+  });
+
   return {
     total,
+    monthlyCount,
     inReview: byStatus.SUBMITTED + byStatus.REVIEWING + byStatus.SHORTLISTED,
     interviewing: byStatus.INTERVIEWED,
     offer: byStatus.OFFERED,
@@ -447,6 +480,42 @@ const getApplicationById = async (requesterId: string, applicationId: string) =>
   // Or if requester is employer of the job's company
   await assertEmployerOwnsJob(requesterId, app.jobId);
   return app;
+};
+
+const streamApplicationResume = async (
+  requesterId: string,
+  applicationId: string,
+  res: Response,
+) => {
+  const app = await prisma.application.findUnique({
+    where: { id: applicationId },
+    include: {
+      applicant: { select: { id: true, fullName: true } },
+    },
+  });
+
+  if (!app) {
+    throw new AppError(httpStatus.NOT_FOUND, "Application not found");
+  }
+
+  if (app.applicantId === requesterId) {
+    // applicant may view own resume
+  } else {
+    await assertEmployerOwnsJob(requesterId, app.jobId);
+  }
+
+  if (!app.resumeUrl) {
+    throw new AppError(httpStatus.NOT_FOUND, "Resume not found for this application");
+  }
+
+  const applicantName = app.fullName || app.applicant?.fullName || "applicant";
+  const filename = `${applicantName.replace(/\s+/g, "_")}_resume.pdf`;
+
+  await streamPdfToClient({
+    res,
+    fileUrl: app.resumeUrl,
+    filename,
+  });
 };
 
 const updateStatus = async (
@@ -757,6 +826,7 @@ const applicationService = {
   getMyCompanyApplications,
   getMyCompanyApplicationSummary,
   getApplicationById,
+  streamApplicationResume,
   updateStatus,
   withdraw,
   scheduleInterview,

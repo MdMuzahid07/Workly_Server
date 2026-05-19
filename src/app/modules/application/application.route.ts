@@ -41,6 +41,12 @@ router.get(
 );
 
 router.get(
+  "/:id/resume",
+  authValidator(UserRole.JOB_SEEKER, UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  applicationController.streamApplicationResume,
+);
+
+router.get(
   "/:id",
   authValidator(UserRole.JOB_SEEKER, UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
   applicationController.getApplicationById,

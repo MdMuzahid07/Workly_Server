@@ -1,4 +1,8 @@
+import type { Response } from "express";
+import httpStatus from "http-status";
+import { streamPdfToClient } from "../../../services/file/fileStream.service.js";
 import prisma from "../../../utils/prismaClient.js";
+import AppError from "../../error/AppError.js";
 import { uploadBufferToCloudinary } from "../upload/upload.service.js";
 
 const listResumes = async (userId: string) => {
@@ -11,12 +15,28 @@ const uploadResume = async (userId: string, file: Express.Multer.File, isDefault
   if (!fileUrl && file.buffer) {
     const { secure_url } = await uploadBufferToCloudinary(file.buffer, {
       folder: "workly-job/resumes",
+      mimetype: file.mimetype,
     });
     fileUrl = secure_url;
   }
 
   if (!fileUrl) {
     throw new Error("Failed to upload resume to Cloudinary");
+  }
+
+  // Premium validation
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { isPremium: true },
+  });
+
+  if (!user?.isPremium) {
+    const resumeCount = await prisma.resume.count({ where: { userId } });
+    if (resumeCount >= 1) {
+      throw new Error(
+        "Free users can only maintain one resume version. Upgrade to Premium for unlimited uploads!",
+      );
+    }
   }
 
   const resume = await prisma.resume.create({
@@ -50,4 +70,26 @@ const deleteResume = async (userId: string, resumeId: string) => {
   return { success: true };
 };
 
-export const resumeService = { listResumes, uploadResume, setDefaultResume, deleteResume };
+const streamResumeFile = async (userId: string, resumeId: string, res: Response) => {
+  const resume = await prisma.resume.findFirst({
+    where: { id: resumeId, userId, deletedAt: null },
+  });
+
+  if (!resume) {
+    throw new AppError(httpStatus.NOT_FOUND, "Resume not found");
+  }
+
+  await streamPdfToClient({
+    res,
+    fileUrl: resume.fileUrl,
+    filename: resume.fileName,
+  });
+};
+
+export const resumeService = {
+  listResumes,
+  uploadResume,
+  setDefaultResume,
+  deleteResume,
+  streamResumeFile,
+};

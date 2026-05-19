@@ -9,12 +9,14 @@ import cloudinary from "../../../config/cloudinary.config.js";
  * the Cloudinary folder to upload the file to.
  * @returns A Promise that resolves to an object containing the secure_url property.
  */
-const uploadBufferToCloudinary = (buffer: Buffer, options: { folder: string }) =>
+const uploadBufferToCloudinary = (buffer: Buffer, options: { folder: string; mimetype?: string }) =>
   new Promise<{ secure_url: string }>((resolve, reject) => {
+    const isPdf = options.mimetype === "application/pdf";
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder: options.folder,
-        resource_type: "auto",
+        resource_type: isPdf ? "raw" : "auto",
+        ...(isPdf ? { format: "pdf" } : {}),
         use_filename: true,
         unique_filename: true,
         overwrite: false,
