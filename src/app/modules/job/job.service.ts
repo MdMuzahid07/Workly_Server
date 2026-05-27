@@ -114,6 +114,24 @@ const createJob = async (userId: string, payload: Job & { skillsRequired: JobSki
     throw new AppError(httpStatus.BAD_REQUEST, "Company not found or not verified");
   }
 
+  // Enforce 1 active job limit for free (non-premium) employers
+  if (!isUserExits.isPremium && payload.status === "ACTIVE") {
+    const activeJobsCount = await prisma.job.count({
+      where: {
+        postedById: userId,
+        status: "ACTIVE",
+        deletedAt: null,
+      },
+    });
+
+    if (activeJobsCount >= 1) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        "Free plan is limited to 1 active job posting. Upgrade to Starter or Professional to post more.",
+      );
+    }
+  }
+
   const existingJob = await prisma.job.findFirst({
     where: { jobType: payload.jobType, title: payload.title, companyId: payload.companyId },
   });
@@ -439,6 +457,24 @@ const updateJob = async (
 
   if (!isUserCanUpdate) {
     throw new AppError(httpStatus.FORBIDDEN, "You are not authorized to update this job");
+  }
+
+  // Enforce 1 active job limit for free (non-premium) employers when activating a job
+  if (!user.isPremium && payload.status === "ACTIVE" && job.status !== "ACTIVE") {
+    const activeJobsCount = await prisma.job.count({
+      where: {
+        postedById: userId,
+        status: "ACTIVE",
+        deletedAt: null,
+      },
+    });
+
+    if (activeJobsCount >= 1) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        "Free plan is limited to 1 active job posting. Upgrade to Starter or Professional to post more.",
+      );
+    }
   }
 
   const { skillsRequired, ...jobData } = payload;
