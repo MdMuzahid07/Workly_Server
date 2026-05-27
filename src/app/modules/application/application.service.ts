@@ -5,6 +5,7 @@ import { streamPdfToClient } from "../../../services/file/fileStream.service.js"
 import factoryFunctions from "../../../utils/FactoryFunctionsWithFilterEngine.js";
 import prisma from "../../../utils/prismaClient.js";
 import AppError from "../../error/AppError.js";
+import notificationService from "../notification/notification.service.js";
 
 const APPLICATION_STATUSES = [
   "SUBMITTED",
@@ -187,6 +188,25 @@ const createApplication = async (userId: string, payload: any) => {
 
     return application;
   });
+
+  if (result && result.job) {
+    notificationService
+      .createNotification({
+        userId: result.job.postedById,
+        type: "APPLICATION_RECEIVED",
+        title: "New Application Received",
+        message: `${result.fullName || result.applicant?.fullName || "A candidate"} has applied for your job opening: "${result.job.title}".`,
+        jobId: result.jobId,
+        applicationId: result.id,
+        metadata: {
+          candidateName: result.fullName || result.applicant?.fullName || "A candidate",
+          jobTitle: result.job.title,
+        },
+      })
+      .catch((err) => {
+        console.error("Failed to create application received notification:", err);
+      });
+  }
 
   return result;
 };
@@ -554,6 +574,37 @@ const updateStatus = async (
       rejectionReason: status === "REJECTED" ? (rejectionReason ?? null) : null,
     },
   });
+
+  // Trigger notification asynchronously
+  prisma.job
+    .findUnique({
+      where: { id: current.jobId },
+      select: { title: true },
+    })
+    .then((job) => {
+      if (job) {
+        notificationService
+          .createNotification({
+            userId: current.applicantId,
+            type: "APPLICATION_STATUS_CHANGE",
+            title: "Application Status Update",
+            message: `Your application for "${job.title}" has been updated to ${status.replace(/_/g, " ").toLowerCase()}.`,
+            jobId: current.jobId,
+            applicationId: current.id,
+            metadata: {
+              status,
+              rejectionReason: status === "REJECTED" ? (rejectionReason ?? null) : null,
+            },
+          })
+          .catch((err) => {
+            console.error("Failed to create application status change notification:", err);
+          });
+      }
+    })
+    .catch((err) => {
+      console.error("Failed to fetch job for status update notification:", err);
+    });
+
   return updated;
 };
 
@@ -598,6 +649,37 @@ const scheduleInterview = async (
       statusChangedAt: new Date(),
     },
   });
+
+  // Trigger notification asynchronously
+  prisma.job
+    .findUnique({
+      where: { id: app.jobId },
+      select: { title: true },
+    })
+    .then((job) => {
+      if (job) {
+        notificationService
+          .createNotification({
+            userId: app.applicantId,
+            type: "INTERVIEW_SCHEDULED",
+            title: "Interview Scheduled",
+            message: `An interview has been scheduled for your application for "${job.title}".`,
+            jobId: app.jobId,
+            applicationId: app.id,
+            metadata: {
+              interviewScheduledAt,
+              interviewNotes: interviewNotes ?? null,
+            },
+          })
+          .catch((err) => {
+            console.error("Failed to create interview scheduled notification:", err);
+          });
+      }
+    })
+    .catch((err) => {
+      console.error("Failed to fetch job for interview scheduled notification:", err);
+    });
+
   return updated;
 };
 

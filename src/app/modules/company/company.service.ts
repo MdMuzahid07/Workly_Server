@@ -493,7 +493,6 @@ const checkPremiumStatus = async (userId: string) => {
 };
 
 const getCompanyOverviewStatistics = async (userId: string) => {
-  await checkPremiumStatus(userId);
   const user = await prisma.user.findUnique({
     where: { id: userId, isActive: true },
     include: { company: true },
