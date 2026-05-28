@@ -210,6 +210,7 @@ const getMyNotifications = async (userId: string, query: any) => {
     limit: Number(query.limit) || 20,
     sortBy: query.sortBy || "createdAt",
     sortOrder: (query.sortOrder as "asc" | "desc") || "desc",
+    includeSoftDeleted: true,
   };
 
   if (query.type) {

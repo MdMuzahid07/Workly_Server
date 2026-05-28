@@ -35,4 +35,16 @@ export default {
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
   },
+  // SSLCommerz configuration
+  sslcommerz: {
+    store_id:
+      process.env.SSLCOMMERZ_STORE_ID && process.env.SSLCOMMERZ_STORE_ID.trim() !== ""
+        ? process.env.SSLCOMMERZ_STORE_ID
+        : "testbox",
+    store_passwd:
+      process.env.SSLCOMMERZ_STORE_PASSWD && process.env.SSLCOMMERZ_STORE_PASSWD.trim() !== ""
+        ? process.env.SSLCOMMERZ_STORE_PASSWD
+        : "project43",
+    is_live: process.env.SSLCOMMERZ_IS_LIVE === "true" ? true : false,
+  },
 };

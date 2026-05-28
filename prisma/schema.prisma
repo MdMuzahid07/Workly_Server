@@ -151,6 +151,7 @@ model User {
   sentMessages       Message[]                 @relation("SenderMessages")
   auditLogs          AuditLog[]
   reports            JobReport[]
+  paymentTransactions PaymentTransaction[]
 
   @@index([email, isActive])
   @@index([role, isActive])
@@ -345,6 +346,7 @@ model Company {
   subscription    Subscription?
   invoices        Invoice[]
   companySettings CompanySettings?
+  paymentTransactions PaymentTransaction[]
 
   @@index([slug])
   @@index([isVerified, deletedAt])
@@ -1038,4 +1040,47 @@ model SystemSettings {
   updatedAt            DateTime @updatedAt
 
   @@map("system_settings")
+}
+
+//* ===== payment & billing =====>
+
+enum PaymentStatus {
+  PENDING
+  VALIDATED
+  PENDING_REVIEW
+  FAILED
+  CANCELLED
+}
+
+enum PaymentCategory {
+  EMPLOYER_PLAN
+  SEEKER_PREMIUM
+}
+
+model PaymentTransaction {
+  id             String          @id @default(uuid())
+  tranId         String          @unique @db.VarChar(30)
+  valId          String?         @db.VarChar(100)
+  sessionKey     String?         @db.VarChar(255)
+  userId         String
+  companyId      String?
+  amount         Float
+  currency       String          @default("BDT") @db.VarChar(10)
+  status         PaymentStatus   @default(PENDING)
+  category       PaymentCategory
+  planId         String          @db.VarChar(100)
+  cardType       String?         @db.VarChar(100)
+  bankTranId     String?         @db.VarChar(100)
+  storeAmount    Float?
+  riskLevel      Int             @default(0)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company        Company?        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([companyId])
+  @@index([status])
+  @@map("payment_transactions")
 }
