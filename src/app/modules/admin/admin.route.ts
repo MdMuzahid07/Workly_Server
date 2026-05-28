@@ -155,6 +155,12 @@ router.patch(
   adminController.deactivateJob,
 );
 
+router.patch(
+  "/jobs/:jobId/approve",
+  authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  adminController.approveJob,
+);
+
 router.delete(
   "/jobs/:jobId",
   authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),

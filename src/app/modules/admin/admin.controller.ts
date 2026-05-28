@@ -293,6 +293,16 @@ const adminController = {
       data: result,
     });
   }),
+  approveJob: asyncHandler(async (req, res) => {
+    const { jobId } = req.params as any;
+    const result = await adminService.approveJob(jobId);
+    sendApiResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Job approved successfully",
+      data: result,
+    });
+  }),
   deleteJobListing: asyncHandler(async (req, res) => {
     const { jobId } = req.params as any;
     const result = await adminService.deleteJobListing(jobId);

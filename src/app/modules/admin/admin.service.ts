@@ -408,14 +408,21 @@ const adminService = {
     };
   },
 
-  getActiveJobsList: async (query: { page: number; limit: number; q?: string; type?: string }) => {
+  getActiveJobsList: async (query: {
+    page: number;
+    limit: number;
+    q?: string;
+    type?: string;
+    status?: any;
+  }) => {
+    console.log("=== GET ACTIVE JOBS LIST QUERY IN SERVICE ===", query);
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 20;
     const skip = (page - 1) * limit;
     const q = query.q?.trim();
 
     const where: any = {
-      status: "ACTIVE",
+      status: query.status || "ACTIVE",
       deletedAt: null,
     };
 
@@ -443,6 +450,12 @@ const adminService = {
               logoUrl: true,
             },
           },
+          postedBy: {
+            select: {
+              fullName: true,
+              email: true,
+            },
+          },
           _count: {
             select: {
               applications: true,
@@ -453,20 +466,81 @@ const adminService = {
       prisma.job.count({ where }),
     ]);
 
-    const rows = jobs.map((job) => ({
-      id: job.id,
-      title: job.title,
-      company: job.company?.name || "Unknown Company",
-      logo: job.company?.logoUrl ?? "",
-      location: job.location,
-      type: job.jobType,
-      category: job.discipline,
-      posted: job.createdAt,
-      expires: job.expiresAt,
-      views: job.viewCount,
-      applications: job._count.applications,
-      status: job.status,
-    }));
+    // Backend Security & Spam Detection Scanner
+    const scanJob = (j: {
+      title: string;
+      description: string;
+      postedBy?: { email: string } | null;
+    }) => {
+      const title = (j.title || "").toLowerCase();
+      const description = (j.description || "").toLowerCase();
+      const recruiterEmail = (j.postedBy?.email || "").toLowerCase();
+
+      const rules: string[] = [];
+      let score = 0;
+
+      if (/bkash|nagad|rocket|fee|charge|payment|deposit|pay/i.test(description)) {
+        rules.push("Mobile Financial Service (MFS) or deposit/payment keywords detected");
+        score += 45;
+      }
+      if (/@gmail\.com|@yahoo\.com|@outlook\.com|@hotmail\.com/i.test(recruiterEmail)) {
+        rules.push("Recruiter registered using a public personal email domain (@gmail.com/etc.)");
+        score += 25;
+      }
+      if (/telegram|whatsapp|\+880/i.test(description)) {
+        rules.push("Direct external chat redirection (Telegram/WhatsApp/Mobile) detected");
+        score += 30;
+      }
+      if (/data entry|typing|form filling|work from home/i.test(title)) {
+        rules.push("High-risk category (Data Entry/Typing) keyword detected");
+        score += 20;
+      }
+
+      if (rules.length === 0) {
+        rules.push("Algorithmic filter flagged for manual metadata check");
+        score = 15;
+      }
+
+      return {
+        riskScore: Math.min(score, 100),
+        triggeredRules: rules,
+        priority: score >= 60 ? "Emergency" : score >= 40 ? "Medium" : "Normal",
+      };
+    };
+
+    const rows = jobs.map((job) => {
+      const analysis = scanJob({
+        title: job.title,
+        description: job.description,
+        postedBy: job.postedBy,
+      });
+
+      return {
+        id: job.id,
+        title: job.title,
+        company: job.company?.name || "Unknown Company",
+        logo: job.company?.logoUrl ?? "",
+        location: job.location,
+        type: job.jobType,
+        category: job.discipline,
+        posted: job.createdAt,
+        expires: job.expiresAt,
+        views: job.viewCount,
+        applications: job._count.applications,
+        status: job.status,
+        description: job.description,
+        postedBy: job.postedBy
+          ? {
+              fullName: job.postedBy.fullName,
+              email: job.postedBy.email,
+            }
+          : null,
+        // Enriched backend risk indicators
+        riskScore: analysis.riskScore,
+        triggeredRules: analysis.triggeredRules,
+        priority: analysis.priority,
+      };
+    });
 
     return {
       data: rows,
@@ -930,6 +1004,13 @@ const adminService = {
     return await prisma.job.update({
       where: { id: jobId },
       data: { status: "CLOSED" },
+    });
+  },
+
+  approveJob: async (jobId: string) => {
+    return await prisma.job.update({
+      where: { id: jobId },
+      data: { status: "ACTIVE" },
     });
   },
 

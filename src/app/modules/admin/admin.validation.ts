@@ -27,6 +27,7 @@ export const adminJobListQuery = z.object({
   limit: z.coerce.number().min(1).max(100).optional().default(20),
   q: z.string().optional(),
   type: z.string().optional(),
+  status: z.enum(["ACTIVE", "DRAFT", "CLOSED", "EXPIRED"]).optional(),
 });
 
 export const staffAdminListQuery = z.object({
