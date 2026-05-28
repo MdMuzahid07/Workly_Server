@@ -115,11 +115,23 @@ const resetPassword: RequestHandler = asyncHandler(async (req, res) => {
 const verifyEmail: RequestHandler = asyncHandler(async (req, res) => {
   const result = await authService.verifyEmail(req.body);
 
+  if (result.refreshToken) {
+    res.cookie("refreshToken", result.refreshToken, {
+      httpOnly: true,
+      secure: config.environment === "production" ? true : false,
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+  }
+
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: result.message,
-    data: result.user,
+    data: {
+      user: result.user,
+      accessToken: result.accessToken,
+    },
   });
 });
 

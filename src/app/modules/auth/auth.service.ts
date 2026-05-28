@@ -407,12 +407,28 @@ const verifyEmail = async (payload: any) => {
     data: { usedAt: new Date() },
   });
 
+  const jwtPayload = {
+    userId: verificationToken.user.id,
+    email: verificationToken.user.email,
+    role: verificationToken.user.role,
+    isVerified: true,
+    companyId: verificationToken.user.companyId,
+    isActive: verificationToken.user.isActive,
+  };
+
+  const accessToken = generateJsonWebToken(jwtPayload, "access");
+  const refreshToken = generateJsonWebToken(jwtPayload, "refresh");
+
   return {
     message: "Email verified successfully",
+    accessToken,
+    refreshToken,
     user: {
       id: verificationToken.user.id,
       email: verificationToken.user.email,
       fullName: verificationToken.user.fullName,
+      role: verificationToken.user.role,
+      companyId: verificationToken.user.companyId,
       isVerified: true,
     },
   };
@@ -504,16 +520,36 @@ const googleOAuth = async (
         fullName: googleProfile.name || normalizedEmail,
         role: role, // Use role from state parameter
         isActive: true,
-        isVerified: true,
+        isVerified: false, // New Google signup requires email verification
         lastLogin: new Date(),
       },
     });
+
+    // Generate verification token
+    const verificationToken = generateVerificationToken();
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    await prisma.verificationToken.create({
+      data: {
+        token: verificationToken,
+        type: "EMAIL_VERIFICATION",
+        userId: user.id,
+        expiresAt: expiresAt,
+      },
+    });
+
+    // Send verification email
+    const verificationUrl = `${config.frontend_url}/verify-email?token=${verificationToken}`;
+    try {
+      await sendVerificationEmail(user.email, user.fullName, verificationUrl);
+    } catch (error) {
+      console.error("Failed to send Google signup verification email =>", error);
+    }
   } else {
-    // If user exists, update lastLogin but don't change their existing role
+    // If user exists, update lastLogin but keep their current isVerified status
     user = await prisma.user.update({
       where: { id: user.id },
       data: {
-        isVerified: true,
         lastLogin: new Date(),
       },
     });
