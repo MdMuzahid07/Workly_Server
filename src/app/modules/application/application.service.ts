@@ -619,6 +619,12 @@ const withdraw = async (userId: string, applicationId: string) => {
   if (app.status === "WITHDRAWN") {
     return app;
   }
+  if (app.status !== "SUBMITTED" && app.status !== "REVIEWING") {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Cannot withdraw application once it has been shortlisted or processed by the employer",
+    );
+  }
   const updated = await prisma.application.update({
     where: { id: applicationId },
     data: { status: "WITHDRAWN" as any, withdrawnAt: new Date() },
