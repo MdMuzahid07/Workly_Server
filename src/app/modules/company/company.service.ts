@@ -150,7 +150,7 @@ const getCompanyBySlug = async (slug: string) => {
         where: {
           status: "ACTIVE",
           deletedAt: null,
-          expiresAt: { gt: new Date() },
+          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
         },
         take: 10,
         orderBy: { createdAt: "desc" },
@@ -162,7 +162,7 @@ const getCompanyBySlug = async (slug: string) => {
             where: {
               status: "ACTIVE",
               deletedAt: null,
-              expiresAt: { gt: new Date() },
+              OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
             },
           },
         },

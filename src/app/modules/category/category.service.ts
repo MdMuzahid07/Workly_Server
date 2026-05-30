@@ -78,8 +78,23 @@ const getCategories = async (query: Record<string, unknown>) => {
 
   const result = await categoryClient.findMany({
     where,
-    orderBy: { createdAt: "desc" },
+    include: {
+      _count: {
+        select: {
+          jobs: {
+            where: {
+              status: "ACTIVE",
+              deletedAt: null,
+              OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+            },
+          },
+        },
+      },
+    },
   });
+
+  // Sort by active job count in descending order
+  result.sort((a: any, b: any) => (b._count?.jobs || 0) - (a._count?.jobs || 0));
 
   return result;
 };
