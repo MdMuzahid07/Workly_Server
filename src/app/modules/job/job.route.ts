@@ -14,6 +14,7 @@ router
     requestValidator(jobValidation.createJob),
     jobController.createJob,
   )
+  .get("/suggestions", jobController.getSearchSuggestions)
   .get("/jobs", jobController.getJobs);
 
 router.get(

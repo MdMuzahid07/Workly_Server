@@ -77,35 +77,37 @@ const updateCompanyById = asyncHandler(async (req, res) => {
   });
 });
 
-const addEmployee = asyncHandler(async (req, res) => {
+const addTeamMember = asyncHandler(async (req, res) => {
   //@ts-ignore
   const adminId = req.user.userId;
   const { companyId } = req.params as { companyId: string };
-  const employeeEmail = req.body.employeeEmail;
+  const memberEmail = req.body.memberEmail ?? req.body.employeeEmail;
   const userRole = req.body.userRole;
 
-  const result = await companyService.addEmployee(companyId, adminId, employeeEmail, userRole);
+  const result = await companyService.addTeamMember(companyId, adminId, memberEmail, userRole);
 
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Employee added successfully",
+    message: "Team member added successfully",
     data: result,
   });
 });
 
-const removeEmployee = asyncHandler(async (req, res) => {
+const removeTeamMember = asyncHandler(async (req, res) => {
   //@ts-ignore
   const adminId = req.user.userId;
-  const { companyId } = req.params as { companyId: string };
-  const employeeId = req.body.employeeEmail;
+  const { companyId, memberId } = req.params as {
+    companyId: string;
+    memberId: string;
+  };
 
-  const result = await companyService.removeEmployee(companyId, adminId, employeeId);
+  const result = await companyService.removeTeamMember(companyId, adminId, memberId);
 
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Employee removed successfully",
+    message: "Team member removed successfully",
     data: result,
   });
 });
@@ -188,8 +190,8 @@ const companyController = {
   getCompanyBySlug,
   deleteCompanyById,
   updateCompanyById,
-  addEmployee,
-  removeEmployee,
+  addTeamMember,
+  removeTeamMember,
   getCompanyOverviewStatistics,
   getEmployerAnalytics,
   getMyCompany,

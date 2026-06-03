@@ -114,6 +114,24 @@ const createJob = async (userId: string, payload: Job & { skillsRequired: JobSki
     throw new AppError(httpStatus.BAD_REQUEST, "Company not found or not verified");
   }
 
+  // Enforce 1 active job limit for free (non-premium) employers
+  if (!isUserExits.isPremium && payload.status === "ACTIVE") {
+    const activeJobsCount = await prisma.job.count({
+      where: {
+        postedById: userId,
+        status: "ACTIVE",
+        deletedAt: null,
+      },
+    });
+
+    if (activeJobsCount >= 1) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        "Free plan is limited to 1 active job posting. Upgrade to Starter or Professional to post more.",
+      );
+    }
+  }
+
   const existingJob = await prisma.job.findFirst({
     where: { jobType: payload.jobType, title: payload.title, companyId: payload.companyId },
   });
@@ -441,6 +459,24 @@ const updateJob = async (
     throw new AppError(httpStatus.FORBIDDEN, "You are not authorized to update this job");
   }
 
+  // Enforce 1 active job limit for free (non-premium) employers when activating a job
+  if (!user.isPremium && payload.status === "ACTIVE" && job.status !== "ACTIVE") {
+    const activeJobsCount = await prisma.job.count({
+      where: {
+        postedById: userId,
+        status: "ACTIVE",
+        deletedAt: null,
+      },
+    });
+
+    if (activeJobsCount >= 1) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        "Free plan is limited to 1 active job posting. Upgrade to Starter or Professional to post more.",
+      );
+    }
+  }
+
   const { skillsRequired, ...jobData } = payload;
 
   const result = await prisma.$transaction(async (transactor) => {
@@ -686,6 +722,89 @@ const getRecommendedJobs = async (userId: string, query: any) => {
   };
 };
 
+const getSearchSuggestions = async (query: Record<string, unknown>) => {
+  const keyword = (query.keyword as string)?.trim() ?? "";
+  const location = (query.location as string)?.trim() ?? "";
+
+  const results: { keywords: string[]; locations: string[] } = {
+    keywords: [],
+    locations: [],
+  };
+
+  if (!keyword && !location) {
+    return results;
+  }
+
+  // Get active jobs to query matching suggestions
+  const activeWhere: any = {
+    status: "ACTIVE",
+    deletedAt: null,
+    OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+  };
+
+  if (keyword) {
+    // Search unique job titles or disciplines
+    const matchingJobs = await prisma.job.findMany({
+      where: {
+        ...activeWhere,
+        OR: [
+          { title: { contains: keyword, mode: "insensitive" } },
+          { discipline: { contains: keyword, mode: "insensitive" } },
+        ],
+      },
+      select: {
+        title: true,
+        discipline: true,
+      },
+      take: 20,
+    });
+
+    const suggestions = new Set<string>();
+    matchingJobs.forEach((job) => {
+      if (job.title && job.title.toLowerCase().includes(keyword.toLowerCase())) {
+        suggestions.add(job.title);
+      }
+      if (job.discipline && job.discipline.toLowerCase().includes(keyword.toLowerCase())) {
+        suggestions.add(job.discipline);
+      }
+    });
+
+    // Also look up matching category names
+    const matchingCategories = await prisma.industry.findMany({
+      where: {
+        isDeleted: false,
+        name: { contains: keyword, mode: "insensitive" },
+      },
+      select: {
+        name: true,
+      },
+      take: 5,
+    });
+
+    matchingCategories.forEach((cat) => suggestions.add(cat.name));
+
+    results.keywords = Array.from(suggestions).slice(0, 8);
+  }
+
+  if (location) {
+    const matchingJobs = await prisma.job.findMany({
+      where: {
+        ...activeWhere,
+        location: { contains: location, mode: "insensitive" },
+      },
+      select: {
+        location: true,
+      },
+      distinct: ["location"],
+      take: 8,
+    });
+
+    results.locations = matchingJobs.map((job) => job.location).filter(Boolean);
+  }
+
+  return results;
+};
+
 const jobService = {
   createJob,
   getJobs,
@@ -694,6 +813,7 @@ const jobService = {
   updateJob,
   deleteJob,
   getRecommendedJobs,
+  getSearchSuggestions,
 };
 
 export default jobService;

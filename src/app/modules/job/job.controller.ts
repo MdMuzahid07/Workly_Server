@@ -118,6 +118,17 @@ const getRecommendedJobs = asyncHandler(async (req, res) => {
   });
 });
 
+const getSearchSuggestions = asyncHandler(async (req, res) => {
+  const result = await jobService.getSearchSuggestions(req.query);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Search suggestions fetched successfully",
+    data: result,
+  });
+});
+
 const jobController = {
   createJob,
   getJobs,
@@ -126,6 +137,7 @@ const jobController = {
   updateJob,
   deleteJob,
   getRecommendedJobs,
+  getSearchSuggestions,
 };
 
 export default jobController;

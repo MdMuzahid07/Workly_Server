@@ -32,16 +32,16 @@ router.patch(
 );
 
 router.post(
-  "/add-employee/:companyId",
+  "/add-team-member/:companyId",
   authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
-  // requestValidator(companyValidation.addEmployee),
-  companyController.addEmployee,
+  // requestValidator(companyValidation.addTeamMember),
+  companyController.addTeamMember,
 );
 
 router.delete(
-  "/remove-employee/:companyId/:employeeId",
+  "/remove-team-member/:companyId/:memberId",
   authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
-  companyController.removeEmployee,
+  companyController.removeTeamMember,
 );
 
 router.get(

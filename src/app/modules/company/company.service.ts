@@ -150,7 +150,7 @@ const getCompanyBySlug = async (slug: string) => {
         where: {
           status: "ACTIVE",
           deletedAt: null,
-          expiresAt: { gt: new Date() },
+          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
         },
         take: 10,
         orderBy: { createdAt: "desc" },
@@ -162,7 +162,7 @@ const getCompanyBySlug = async (slug: string) => {
             where: {
               status: "ACTIVE",
               deletedAt: null,
-              expiresAt: { gt: new Date() },
+              OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
             },
           },
         },
@@ -405,10 +405,11 @@ const updateCompanyById = async (
   return result;
 };
 
-const addEmployee = async (
+/** Adds an employer-role user to the company (Prisma relation: Company.employees). */
+const addTeamMember = async (
   companyId: string,
   adminId: string,
-  employeeEmail: string,
+  memberEmail: string,
   role: UserRole,
 ) => {
   const admin = await prisma.user.findUnique({
@@ -421,23 +422,23 @@ const addEmployee = async (
     admin.companyId !== companyId ||
     (admin.role !== "ADMIN" && admin.role !== "SUPER_ADMIN")
   ) {
-    throw new AppError(httpStatus.FORBIDDEN, "Not authorized to add employees");
+    throw new AppError(httpStatus.FORBIDDEN, "Not authorized to add team members");
   }
 
-  const employee = await prisma.user.findUnique({
-    where: { email: employeeEmail, isActive: true },
+  const member = await prisma.user.findUnique({
+    where: { email: memberEmail, isActive: true },
   });
 
-  if (!employee) {
+  if (!member) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
 
-  if (employee.companyId) {
+  if (member.companyId) {
     throw new AppError(httpStatus.BAD_REQUEST, "User already belongs to a company");
   }
 
   return await prisma.user.update({
-    where: { id: employee.id },
+    where: { id: member.id },
     data: {
       companyId,
       role: role as UserRole,
@@ -445,7 +446,7 @@ const addEmployee = async (
   });
 };
 
-const removeEmployee = async (companyId: string, adminId: string, employeeId: string) => {
+const removeTeamMember = async (companyId: string, adminId: string, memberId: string) => {
   const admin = await prisma.user.findUnique({
     where: { id: adminId, isActive: true },
     include: { company: true },
@@ -456,19 +457,19 @@ const removeEmployee = async (companyId: string, adminId: string, employeeId: st
     admin.companyId !== companyId ||
     (admin.role !== "ADMIN" && admin.role !== "SUPER_ADMIN")
   ) {
-    throw new AppError(httpStatus.FORBIDDEN, "Not authorized to remove employees");
+    throw new AppError(httpStatus.FORBIDDEN, "Not authorized to remove team members");
   }
 
-  const employee = await prisma.user.findUnique({
-    where: { id: employeeId, companyId, isActive: true },
+  const member = await prisma.user.findUnique({
+    where: { id: memberId, companyId, isActive: true },
   });
 
-  if (!employee) {
-    throw new AppError(httpStatus.NOT_FOUND, "Employee not found");
+  if (!member) {
+    throw new AppError(httpStatus.NOT_FOUND, "Team member not found");
   }
 
   return await prisma.user.update({
-    where: { id: employeeId },
+    where: { id: memberId },
     data: {
       companyId: null,
       role: "JOB_SEEKER",
@@ -493,7 +494,6 @@ const checkPremiumStatus = async (userId: string) => {
 };
 
 const getCompanyOverviewStatistics = async (userId: string) => {
-  await checkPremiumStatus(userId);
   const user = await prisma.user.findUnique({
     where: { id: userId, isActive: true },
     include: { company: true },
@@ -528,8 +528,8 @@ const getCompanyOverviewStatistics = async (userId: string) => {
   const pendingApplications =
     applicationsStats.find((s) => s.status === "SUBMITTED")?._count.id || 0;
 
-  // 3. Total Employees
-  const totalEmployees = await prisma.user.count({
+  // 3. Employer users linked to this company (Prisma: Company.employees)
+  const totalTeamMembers = await prisma.user.count({
     where: { companyId, isActive: true, deletedAt: null },
   });
 
@@ -547,9 +547,9 @@ const getCompanyOverviewStatistics = async (userId: string) => {
     jobsCreatedPrevious30Days,
     applicationsLast7Days,
     applicationsPrevious7Days,
-    employeesJoinedLast90Days,
-    employeesJoinedPrevious90Days,
-    recentEmployees,
+    teamMembersJoinedLast90Days,
+    teamMembersJoinedPrevious90Days,
+    recentTeamMembers,
   ] = await Promise.all([
     prisma.job.count({
       where: { companyId, deletedAt: null, createdAt: { gte: thirtyDaysAgo } },
@@ -610,15 +610,15 @@ const getCompanyOverviewStatistics = async (userId: string) => {
     activeJobs,
     totalApplications,
     pendingApplications,
-    totalEmployees,
-    recentEmployees,
+    totalTeamMembers,
+    recentTeamMembers,
     trends: {
       jobsCreatedLast30Days,
       jobsCreatedPrevious30Days,
       applicationsLast7Days,
       applicationsPrevious7Days,
-      employeesJoinedLast90Days,
-      employeesJoinedPrevious90Days,
+      teamMembersJoinedLast90Days,
+      teamMembersJoinedPrevious90Days,
     },
   };
 };
@@ -1150,8 +1150,8 @@ const companyService = {
   getCompanyBySlug,
   deleteCompanyById,
   updateCompanyById,
-  addEmployee,
-  removeEmployee,
+  addTeamMember,
+  removeTeamMember,
   getCompanies,
   getCompanyOverviewStatistics,
   getEmployerAnalytics,

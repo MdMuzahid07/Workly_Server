@@ -820,7 +820,7 @@ const updateUserSettings = async (userId: string, data: any) => {
   });
 };
 
-//****  for employee (saved profiles) ==========================> ****//
+//****  for employer (saved profiles) ==========================> ****//
 
 const profileService = {
   createProfile,
