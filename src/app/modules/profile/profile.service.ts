@@ -37,9 +37,12 @@ const createProfile = async (userId: string, payload: IProfile) => {
         avatarUrl: payload.avatarUrl || "",
         coverUrl: payload.coverUrl || "",
         resumeUrl: payload.resumeUrl || "",
+        videoResumeUrl: payload.videoResumeUrl || "",
         linkedInUrl: payload.linkedInUrl || "",
         websiteUrl: payload.websiteUrl || "",
         githubUrl: payload.githubUrl || "",
+        twitterUrl: payload.twitterUrl || "",
+        facebookUrl: payload.facebookUrl || "",
       },
     });
 
@@ -172,9 +175,17 @@ const updateMyProfile = async (
       profileUpdateData.avatarUrl = (payload as any).profilePicture;
     if (payload.coverUrl !== undefined) profileUpdateData.coverUrl = payload.coverUrl;
     if (payload.resumeUrl !== undefined) profileUpdateData.resumeUrl = payload.resumeUrl;
+    if (payload.videoResumeUrl !== undefined) {
+      if (payload.videoResumeUrl && !isUserExits.isPremium) {
+        throw new AppError(httpStatus.FORBIDDEN, "Only premium users can upload a video resume.");
+      }
+      profileUpdateData.videoResumeUrl = payload.videoResumeUrl;
+    }
     if (payload.linkedInUrl !== undefined) profileUpdateData.linkedInUrl = payload.linkedInUrl;
     if (payload.websiteUrl !== undefined) profileUpdateData.websiteUrl = payload.websiteUrl;
     if (payload.githubUrl !== undefined) profileUpdateData.githubUrl = payload.githubUrl;
+    if (payload.twitterUrl !== undefined) profileUpdateData.twitterUrl = payload.twitterUrl;
+    if (payload.facebookUrl !== undefined) profileUpdateData.facebookUrl = payload.facebookUrl;
     if (payload.headline !== undefined) profileUpdateData.headline = payload.headline;
     if (payload.totalExperienceYears !== undefined) {
       profileUpdateData.totalExperienceYears = payload.totalExperienceYears

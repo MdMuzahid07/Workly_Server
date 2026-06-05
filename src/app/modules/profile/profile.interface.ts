@@ -126,9 +126,12 @@ export type IProfile = {
   avatarUrl?: string;
   coverUrl?: string;
   resumeUrl?: string;
+  videoResumeUrl?: string;
   linkedInUrl?: string;
   websiteUrl?: string;
   githubUrl?: string;
+  twitterUrl?: string;
+  facebookUrl?: string;
   headline?: string;
   totalExperienceYears?: number;
   skills?: ISkill[];

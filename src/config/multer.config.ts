@@ -7,16 +7,17 @@ const storage = multer.memoryStorage();
 const fileFilter: multer.Options["fileFilter"] = (_req, file, cb) => {
   const isImage = file.mimetype.startsWith("image/");
   const isPdf = file.mimetype === "application/pdf";
-  if (isImage || isPdf) {
+  const isVideo = file.mimetype.startsWith("video/");
+  if (isImage || isPdf || isVideo) {
     cb(null, true);
   } else {
-    cb(new Error("Only image and PDF files are allowed"));
+    cb(new Error("Only image, video, and PDF files are allowed"));
   }
 };
 
-// ===========  10 MB size limit by default =================>
+// ===========  50 MB size limit for videos =================>
 const limits: multer.Options["limits"] = {
-  fileSize: 10 * 1024 * 1024,
+  fileSize: 50 * 1024 * 1024,
 };
 
 const upload = multer({ storage, fileFilter, limits });
