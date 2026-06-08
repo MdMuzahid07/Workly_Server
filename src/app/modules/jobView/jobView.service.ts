@@ -16,10 +16,33 @@ const logJobView = async (jobId: string, userId?: string, ip?: string, userAgent
   return result;
 };
 
-const getJobViewHistory = async (userId: string) => {
+const getJobViewHistory = async (
+  userId: string,
+  query: { searchTerm?: string; jobType?: string } = {},
+) => {
+  const { searchTerm, jobType } = query;
+
+  const whereClause: any = {
+    userId,
+    job: {
+      deletedAt: null,
+    },
+  };
+
+  if (jobType && jobType !== "all") {
+    whereClause.job.jobType = jobType;
+  }
+
+  if (searchTerm) {
+    whereClause.job.OR = [
+      { title: { contains: searchTerm, mode: "insensitive" } },
+      { company: { name: { contains: searchTerm, mode: "insensitive" } } },
+    ];
+  }
+
   const history = await prisma.jobView.findMany({
-    where: { userId },
-    take: 50,
+    where: whereClause,
+    take: 100,
     orderBy: { viewedAt: "desc" },
     include: {
       job: {
