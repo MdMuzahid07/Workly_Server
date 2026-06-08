@@ -63,9 +63,52 @@ const unfollowCompany = async (userId: string, companyId: string) => {
   return { message: "Unfollowed successfully" };
 };
 
-const getFollowedCompanies = async (userId: string) => {
-  const followedCompanies = await prisma.follow.findMany({
+const getFollowedCompanies = async (userId: string, query: any = {}) => {
+  const { search, industry } = query;
+
+  // 1. Get all user follows to find the full list of industries followed
+  const allFollows = await prisma.follow.findMany({
     where: { userId },
+    select: {
+      company: {
+        select: {
+          industry: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const uniqueIndustries = Array.from(
+    new Set(allFollows.map((f) => f.company.industry?.name).filter(Boolean)),
+  ) as string[];
+
+  // 2. Query with filters
+  const whereClause: any = {
+    userId,
+  };
+
+  if ((search && search.trim()) || (industry && industry !== "all")) {
+    const companyWhere: any = {};
+    if (search && search.trim()) {
+      companyWhere.name = {
+        contains: search.trim(),
+        mode: "insensitive",
+      };
+    }
+    if (industry && industry !== "all") {
+      companyWhere.industry = {
+        name: industry,
+      };
+    }
+    whereClause.company = companyWhere;
+  }
+
+  const followedCompanies = await prisma.follow.findMany({
+    where: whereClause,
     include: {
       company: {
         include: {
@@ -89,7 +132,12 @@ const getFollowedCompanies = async (userId: string) => {
     },
   });
 
-  return followedCompanies;
+  return {
+    data: followedCompanies,
+    meta: {
+      industries: uniqueIndustries,
+    },
+  };
 };
 
 const isFollowing = async (userId: string, companyId: string) => {
