@@ -613,7 +613,7 @@ const deleteJob = async (userId: string, jobId: string) => {
 };
 
 const getRecommendedJobs = async (userId: string, query: any) => {
-  const { page = 1, limit = 10 } = query;
+  const { page = 1, limit = 10, search } = query;
   const skip = (parseInt(page) - 1) * parseInt(limit);
   const take = parseInt(limit);
 
@@ -634,16 +634,32 @@ const getRecommendedJobs = async (userId: string, query: any) => {
 
   const userSkillNames = user.profile.skills.map((s) => s.skillName.toLowerCase());
 
-  // If user has no skills, return recent active jobs
+  // If user has no skills, return recent active jobs (with search applied if provided)
   if (userSkillNames.length === 0) {
+    const whereClause: any = { status: "ACTIVE", deletedAt: null };
+    if (search && search.trim()) {
+      const trimmedSearch = search.trim();
+      whereClause.OR = [
+        { title: { contains: trimmedSearch, mode: "insensitive" } },
+        { description: { contains: trimmedSearch, mode: "insensitive" } },
+        { company: { name: { contains: trimmedSearch, mode: "insensitive" } } },
+        {
+          JobSkill: {
+            some: {
+              skillName: { contains: trimmedSearch, mode: "insensitive" },
+            },
+          },
+        },
+      ];
+    }
     const jobs = await prisma.job.findMany({
-      where: { status: "ACTIVE", deletedAt: null },
+      where: whereClause,
       include: { JobSkill: true, company: true },
       orderBy: { createdAt: "desc" },
       skip,
       take,
     });
-    const total = await prisma.job.count({ where: { status: "ACTIVE", deletedAt: null } });
+    const total = await prisma.job.count({ where: whereClause });
     return {
       data: jobs.map((j) => ({ ...j, matchScore: 70, matchReason: "Relevant for your profile." })),
       meta: { page: parseInt(page), limit: take, total, pages: Math.ceil(total / take) },
@@ -651,26 +667,52 @@ const getRecommendedJobs = async (userId: string, query: any) => {
   }
 
   // Matching logic: Find jobs with overlapping skills
-  const matchingJobs = await prisma.job.findMany({
-    where: {
-      status: "ACTIVE",
-      deletedAt: null,
+  const baseConditions: any[] = [
+    {
+      JobSkill: {
+        some: {
+          skillName: { in: userSkillNames, mode: "insensitive" },
+        },
+      },
+    },
+  ];
+  if (userSkillNames[0]) {
+    baseConditions.push({
+      title: {
+        contains: userSkillNames[0],
+        mode: "insensitive",
+      },
+    });
+  }
+
+  const whereClause: any = {
+    status: "ACTIVE",
+    deletedAt: null,
+  };
+
+  if (search && search.trim()) {
+    const trimmedSearch = search.trim();
+    const searchConditions = {
       OR: [
+        { title: { contains: trimmedSearch, mode: "insensitive" } },
+        { description: { contains: trimmedSearch, mode: "insensitive" } },
+        { company: { name: { contains: trimmedSearch, mode: "insensitive" } } },
         {
           JobSkill: {
             some: {
-              skillName: { in: userSkillNames, mode: "insensitive" },
+              skillName: { contains: trimmedSearch, mode: "insensitive" },
             },
           },
         },
-        {
-          title: {
-            contains: userSkillNames[0],
-            mode: "insensitive",
-          },
-        },
       ],
-    },
+    };
+    whereClause.AND = [{ OR: baseConditions }, searchConditions];
+  } else {
+    whereClause.OR = baseConditions;
+  }
+
+  const matchingJobs = await prisma.job.findMany({
+    where: whereClause,
     include: {
       JobSkill: true,
       company: true,
