@@ -28,9 +28,9 @@ const logProfileView = asyncHandler(async (req, res) => {
 const getProfileViewStats = asyncHandler(async (req, res) => {
   //@ts-ignore
   const userId = req.user.userId;
-  const { period } = req.query as { period: string };
+  const { period } = req.query as { period?: string };
 
-  const result = await profileViewService.getProfileViewStats(userId, period);
+  const result = await profileViewService.getProfileViewStats(userId, period || "7days");
 
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
@@ -43,8 +43,9 @@ const getProfileViewStats = asyncHandler(async (req, res) => {
 const getRecentVisitors = asyncHandler(async (req, res) => {
   //@ts-ignore
   const userId = req.user.userId;
+  const { period } = req.query as { period?: string };
 
-  const result = await profileViewService.getRecentVisitors(userId);
+  const result = await profileViewService.getRecentVisitors(userId, period || "overall");
 
   sendApiResponse(res, {
     statusCode: httpStatus.OK,

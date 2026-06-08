@@ -37,9 +37,12 @@ const createProfile = async (userId: string, payload: IProfile) => {
         avatarUrl: payload.avatarUrl || "",
         coverUrl: payload.coverUrl || "",
         resumeUrl: payload.resumeUrl || "",
+        videoResumeUrl: payload.videoResumeUrl || "",
         linkedInUrl: payload.linkedInUrl || "",
         websiteUrl: payload.websiteUrl || "",
         githubUrl: payload.githubUrl || "",
+        twitterUrl: payload.twitterUrl || "",
+        facebookUrl: payload.facebookUrl || "",
       },
     });
 
@@ -111,7 +114,11 @@ const myProfile = async (userId: string) => {
           address: true,
         },
       },
-      company: true,
+      company: {
+        include: {
+          subscription: true,
+        },
+      },
       jobsPosted: true,
       applications: true,
       savedJobs: true,
@@ -125,7 +132,20 @@ const myProfile = async (userId: string) => {
 
   const { passwordHash, ...rest } = result;
 
-  return rest;
+  let isPremium = rest.isPremium;
+  if (!isPremium && rest.role === "EMPLOYER" && rest.companyId) {
+    const activeSub = await prisma.subscription.findUnique({
+      where: { companyId: rest.companyId },
+    });
+    if (activeSub && activeSub.status === "ACTIVE") {
+      isPremium = true;
+    }
+  }
+
+  return {
+    ...rest,
+    isPremium: process.env.NODE_ENV !== "production" ? true : isPremium,
+  };
 };
 
 const updateMyProfile = async (
@@ -172,9 +192,17 @@ const updateMyProfile = async (
       profileUpdateData.avatarUrl = (payload as any).profilePicture;
     if (payload.coverUrl !== undefined) profileUpdateData.coverUrl = payload.coverUrl;
     if (payload.resumeUrl !== undefined) profileUpdateData.resumeUrl = payload.resumeUrl;
+    if (payload.videoResumeUrl !== undefined) {
+      if (payload.videoResumeUrl && !isUserExits.isPremium) {
+        throw new AppError(httpStatus.FORBIDDEN, "Only premium users can upload a video resume.");
+      }
+      profileUpdateData.videoResumeUrl = payload.videoResumeUrl;
+    }
     if (payload.linkedInUrl !== undefined) profileUpdateData.linkedInUrl = payload.linkedInUrl;
     if (payload.websiteUrl !== undefined) profileUpdateData.websiteUrl = payload.websiteUrl;
     if (payload.githubUrl !== undefined) profileUpdateData.githubUrl = payload.githubUrl;
+    if (payload.twitterUrl !== undefined) profileUpdateData.twitterUrl = payload.twitterUrl;
+    if (payload.facebookUrl !== undefined) profileUpdateData.facebookUrl = payload.facebookUrl;
     if (payload.headline !== undefined) profileUpdateData.headline = payload.headline;
     if (payload.totalExperienceYears !== undefined) {
       profileUpdateData.totalExperienceYears = payload.totalExperienceYears
@@ -681,14 +709,14 @@ const getSavedJobs = async (userId: string, query: any = {}) => {
   }
 
   if (company && company !== "all") {
-    if (whereClause.job.OR) {
-      whereClause.job.company = { name: company };
-    } else {
-      whereClause.job.company = { name: company };
-    }
+    whereClause.job.company = { name: company };
   }
 
-  const [savedJobs, total] = await Promise.all([
+  // Get expiring soon count (deadline in the next 7 days)
+  const now = new Date();
+  const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  const [savedJobs, total, expiringSoonCount, allSavedJobsForCompanies] = await Promise.all([
     prisma.savedJob.findMany({
       where: whereClause,
       include: {
@@ -715,10 +743,53 @@ const getSavedJobs = async (userId: string, query: any = {}) => {
     prisma.savedJob.count({
       where: whereClause,
     }),
+    prisma.savedJob.count({
+      where: {
+        userId,
+        job: {
+          deletedAt: null,
+          status: "ACTIVE",
+          applicationDeadline: {
+            gt: now,
+            lte: sevenDaysLater,
+          },
+        },
+      },
+    }),
+    // Fetch unique companies for all saved jobs for this user
+    prisma.savedJob.findMany({
+      where: {
+        userId,
+        job: {
+          deletedAt: null,
+        },
+      },
+      select: {
+        job: {
+          select: {
+            company: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    }),
   ]);
+
+  const uniqueCompanyNames = Array.from(
+    new Set(
+      allSavedJobsForCompanies
+        .map((sj) => sj.job?.company?.name)
+        .filter((name): name is string => !!name),
+    ),
+  );
 
   return {
     savedJobs,
+    companies: uniqueCompanyNames,
+    expiringSoonCount,
     meta: {
       page: Number(page),
       limit: Number(limit),

@@ -74,6 +74,11 @@ const updateCompany = createCompany.partial();
 /** GET /company/employer-analytics ?period=… */
 export const employerAnalyticsQuery = z.object({
   period: z.enum(["7d", "30d", "90d", "1y"]).optional().default("30d"),
+  jobSortBy: z.enum(["views", "applications", "conversion"]).optional().default("applications"),
+  jobSortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
+  jobSearch: z.string().optional(),
+  jobPage: z.string().optional().default("1"),
+  jobLimit: z.string().optional().default("10"),
 });
 
 const companyValidation = {

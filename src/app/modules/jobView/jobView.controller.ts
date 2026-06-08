@@ -24,7 +24,7 @@ const getJobViewHistory = asyncHandler(async (req, res) => {
   //@ts-ignore
   const userId = req.user.userId;
 
-  const result = await jobViewService.getJobViewHistory(userId);
+  const result = await jobViewService.getJobViewHistory(userId, req.query);
 
   sendApiResponse(res, {
     statusCode: httpStatus.OK,

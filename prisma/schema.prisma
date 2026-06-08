@@ -170,9 +170,12 @@ model Profile {
   avatarUrl            String?          @db.VarChar(500)
   coverUrl             String?          @db.VarChar(500)
   resumeUrl            String?          @db.VarChar(500)
+  videoResumeUrl       String?          @db.VarChar(500)
   linkedInUrl          String?          @db.VarChar(500)
   websiteUrl           String?          @db.VarChar(500)
   githubUrl            String?          @db.VarChar(500)
+  twitterUrl           String?          @db.VarChar(500)
+  facebookUrl          String?          @db.VarChar(500)
   //* ==== professional ======>
   headline             String?          @db.VarChar(255)
   totalExperienceYears Float?

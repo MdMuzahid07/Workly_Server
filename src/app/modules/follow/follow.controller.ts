@@ -37,13 +37,14 @@ const getFollowedCompanies = asyncHandler(async (req, res) => {
   //@ts-ignore
   const userId = req.user.userId;
 
-  const result = await followService.getFollowedCompanies(userId);
+  const { data, meta } = await followService.getFollowedCompanies(userId, req.query);
 
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: "Followed companies fetched successfully",
-    data: result,
+    data,
+    meta,
   });
 });
 

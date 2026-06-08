@@ -482,10 +482,25 @@ const removeTeamMember = async (companyId: string, adminId: string, memberId: st
 const checkPremiumStatus = async (userId: string) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { isPremium: true },
+    select: { isPremium: true, role: true, companyId: true },
   });
 
-  if (!user?.isPremium) {
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  let isPremium = user.isPremium;
+
+  if (!isPremium && user.role === "EMPLOYER" && user.companyId) {
+    const activeSub = await prisma.subscription.findUnique({
+      where: { companyId: user.companyId },
+    });
+    if (activeSub && activeSub.status === "ACTIVE") {
+      isPremium = true;
+    }
+  }
+
+  if (!isPremium) {
     throw new AppError(
       httpStatus.FORBIDDEN,
       "This is a premium feature. Please upgrade your plan to continue.",
@@ -696,13 +711,21 @@ const emptyEmployerAnalytics = (period: AnalyticsPeriod, hasCompany: boolean) =>
       interviews: number;
       hired: number;
     }[],
-    jobPerformance: [] as {
-      title: string;
-      views: number;
-      applications: number;
-      conversionRate: number;
-      status: string;
-    }[],
+    jobPerformance: {
+      data: [] as {
+        title: string;
+        views: number;
+        applications: number;
+        conversionRate: number;
+        status: string;
+      }[],
+      meta: {
+        page: 1,
+        limit: 10,
+        total: 0,
+        pages: 0,
+      },
+    },
     departments: [] as {
       name: string;
       count: number;
@@ -718,8 +741,49 @@ const emptyEmployerAnalytics = (period: AnalyticsPeriod, hasCompany: boolean) =>
   };
 };
 
+const alignDate = (date: Date, step: "day" | "week" | "month") => {
+  const d = new Date(date);
+  d.setUTCHours(0, 0, 0, 0);
+  if (step === "day") {
+    // already aligned
+  } else if (step === "week") {
+    const day = d.getUTCDay();
+    const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1);
+    d.setUTCDate(diff);
+  } else if (step === "month") {
+    d.setUTCDate(1);
+  }
+  return d;
+};
+
+const generateTimelineBuckets = (start: Date, end: Date, step: "day" | "week" | "month") => {
+  const buckets: Date[] = [];
+  const current = alignDate(start, step);
+  const alignedEnd = alignDate(end, step);
+
+  while (current <= alignedEnd) {
+    buckets.push(new Date(current));
+    if (step === "day") {
+      current.setUTCDate(current.getUTCDate() + 1);
+    } else if (step === "week") {
+      current.setUTCDate(current.getUTCDate() + 7);
+    } else if (step === "month") {
+      current.setUTCMonth(current.getUTCMonth() + 1);
+    }
+  }
+  return buckets;
+};
+
 //* ========= Employer hiring analytics =========>
-const getEmployerAnalytics = async (userId: string, rawPeriod: string) => {
+const getEmployerAnalytics = async (
+  userId: string,
+  rawPeriod: string,
+  jobSortBy: "views" | "applications" | "conversion" = "applications",
+  jobSortOrder: "asc" | "desc" = "desc",
+  jobSearch?: string,
+  jobPage: number = 1,
+  jobLimit: number = 10,
+) => {
   await checkPremiumStatus(userId);
   const user = await prisma.user.findUnique({
     where: { id: userId, isActive: true },
@@ -743,6 +807,7 @@ const getEmployerAnalytics = async (userId: string, rawPeriod: string) => {
   const previousStart = new Date(previousEnd.getTime() - windowMs);
 
   const truncByPeriod = period === "7d" ? "day" : period === "30d" ? "week" : "month";
+  const unitSafe = dateTruncWhitelist(truncByPeriod);
 
   const appWhereBetween = (rangeStart: Date, rangeEnd: Date): Prisma.ApplicationWhereInput => ({
     deletedAt: null,
@@ -756,8 +821,6 @@ const getEmployerAnalytics = async (userId: string, rawPeriod: string) => {
     job: { companyId, deletedAt: null },
   };
 
-  const unitSafe = dateTruncWhitelist(truncByPeriod);
-
   const [
     appsCurrentWindow,
     appsPrevWindow,
@@ -767,36 +830,46 @@ const getEmployerAnalytics = async (userId: string, rawPeriod: string) => {
     hiredPrev,
     activeJobsNow,
     activeJobsPrevPoint,
-    applicationsForDiscipline,
-    jobAppsInPeriod,
+    departmentCounts,
+    jobPerformanceRows,
+    totalJobsCount,
     appsRows,
     interviewRows,
     hiredRows,
-    funnelApps,
-    funnelReviewing,
-    funnelShortlisted,
-    funnelInterviewed,
-    funnelOffered,
-    funnelHired,
-    interviewedAll,
-    offeredAll,
+    statusCounts,
   ] = await Promise.all([
     prisma.application.count({ where: appWhereBetween(currentStart, now) }),
     prisma.application.count({ where: appWhereBetween(previousStart, previousEnd) }),
-    prisma.application
-      .groupBy({
-        by: ["applicantId"],
-        where: appWhereBetween(currentStart, now),
-        _count: { id: true },
-      })
-      .then((r) => r.length),
-    prisma.application
-      .groupBy({
-        by: ["applicantId"],
-        where: appWhereBetween(previousStart, previousEnd),
-        _count: { id: true },
-      })
-      .then((r) => r.length),
+    prisma
+      .$queryRawUnsafe<{ count: number }[]>(
+        `SELECT COUNT(DISTINCT a."applicantId")::int AS count
+       FROM applications a
+       INNER JOIN jobs j ON j.id = a."jobId"
+       WHERE j."companyId" = $1::text
+         AND a."deletedAt" IS NULL
+         AND j."deletedAt" IS NULL
+         AND a."createdAt" >= $2::timestamptz
+         AND a."createdAt" <= $3::timestamptz`,
+        companyId,
+        currentStart,
+        now,
+      )
+      .then((r) => r[0]?.count ?? 0),
+    prisma
+      .$queryRawUnsafe<{ count: number }[]>(
+        `SELECT COUNT(DISTINCT a."applicantId")::int AS count
+       FROM applications a
+       INNER JOIN jobs j ON j.id = a."jobId"
+       WHERE j."companyId" = $1::text
+         AND a."deletedAt" IS NULL
+         AND j."deletedAt" IS NULL
+         AND a."createdAt" >= $2::timestamptz
+         AND a."createdAt" <= $3::timestamptz`,
+        companyId,
+        previousStart,
+        previousEnd,
+      )
+      .then((r) => r[0]?.count ?? 0),
     prisma.application.count({
       where: {
         deletedAt: null,
@@ -815,25 +888,89 @@ const getEmployerAnalytics = async (userId: string, rawPeriod: string) => {
     }),
     countActiveJobsAtPoint(companyId, now),
     countActiveJobsAtPoint(companyId, previousEnd),
-    prisma.application.findMany({
-      where: {
-        deletedAt: null,
-        createdAt: { gte: currentStart, lte: now },
-        job: { companyId, deletedAt: null },
-      },
-      select: { job: { select: { discipline: true } } },
-    }),
-    prisma.application.groupBy({
-      by: ["jobId"],
-      where: {
-        deletedAt: null,
-        createdAt: { gte: currentStart, lte: now },
-        job: { companyId, deletedAt: null },
-      },
-      _count: { id: true },
-    }),
+    prisma.$queryRawUnsafe<{ discipline: string | null; ct: number }[]>(
+      `SELECT j.discipline, COUNT(*)::int AS ct
+       FROM applications a
+       INNER JOIN jobs j ON j.id = a."jobId"
+       WHERE j."companyId" = $1::text
+         AND a."deletedAt" IS NULL
+         AND j."deletedAt" IS NULL
+         AND a."createdAt" >= $2::timestamptz
+         AND a."createdAt" <= $3::timestamptz
+       GROUP BY j.discipline
+       ORDER BY ct DESC
+       LIMIT 8`,
+      companyId,
+      currentStart,
+      now,
+    ),
+    prisma.$queryRawUnsafe<
+      {
+        title: string;
+        views: number | null;
+        periodApplications: number | null;
+        conversionRate: number | null;
+        status: string;
+      }[]
+    >(
+      `
+      SELECT 
+        j.title, 
+        j."viewCount" as views,
+        COALESCE(period_apps.ct, 0)::int as "periodApplications",
+        CASE 
+          WHEN j."viewCount" > 0 THEN ROUND((j."applyCount"::float / j."viewCount"::float) * 1000) / 10 
+          ELSE 0.0 
+        END as "conversionRate",
+        j.status
+      FROM jobs j
+      LEFT JOIN (
+        SELECT a."jobId", COUNT(*)::int AS ct
+        FROM applications a
+        INNER JOIN jobs j2 ON j2.id = a."jobId"
+        WHERE j2."companyId" = $1::text
+          AND a."deletedAt" IS NULL
+          AND a."createdAt" >= $2::timestamptz
+          AND a."createdAt" <= $3::timestamptz
+        GROUP BY a."jobId"
+      ) period_apps ON period_apps."jobId" = j.id
+      WHERE j."companyId" = $1::text
+        AND j."deletedAt" IS NULL
+        ${jobSearch && jobSearch.trim() !== "" ? `AND j.title ILIKE $4::text` : ""}
+      ORDER BY 
+        ${
+          jobSortBy === "views"
+            ? `j."viewCount" ${jobSortOrder === "asc" ? "ASC" : "DESC"}`
+            : jobSortBy === "conversion"
+              ? `"conversionRate" ${jobSortOrder === "asc" ? "ASC" : "DESC"}`
+              : `"periodApplications" ${jobSortOrder === "asc" ? "ASC" : "DESC"}`
+        }
+      LIMIT ${jobSearch && jobSearch.trim() !== "" ? "$5" : "$4"}::int
+      OFFSET ${jobSearch && jobSearch.trim() !== "" ? "$6" : "$5"}::int
+      `,
+      ...[
+        companyId,
+        currentStart,
+        now,
+        ...(jobSearch && jobSearch.trim() !== "" ? [`%${jobSearch.trim()}%`] : []),
+        jobLimit,
+        (jobPage - 1) * jobLimit,
+      ],
+    ),
+    prisma
+      .$queryRawUnsafe<{ count: number }[]>(
+        `
+      SELECT COUNT(*)::int as count 
+      FROM jobs j 
+      WHERE j."companyId" = $1::text 
+        AND j."deletedAt" IS NULL 
+        ${jobSearch && jobSearch.trim() !== "" ? `AND j.title ILIKE $2::text` : ""}
+      `,
+        ...[companyId, ...(jobSearch && jobSearch.trim() !== "" ? [`%${jobSearch.trim()}%`] : [])],
+      )
+      .then((r) => r[0]?.count ?? 0),
     prisma.$queryRawUnsafe<{ bucket: Date; ct: number }[]>(
-      `SELECT DATE_TRUNC('${unitSafe}', a."createdAt") AS bucket, COUNT(*)::int AS ct
+      `SELECT (DATE_TRUNC('${unitSafe}', a."createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'UTC') AS bucket, COUNT(*)::int AS ct
        FROM applications a
        INNER JOIN jobs j ON j.id = a."jobId"
        WHERE j."companyId" = $1::text
@@ -845,7 +982,7 @@ const getEmployerAnalytics = async (userId: string, rawPeriod: string) => {
       currentStart,
     ),
     prisma.$queryRawUnsafe<{ bucket: Date; ct: number }[]>(
-      `SELECT DATE_TRUNC('${unitSafe}', a."interviewScheduledAt") AS bucket, COUNT(*)::int AS ct
+      `SELECT (DATE_TRUNC('${unitSafe}', a."interviewScheduledAt" AT TIME ZONE 'UTC') AT TIME ZONE 'UTC') AS bucket, COUNT(*)::int AS ct
        FROM applications a
        INNER JOIN jobs j ON j.id = a."jobId"
        WHERE j."companyId" = $1::text
@@ -858,7 +995,7 @@ const getEmployerAnalytics = async (userId: string, rawPeriod: string) => {
       currentStart,
     ),
     prisma.$queryRawUnsafe<{ bucket: Date; ct: number }[]>(
-      `SELECT DATE_TRUNC('${unitSafe}', a."updatedAt") AS bucket, COUNT(*)::int AS ct
+      `SELECT (DATE_TRUNC('${unitSafe}', a."updatedAt" AT TIME ZONE 'UTC') AT TIME ZONE 'UTC') AS bucket, COUNT(*)::int AS ct
        FROM applications a
        INNER JOIN jobs j ON j.id = a."jobId"
        WHERE j."companyId" = $1::text
@@ -870,66 +1007,31 @@ const getEmployerAnalytics = async (userId: string, rawPeriod: string) => {
       companyId,
       currentStart,
     ),
-    prisma.application.count({ where: funnelBase }),
-    prisma.application.count({
-      where: { ...funnelBase, status: "REVIEWING" },
-    }),
-    prisma.application.count({
-      where: { ...funnelBase, status: "SHORTLISTED" },
-    }),
-    prisma.application.count({
-      where: { ...funnelBase, status: "INTERVIEWED" },
-    }),
-    prisma.application.count({
-      where: { ...funnelBase, status: "OFFERED" },
-    }),
-    prisma.application.count({
-      where: { ...funnelBase, status: "ACCEPTED" },
-    }),
-    prisma.application.count({
-      where: {
-        ...funnelBase,
-        status: { in: ["INTERVIEWED", "OFFERED", "ACCEPTED"] },
-      },
-    }),
-    prisma.application.count({
-      where: { ...funnelBase, status: { in: ["OFFERED", "ACCEPTED"] } },
+    prisma.application.groupBy({
+      by: ["status"],
+      where: funnelBase,
+      _count: { id: true },
     }),
   ]);
 
-  const periodAppsByJobId = new Map(jobAppsInPeriod.map((x) => [x.jobId, x._count.id]));
-  const rankedJobIds = [...jobAppsInPeriod]
-    .sort((a, b) => b._count.id - a._count.id)
-    .slice(0, 10)
-    .map((x) => x.jobId);
+  const countsMap = new Map(statusCounts.map((x) => [x.status, x._count.id]));
+  const funnelApps = statusCounts.reduce((acc, curr) => acc + curr._count.id, 0);
+  const funnelReviewing = countsMap.get("REVIEWING") ?? 0;
+  const funnelShortlisted = countsMap.get("SHORTLISTED") ?? 0;
+  const funnelInterviewed = countsMap.get("INTERVIEWED") ?? 0;
+  const funnelOffered = countsMap.get("OFFERED") ?? 0;
+  const funnelHired = countsMap.get("ACCEPTED") ?? 0;
 
-  const jobRank = new Map(rankedJobIds.map((id, i) => [id, i]));
-  const jobRows =
-    rankedJobIds.length > 0
-      ? (
-          await prisma.job.findMany({
-            where: { id: { in: rankedJobIds }, companyId, deletedAt: null },
-            select: {
-              id: true,
-              title: true,
-              viewCount: true,
-              applyCount: true,
-              status: true,
-            },
-          })
-        ).sort((a, b) => (jobRank.get(a.id) ?? 0) - (jobRank.get(b.id) ?? 0))
-      : await prisma.job.findMany({
-          where: { companyId, deletedAt: null },
-          orderBy: [{ applyCount: "desc" }, { viewCount: "desc" }],
-          take: 10,
-          select: {
-            id: true,
-            title: true,
-            viewCount: true,
-            applyCount: true,
-            status: true,
-          },
-        });
+  const interviewedAll = funnelInterviewed + funnelOffered + funnelHired;
+  const offeredAll = funnelOffered + funnelHired;
+
+  const jobPerformance = jobPerformanceRows.map((j) => ({
+    title: j.title,
+    views: j.views ?? 0,
+    applications: j.periodApplications ?? 0,
+    conversionRate: Number(j.conversionRate) ?? 0,
+    status: j.status === "ACTIVE" ? "Active" : j.status,
+  }));
 
   const PIE_COLORS = [
     "#22c55e",
@@ -941,62 +1043,41 @@ const getEmployerAnalytics = async (userId: string, rawPeriod: string) => {
     "#ec4899",
     "#64748b",
   ];
-
-  const discMap = new Map<string, number>();
-  for (const row of applicationsForDiscipline) {
-    const name = row.job?.discipline?.trim() || "Other";
-    discMap.set(name, (discMap.get(name) ?? 0) + 1);
-  }
-  const discEntries = [...discMap.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
-  const discTotal = discEntries.reduce((s, [, c]) => s + c, 0) || 1;
-  const departments = discEntries.map(([name, count], i) => ({
-    name,
-    count,
-    percentage: Math.round((count / discTotal) * 1000) / 10,
+  const discTotal = departmentCounts.reduce((acc, curr) => acc + curr.ct, 0) || 1;
+  const departments = departmentCounts.map((d, i) => ({
+    name: d.discipline?.trim() || "Other",
+    count: d.ct,
+    percentage: Math.round((d.ct / discTotal) * 1000) / 10,
     color: PIE_COLORS[i % PIE_COLORS.length]!,
   }));
 
-  const jobPerformance = jobRows.map((j) => {
-    const views = j.viewCount ?? 0;
-    const periodApplications = periodAppsByJobId.get(j.id) ?? 0;
-    const lifetimeApplications = j.applyCount ?? 0;
-    const conversionRate = views > 0 ? Math.round((lifetimeApplications / views) * 1000) / 10 : 0;
-    return {
-      title: j.title,
-      views,
-      applications: periodApplications,
-      conversionRate,
-      status: j.status === "ACTIVE" ? "Active" : j.status,
-    };
-  });
+  const timelineBuckets = generateTimelineBuckets(currentStart, now, truncByPeriod);
 
-  const bucketIso = (bucket: Date | string) => {
-    const d = bucket instanceof Date ? bucket : new Date(bucket);
-    return Number.isNaN(d.getTime()) ? String(bucket) : d.toISOString();
-  };
-  const appM = new Map(appsRows.map((r) => [bucketIso(r.bucket), Number(r.ct)]));
-  const intM = new Map(interviewRows.map((r) => [bucketIso(r.bucket), Number(r.ct)]));
-  const hireM = new Map(hiredRows.map((r) => [bucketIso(r.bucket), Number(r.ct)]));
-  const allKeys = new Set([...appM.keys(), ...intM.keys(), ...hireM.keys()]);
-  const sortedKeys = [...allKeys].sort((a, b) => a.localeCompare(b));
+  const getIsoKey = (date: Date) => alignDate(date, truncByPeriod).toISOString();
 
-  const formatBucketLabel = (iso: string) => {
-    const d = new Date(iso);
+  const appMap = new Map(appsRows.map((r) => [getIsoKey(r.bucket), Number(r.ct)]));
+  const intMap = new Map(interviewRows.map((r) => [getIsoKey(r.bucket), Number(r.ct)]));
+  const hireMap = new Map(hiredRows.map((r) => [getIsoKey(r.bucket), Number(r.ct)]));
+
+  const formatBucketLabel = (d: Date) => {
     if (unitSafe === "day") {
-      return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      return d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
     }
     if (unitSafe === "week") {
-      return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      return d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
     }
-    return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+    return d.toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
   };
 
-  const applicationTrends = sortedKeys.map((k) => ({
-    periodLabel: formatBucketLabel(k),
-    applications: appM.get(k) ?? 0,
-    interviews: intM.get(k) ?? 0,
-    hired: hireM.get(k) ?? 0,
-  }));
+  const applicationTrends = timelineBuckets.map((bucketDate) => {
+    const key = bucketDate.toISOString();
+    return {
+      periodLabel: formatBucketLabel(bucketDate),
+      applications: appMap.get(key) ?? 0,
+      interviews: intMap.get(key) ?? 0,
+      hired: hireMap.get(key) ?? 0,
+    };
+  });
 
   const FUNNEL_COLORS = ["#f87171", "#fb923c", "#fbbf24", "#a3e635", "#4ade80", "#22c55e"];
   const funnelStages = [
@@ -1039,7 +1120,15 @@ const getEmployerAnalytics = async (userId: string, rawPeriod: string) => {
       hiredThisPeriodChangePct: pctChange(hiredCur, hiredPrev),
     },
     applicationTrends,
-    jobPerformance,
+    jobPerformance: {
+      data: jobPerformance,
+      meta: {
+        page: jobPage,
+        limit: jobLimit,
+        total: totalJobsCount,
+        pages: Math.ceil(totalJobsCount / jobLimit),
+      },
+    },
     departments,
     funnelStages,
     conversionMetrics,
