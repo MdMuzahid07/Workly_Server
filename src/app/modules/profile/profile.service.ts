@@ -114,7 +114,11 @@ const myProfile = async (userId: string) => {
           address: true,
         },
       },
-      company: true,
+      company: {
+        include: {
+          subscription: true,
+        },
+      },
       jobsPosted: true,
       applications: true,
       savedJobs: true,
@@ -128,7 +132,20 @@ const myProfile = async (userId: string) => {
 
   const { passwordHash, ...rest } = result;
 
-  return rest;
+  let isPremium = rest.isPremium;
+  if (!isPremium && rest.role === "EMPLOYER" && rest.companyId) {
+    const activeSub = await prisma.subscription.findUnique({
+      where: { companyId: rest.companyId },
+    });
+    if (activeSub && activeSub.status === "ACTIVE") {
+      isPremium = true;
+    }
+  }
+
+  return {
+    ...rest,
+    isPremium: process.env.NODE_ENV !== "production" ? true : isPremium,
+  };
 };
 
 const updateMyProfile = async (

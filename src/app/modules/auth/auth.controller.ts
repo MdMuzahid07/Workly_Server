@@ -2,7 +2,9 @@ import type { RequestHandler } from "express";
 import httpStatus from "http-status";
 import config from "../../../config/index.js";
 import asyncHandler from "../../../utils/asyncHandler.js";
+import prisma from "../../../utils/prismaClient.js";
 import sendApiResponse from "../../../utils/sendApiResponse.js";
+import AppError from "../../error/AppError.js";
 import authService from "./auth.service.js";
 
 const register: RequestHandler = asyncHandler(async (req, res) => {
@@ -147,13 +149,42 @@ const resendVerificationEmail: RequestHandler = asyncHandler(async (req, res) =>
 });
 
 const getCurrentUser: RequestHandler = asyncHandler(async (req, res) => {
-  const user = req.user;
+  const tokenUser = req.user as any;
+
+  if (!tokenUser?.userId) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Unauthorized");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: tokenUser.userId },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  let isPremium = user.isPremium;
+  if (!isPremium && user.role === "EMPLOYER" && user.companyId) {
+    const activeSub = await prisma.subscription.findUnique({
+      where: { companyId: user.companyId },
+    });
+    if (activeSub && activeSub.status === "ACTIVE") {
+      isPremium = true;
+    }
+  }
+
+  const { passwordHash: _, ...rest } = user as any;
+
+  const data = {
+    ...rest,
+    isPremium: process.env.NODE_ENV !== "production" ? true : isPremium,
+  };
 
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: "User retrieved successfully",
-    data: user,
+    data,
   });
 });
 

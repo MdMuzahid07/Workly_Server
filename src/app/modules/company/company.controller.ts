@@ -130,9 +130,26 @@ const getEmployerAnalytics = asyncHandler(async (req, res) => {
   //@ts-ignore
   const userId = req.user.userId;
   const parsed = employerAnalyticsQuery.safeParse(req.query);
-  const period = parsed.success ? parsed.data.period : "30d";
+  const data = parsed.success
+    ? parsed.data
+    : {
+        period: "30d" as const,
+        jobSortBy: "applications" as const,
+        jobSortOrder: "desc" as const,
+        jobSearch: undefined,
+        jobPage: "1",
+        jobLimit: "10",
+      };
 
-  const result = await companyService.getEmployerAnalytics(userId, period);
+  const result = await companyService.getEmployerAnalytics(
+    userId,
+    data.period,
+    data.jobSortBy,
+    data.jobSortOrder,
+    data.jobSearch,
+    parseInt(data.jobPage),
+    parseInt(data.jobLimit),
+  );
 
   sendApiResponse(res, {
     statusCode: httpStatus.OK,

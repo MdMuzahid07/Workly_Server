@@ -12,6 +12,19 @@ import generateVerificationToken from "../../../utils/generateVerificationToken.
 import prisma from "../../../utils/prismaClient.js";
 import AppError from "../../error/AppError.js";
 
+const isUserPremium = async (user: any): Promise<boolean> => {
+  if (user.isPremium) return true;
+  if (user.role === "EMPLOYER" && user.companyId) {
+    const activeSub = await prisma.subscription.findUnique({
+      where: { companyId: user.companyId },
+    });
+    if (activeSub && activeSub.status === "ACTIVE") {
+      return true;
+    }
+  }
+  return false;
+};
+
 const register = async (payload: any) => {
   // Normalize email (consistent with googleOAuth and forgotPassword)
   const normalizedEmail = (payload.email || "").toLowerCase().trim();
@@ -74,18 +87,24 @@ const register = async (payload: any) => {
     console.error("Failed to send verification email =>", error);
   }
 
+  const isPremium = process.env.NODE_ENV !== "production" ? true : await isUserPremium(user);
+
   const jwtPayload = {
     userId: user.id,
     email: user.email,
     role: user.role,
     isVerified: user.isVerified,
     isActive: user.isActive,
+    isPremium,
   };
 
   const accessToken = generateJsonWebToken(jwtPayload, "access");
   const refreshToken = generateJsonWebToken(jwtPayload, "refresh");
 
-  const { passwordHash: _, ...safeUser } = user;
+  const { passwordHash: _, ...safeUser } = {
+    ...user,
+    isPremium,
+  };
 
   return {
     safeUser,
@@ -131,6 +150,8 @@ const login = async (payload: any) => {
     data: { lastLogin: new Date() },
   });
 
+  const isPremium = process.env.NODE_ENV !== "production" ? true : await isUserPremium(user);
+
   const jwtPayload = {
     userId: user.id,
     email: user.email,
@@ -138,11 +159,15 @@ const login = async (payload: any) => {
     isVerified: user.isVerified,
     companyId: user.companyId,
     isActive: user.isActive,
+    isPremium,
   };
 
   const accessToken = generateJsonWebToken(jwtPayload, "access");
   const refreshToken = generateJsonWebToken(jwtPayload, "refresh");
-  const { passwordHash: _, ...safeUser } = user;
+  const { passwordHash: _, ...safeUser } = {
+    ...user,
+    isPremium,
+  };
 
   return {
     accessToken,
@@ -183,12 +208,16 @@ const refresh = async (refreshToken: string) => {
     );
   }
 
+  const isPremium =
+    process.env.NODE_ENV !== "production" ? true : await isUserPremium(isUserExists);
+
   const jwtPayload = {
     userId: isUserExists.id,
     email: isUserExists.email,
     role: isUserExists.role,
     isVerified: isUserExists.isVerified,
     isActive: isUserExists.isActive,
+    isPremium,
   };
 
   const newAccessToken = generateJsonWebToken(jwtPayload, "access");
@@ -407,6 +436,9 @@ const verifyEmail = async (payload: any) => {
     data: { usedAt: new Date() },
   });
 
+  const isPremium =
+    process.env.NODE_ENV !== "production" ? true : await isUserPremium(verificationToken.user);
+
   const jwtPayload = {
     userId: verificationToken.user.id,
     email: verificationToken.user.email,
@@ -414,6 +446,7 @@ const verifyEmail = async (payload: any) => {
     isVerified: true,
     companyId: verificationToken.user.companyId,
     isActive: verificationToken.user.isActive,
+    isPremium,
   };
 
   const accessToken = generateJsonWebToken(jwtPayload, "access");
@@ -430,6 +463,7 @@ const verifyEmail = async (payload: any) => {
       role: verificationToken.user.role,
       companyId: verificationToken.user.companyId,
       isVerified: true,
+      isPremium,
     },
   };
 };
@@ -555,6 +589,8 @@ const googleOAuth = async (
     });
   }
 
+  const isPremium = process.env.NODE_ENV !== "production" ? true : await isUserPremium(user);
+
   const jwtPayload = {
     userId: user.id,
     email: user.email,
@@ -562,12 +598,16 @@ const googleOAuth = async (
     isVerified: user.isVerified,
     companyId: user.companyId,
     isActive: user.isActive,
+    isPremium,
   };
 
   const accessToken = generateJsonWebToken(jwtPayload, "access");
   const refreshToken = generateJsonWebToken(jwtPayload, "refresh");
 
-  const { passwordHash: _, ...safeUser } = user;
+  const { passwordHash: _, ...safeUser } = {
+    ...user,
+    isPremium,
+  };
 
   return {
     safeUser,

@@ -5,10 +5,25 @@ import AppError from "../../error/AppError.js";
 const checkPremiumStatus = async (userId: string) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { isPremium: true },
+    select: { isPremium: true, role: true, companyId: true },
   });
 
-  if (!user?.isPremium) {
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  let isPremium = user.isPremium;
+
+  if (!isPremium && user.role === "EMPLOYER" && user.companyId) {
+    const activeSub = await prisma.subscription.findUnique({
+      where: { companyId: user.companyId },
+    });
+    if (activeSub && activeSub.status === "ACTIVE") {
+      isPremium = true;
+    }
+  }
+
+  if (!isPremium) {
     throw new AppError(
       httpStatus.FORBIDDEN,
       "Messaging is a premium feature. Please upgrade your plan to continue.",
