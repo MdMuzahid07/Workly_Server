@@ -114,8 +114,12 @@ const createJob = async (userId: string, payload: Job & { skillsRequired: JobSki
     throw new AppError(httpStatus.BAD_REQUEST, "Company not found or not verified");
   }
 
-  // Enforce 1 active job limit for free (non-premium) employers
-  if (!isUserExits.isPremium && payload.status === "ACTIVE") {
+  // Enforce 1 active job limit for free (non-premium) employers (only in production)
+  if (
+    process.env.NODE_ENV === "production" &&
+    !isUserExits.isPremium &&
+    payload.status === "ACTIVE"
+  ) {
     const activeJobsCount = await prisma.job.count({
       where: {
         postedById: userId,
@@ -459,8 +463,13 @@ const updateJob = async (
     throw new AppError(httpStatus.FORBIDDEN, "You are not authorized to update this job");
   }
 
-  // Enforce 1 active job limit for free (non-premium) employers when activating a job
-  if (!user.isPremium && payload.status === "ACTIVE" && job.status !== "ACTIVE") {
+  // Enforce 1 active job limit for free (non-premium) employers when activating a job (only in production)
+  if (
+    process.env.NODE_ENV === "production" &&
+    !user.isPremium &&
+    payload.status === "ACTIVE" &&
+    job.status !== "ACTIVE"
+  ) {
     const activeJobsCount = await prisma.job.count({
       where: {
         postedById: userId,
