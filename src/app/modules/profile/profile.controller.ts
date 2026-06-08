@@ -86,7 +86,11 @@ const getSavedJobs = asyncHandler(async (req, res) => {
     success: true,
     message: "Saved jobs fetched successfully",
     data: result.savedJobs,
-    meta: result.meta,
+    meta: {
+      ...result.meta,
+      companies: result.companies,
+      expiringSoonCount: result.expiringSoonCount,
+    },
   });
 });
 

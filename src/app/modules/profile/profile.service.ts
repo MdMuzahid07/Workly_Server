@@ -692,14 +692,14 @@ const getSavedJobs = async (userId: string, query: any = {}) => {
   }
 
   if (company && company !== "all") {
-    if (whereClause.job.OR) {
-      whereClause.job.company = { name: company };
-    } else {
-      whereClause.job.company = { name: company };
-    }
+    whereClause.job.company = { name: company };
   }
 
-  const [savedJobs, total] = await Promise.all([
+  // Get expiring soon count (deadline in the next 7 days)
+  const now = new Date();
+  const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  const [savedJobs, total, expiringSoonCount, allSavedJobsForCompanies] = await Promise.all([
     prisma.savedJob.findMany({
       where: whereClause,
       include: {
@@ -726,10 +726,53 @@ const getSavedJobs = async (userId: string, query: any = {}) => {
     prisma.savedJob.count({
       where: whereClause,
     }),
+    prisma.savedJob.count({
+      where: {
+        userId,
+        job: {
+          deletedAt: null,
+          status: "ACTIVE",
+          applicationDeadline: {
+            gt: now,
+            lte: sevenDaysLater,
+          },
+        },
+      },
+    }),
+    // Fetch unique companies for all saved jobs for this user
+    prisma.savedJob.findMany({
+      where: {
+        userId,
+        job: {
+          deletedAt: null,
+        },
+      },
+      select: {
+        job: {
+          select: {
+            company: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    }),
   ]);
+
+  const uniqueCompanyNames = Array.from(
+    new Set(
+      allSavedJobsForCompanies
+        .map((sj) => sj.job?.company?.name)
+        .filter((name): name is string => !!name),
+    ),
+  );
 
   return {
     savedJobs,
+    companies: uniqueCompanyNames,
+    expiringSoonCount,
     meta: {
       page: Number(page),
       limit: Number(limit),
