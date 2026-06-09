@@ -10,6 +10,7 @@ import {
   employerAdminListQuery,
   jobSeekerAdminListQuery,
   staffAdminListQuery,
+  updateStaffRoleSchema,
   userIdParams,
 } from "./admin.validation.js";
 
@@ -216,6 +217,20 @@ const adminController = {
       statusCode: httpStatus.OK,
       success: true,
       message: `Staff member ${isActive ? "activated" : "deactivated"} successfully`,
+      data: result,
+    });
+  }),
+  setStaffRole: asyncHandler(async (req, res) => {
+    const { userId } = userIdParams.parse(req.params);
+    const parsed = updateStaffRoleSchema.safeParse(req.body);
+    if (!parsed.success) {
+      throw new (await import("zod")).ZodError(parsed.error.issues);
+    }
+    const result = await adminService.setStaffRole(userId, parsed.data.role, req.user as any);
+    sendApiResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Staff role updated successfully",
       data: result,
     });
   }),

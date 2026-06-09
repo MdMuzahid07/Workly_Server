@@ -54,6 +54,10 @@ export const createStaffZodSchema = z.object({
   phone: z.string().optional(),
 });
 
+export const updateStaffRoleSchema = z.object({
+  role: z.enum(["ADMIN", "SUPER_ADMIN"], { message: "Role is required" }),
+});
+
 export const auditLogQuery = z.object({
   page: z.coerce.number().min(1).optional().default(1),
   limit: z.coerce.number().min(1).max(500).optional().default(20),

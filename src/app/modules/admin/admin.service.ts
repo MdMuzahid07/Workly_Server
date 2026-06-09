@@ -846,6 +846,66 @@ const adminService = {
     return updated;
   },
 
+  setStaffRole: async (
+    userId: string,
+    role: "ADMIN" | "SUPER_ADMIN",
+    actor: { id: string; role: string },
+  ) => {
+    if (actor.role !== "SUPER_ADMIN") {
+      throw new AppError(httpStatus.FORBIDDEN, "Only Super Administrators can change staff roles");
+    }
+
+    if (userId === actor.id) {
+      throw new AppError(httpStatus.BAD_REQUEST, "You cannot change your own role");
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user || user.deletedAt) {
+      throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    }
+    if (!["ADMIN", "SUPER_ADMIN"].includes(user.role)) {
+      throw new AppError(httpStatus.BAD_REQUEST, "User is not a staff member");
+    }
+
+    if (user.role === role) {
+      return user;
+    }
+
+    if (user.role === "SUPER_ADMIN" && role === "ADMIN") {
+      const activeSuperAdmins = await prisma.user.count({
+        where: {
+          role: "SUPER_ADMIN",
+          deletedAt: null,
+          isActive: true,
+        },
+      });
+      if (activeSuperAdmins <= 1) {
+        throw new AppError(
+          httpStatus.BAD_REQUEST,
+          "Cannot demote the last active Super Administrator",
+        );
+      }
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: { role },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        entityType: "Staff",
+        entityId: userId,
+        action: "ROLE_UPDATE",
+        oldValues: { role: user.role },
+        newValues: { role },
+        userId: actor.id,
+      },
+    });
+
+    return updated;
+  },
+
   getAuditLogs: async (query: {
     page: number;
     limit: number;

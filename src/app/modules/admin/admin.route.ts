@@ -113,6 +113,12 @@ router.patch(
   adminController.setStaffStatus,
 );
 
+router.patch(
+  "/staff/:userId/role",
+  authValidator(UserRole.SUPER_ADMIN),
+  adminController.setStaffRole,
+);
+
 router.get(
   "/overview/stats",
   authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
