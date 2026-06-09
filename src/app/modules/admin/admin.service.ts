@@ -1,9 +1,94 @@
+import type { Response } from "express";
 import httpStatus from "http-status";
+import { Prisma } from "../../../generated/prisma/index.js";
+import { streamPdfToClient } from "../../../services/file/fileStream.service.js";
 import AppError from "../../error/AppError.js";
 import prisma from "../../../utils/prismaClient.js";
 
 type EmployerStatus = "Verified" | "Pending" | "Suspended";
 type JobSeekerStatus = "Hired" | "Looking" | "Active" | "Suspended";
+
+const RECENT_APPLICATION_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+
+const recentApplicationCutoff = () => new Date(Date.now() - RECENT_APPLICATION_WINDOW_MS);
+
+const acceptedApplicationWhere = {
+  status: "ACCEPTED" as const,
+  deletedAt: null,
+};
+
+const recentApplicationWhere = (since: Date) => ({
+  deletedAt: null,
+  createdAt: { gte: since },
+});
+
+const buildJobSeekerStatusWhere = (status: JobSeekerStatus): Prisma.UserWhereInput => {
+  const since = recentApplicationCutoff();
+
+  switch (status) {
+    case "Suspended":
+      return { isActive: false };
+    case "Hired":
+      return {
+        isActive: true,
+        applications: { some: acceptedApplicationWhere },
+      };
+    case "Looking":
+      return {
+        isActive: true,
+        AND: [
+          { applications: { none: acceptedApplicationWhere } },
+          { applications: { some: recentApplicationWhere(since) } },
+        ],
+      };
+    case "Active":
+      return {
+        isActive: true,
+        AND: [
+          { applications: { none: acceptedApplicationWhere } },
+          { applications: { none: recentApplicationWhere(since) } },
+        ],
+      };
+  }
+};
+
+const buildJobSeekerListWhere = (query: {
+  q?: string;
+  status?: JobSeekerStatus;
+}): Prisma.UserWhereInput => {
+  const baseWhere: Prisma.UserWhereInput = {
+    role: "JOB_SEEKER",
+    deletedAt: null,
+  };
+
+  const filters: Prisma.UserWhereInput[] = [baseWhere];
+
+  if (query.q) {
+    filters.push({
+      OR: [
+        { fullName: { contains: query.q, mode: "insensitive" } },
+        { email: { contains: query.q, mode: "insensitive" } },
+      ],
+    });
+  }
+
+  if (query.status) {
+    filters.push(buildJobSeekerStatusWhere(query.status));
+  }
+
+  return filters.length === 1 ? baseWhere : { AND: filters };
+};
+
+const deriveJobSeekerStatus = (
+  user: { isActive: boolean; id: string },
+  acceptedByApplicant: Map<string, number>,
+  recentByApplicant: Map<string, number>,
+): JobSeekerStatus => {
+  if (!user.isActive) return "Suspended";
+  if ((acceptedByApplicant.get(user.id) ?? 0) > 0) return "Hired";
+  if ((recentByApplicant.get(user.id) ?? 0) > 0) return "Looking";
+  return "Active";
+};
 
 const companyStatusFrom = (company: { isVerified: boolean }, owner: { isActive: boolean }) => {
   if (!owner.isActive) return "Suspended" as const;
@@ -226,19 +311,8 @@ const adminService = {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
-    const q = query.q?.trim();
-
-    const where: any = {
-      role: "JOB_SEEKER",
-      deletedAt: null,
-    };
-
-    if (q) {
-      where.OR = [
-        { fullName: { contains: q, mode: "insensitive" } },
-        { email: { contains: q, mode: "insensitive" } },
-      ];
-    }
+    const q = query.q?.trim() || undefined;
+    const where = buildJobSeekerListWhere({ q, status: query.status });
 
     const [users, total] = await Promise.all([
       prisma.user.findMany({
@@ -260,6 +334,7 @@ const adminService = {
               websiteUrl: true,
               githubUrl: true,
               linkedInUrl: true,
+              resumeUrl: true,
               skills: {
                 select: { skillName: true },
                 take: 1,
@@ -277,7 +352,7 @@ const adminService = {
     const acceptedByApplicant = new Map<string, number>();
     const recentByApplicant = new Map<string, number>();
 
-    const [acceptedAgg, recentAgg] = await Promise.all([
+    const [acceptedAgg, recentAgg, resumeRows] = await Promise.all([
       prisma.application.groupBy({
         by: ["applicantId"],
         where: { applicantId: { in: userIds }, status: "ACCEPTED", deletedAt: null },
@@ -288,28 +363,30 @@ const adminService = {
         where: {
           applicantId: { in: userIds },
           deletedAt: null,
-          createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+          createdAt: { gte: recentApplicationCutoff() },
         },
         _count: { id: true },
       }),
+      userIds.length
+        ? prisma.resume.groupBy({
+            by: ["userId"],
+            where: { userId: { in: userIds }, deletedAt: null },
+          })
+        : Promise.resolve([]),
     ]);
 
     for (const r of acceptedAgg) acceptedByApplicant.set(r.applicantId, r._count.id);
     for (const r of recentAgg) recentByApplicant.set(r.applicantId, r._count.id);
 
-    const deriveStatus = (u: { isActive: boolean; id: string }): JobSeekerStatus => {
-      if (!u.isActive) return "Suspended";
-      if ((acceptedByApplicant.get(u.id) ?? 0) > 0) return "Hired";
-      if ((recentByApplicant.get(u.id) ?? 0) > 0) return "Looking";
-      return "Active";
-    };
+    const usersWithResume = new Set(resumeRows.map((r) => r.userId));
 
-    const rows = users.map((u) => {
+    const data = users.map((u) => {
       const p = u.profile;
       const primarySkill = p?.skills?.[0]?.skillName ?? "—";
       const experience = p?.preference?.workExperience || p?.headline || "—";
       const location = p?.location || "Remote";
-      const status = deriveStatus(u);
+      const status = deriveJobSeekerStatus(u, acceptedByApplicant, recentByApplicant);
+      const hasResume = usersWithResume.has(u.id) || Boolean(p?.resumeUrl);
 
       return {
         id: u.id,
@@ -321,6 +398,7 @@ const adminService = {
         experience,
         primarySkill,
         joinedDate: u.createdAt,
+        hasResume,
         socials: {
           github: p?.githubUrl ?? undefined,
           linkedin: p?.linkedInUrl ?? undefined,
@@ -329,16 +407,13 @@ const adminService = {
       };
     });
 
-    const filtered = query.status ? rows.filter((r) => r.status === query.status) : rows;
-    const filteredTotal = query.status ? filtered.length : total;
-
     return {
-      data: filtered,
+      data,
       meta: {
         page,
         limit,
-        total: filteredTotal,
-        totalPage: Math.ceil(filteredTotal / limit) || 1,
+        total,
+        totalPage: Math.ceil(total / limit) || 1,
       },
     };
   },
@@ -368,6 +443,50 @@ const adminService = {
       where: { id: userId },
       data: { isActive: false, deletedAt: new Date() },
     });
+  },
+
+  streamJobSeekerResume: async (userId: string, res: Response) => {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        role: true,
+        deletedAt: true,
+        fullName: true,
+        profile: { select: { resumeUrl: true } },
+      },
+    });
+
+    if (!user || user.deletedAt) {
+      throw new AppError(httpStatus.NOT_FOUND, "Job seeker not found");
+    }
+    if (user.role !== "JOB_SEEKER") {
+      throw new AppError(httpStatus.BAD_REQUEST, "User is not a job seeker");
+    }
+
+    const resume = await prisma.resume.findFirst({
+      where: { userId, deletedAt: null },
+      orderBy: [{ isDefault: "desc" }, { uploadDate: "desc" }],
+    });
+
+    if (resume) {
+      await streamPdfToClient({
+        res,
+        fileUrl: resume.fileUrl,
+        filename: resume.fileName,
+      });
+      return;
+    }
+
+    if (user.profile?.resumeUrl) {
+      await streamPdfToClient({
+        res,
+        fileUrl: user.profile.resumeUrl,
+        filename: `${user.fullName.replace(/\s+/g, "-")}-resume.pdf`,
+      });
+      return;
+    }
+
+    throw new AppError(httpStatus.NOT_FOUND, "No resume found for this candidate");
   },
 
   getActiveJobsStats: async () => {

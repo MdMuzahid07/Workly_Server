@@ -146,6 +146,11 @@ const adminController = {
       data: result,
     });
   }),
+  streamJobSeekerResume: asyncHandler(async (req, res) => {
+    const parsed = userIdParams.safeParse(req.params);
+    const userId = parsed.success ? parsed.data.userId : (req.params.userId as string);
+    await adminService.streamJobSeekerResume(userId, res);
+  }),
   getActiveJobsStats: asyncHandler(async (_req, res) => {
     const result = await adminService.getActiveJobsStats();
     sendApiResponse(res, {
