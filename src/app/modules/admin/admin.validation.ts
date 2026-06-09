@@ -38,7 +38,12 @@ export const adminJobListQuery = z.object({
 export const staffAdminListQuery = z.object({
   page: z.coerce.number().min(1).optional().default(1),
   limit: z.coerce.number().min(1).max(100).optional().default(20),
-  q: z.string().optional(),
+  q: z
+    .string()
+    .trim()
+    .max(200)
+    .optional()
+    .transform((value) => (value && value.length > 0 ? value : undefined)),
   role: z.enum(["ADMIN", "SUPER_ADMIN"]).optional(),
 });
 
@@ -51,7 +56,8 @@ export const createStaffZodSchema = z.object({
 
 export const auditLogQuery = z.object({
   page: z.coerce.number().min(1).optional().default(1),
-  limit: z.coerce.number().min(1).max(100).optional().default(20),
+  limit: z.coerce.number().min(1).max(500).optional().default(20),
   entityType: z.string().optional(),
   action: z.string().optional(),
+  staffId: z.string().min(1).optional(),
 });

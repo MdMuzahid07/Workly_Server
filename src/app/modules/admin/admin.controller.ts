@@ -183,8 +183,10 @@ const adminController = {
   }),
   getStaffList: asyncHandler(async (req, res) => {
     const parsed = staffAdminListQuery.safeParse(req.query);
-    const query = parsed.success ? parsed.data : (req.query as any);
-    const result = await adminService.getStaffList(query);
+    if (!parsed.success) {
+      throw new (await import("zod")).ZodError(parsed.error.issues);
+    }
+    const result = await adminService.getStaffList(parsed.data);
     sendApiResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
@@ -219,8 +221,10 @@ const adminController = {
   }),
   getAuditLogs: asyncHandler(async (req, res) => {
     const parsed = auditLogQuery.safeParse(req.query);
-    const query = parsed.success ? parsed.data : (req.query as any);
-    const result = await adminService.getAuditLogs(query);
+    if (!parsed.success) {
+      throw new (await import("zod")).ZodError(parsed.error.issues);
+    }
+    const result = await adminService.getAuditLogs(parsed.data);
     sendApiResponse(res, {
       statusCode: httpStatus.OK,
       success: true,

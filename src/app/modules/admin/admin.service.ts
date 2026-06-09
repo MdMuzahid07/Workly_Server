@@ -686,7 +686,13 @@ const adminService = {
         },
       }),
       prisma.auditLog.count(),
-      0, // Placeholder for Risk Items logic
+      prisma.user.count({
+        where: {
+          role: { in: ["ADMIN", "SUPER_ADMIN"] },
+          deletedAt: null,
+          isActive: false,
+        },
+      }),
     ]);
 
     return {
@@ -706,9 +712,9 @@ const adminService = {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
-    const q = query.q?.trim();
+    const q = query.q?.trim() || undefined;
 
-    const where: any = {
+    const where: Prisma.UserWhereInput = {
       role: { in: ["ADMIN", "SUPER_ADMIN"] },
       deletedAt: null,
     };
@@ -819,6 +825,9 @@ const adminService = {
     if (actor.role === "ADMIN" && user.role === "SUPER_ADMIN") {
       throw new AppError(httpStatus.FORBIDDEN, "Admins cannot manage Super Administrators");
     }
+    if (userId === actor.id && !isActive) {
+      throw new AppError(httpStatus.BAD_REQUEST, "You cannot deactivate your own account");
+    }
 
     const updated = await prisma.user.update({ where: { id: userId }, data: { isActive } });
 
@@ -842,14 +851,18 @@ const adminService = {
     limit: number;
     entityType?: string;
     action?: string;
+    staffId?: string;
   }) => {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Prisma.AuditLogWhereInput = {};
     if (query.entityType) where.entityType = query.entityType;
     if (query.action) where.action = query.action;
+    if (query.staffId) {
+      where.OR = [{ entityId: query.staffId }, { userId: query.staffId }];
+    }
 
     const [logs, total] = await Promise.all([
       prisma.auditLog.findMany({
@@ -866,11 +879,39 @@ const adminService = {
       prisma.auditLog.count({ where }),
     ]);
 
+    const staffEntityIds = [
+      ...new Set(logs.filter((log) => log.entityType === "Staff").map((log) => log.entityId)),
+    ];
+
+    const staffTargets =
+      staffEntityIds.length > 0
+        ? await prisma.user.findMany({
+            where: { id: { in: staffEntityIds } },
+            select: { id: true, fullName: true, email: true },
+          })
+        : [];
+
+    const staffTargetMap = new Map(
+      staffTargets.map((user) => [user.id, `${user.fullName} (${user.email})`]),
+    );
+
+    const resolveTarget = (log: (typeof logs)[number]) => {
+      if (log.entityType === "Staff") {
+        return staffTargetMap.get(log.entityId) ?? log.entityId;
+      }
+
+      const newValues = log.newValues as { email?: string; title?: string } | null;
+      if (newValues?.email) return newValues.email;
+      if (newValues?.title) return newValues.title;
+
+      return log.entityId;
+    };
+
     const rows = logs.map((log) => ({
       id: log.id,
       action: log.action,
       entityType: log.entityType,
-      target: log.entityId, // Or a more descriptive target name if stored in values
+      target: resolveTarget(log),
       actor: log.user?.fullName || "System",
       actorRole: log.user?.role || "SYSTEM",
       createdAt: log.createdAt,
