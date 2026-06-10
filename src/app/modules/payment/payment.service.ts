@@ -402,12 +402,63 @@ const getTransactions = async (
   role: string,
   page: number = 1,
   limit: number = 10,
+  search?: string,
+  status?: string,
 ) => {
   const skip = (page - 1) * limit;
 
-  let whereQuery = {};
+  const whereQuery: any = {};
   if (role !== "ADMIN" && role !== "SUPER_ADMIN") {
-    whereQuery = { userId };
+    whereQuery.userId = userId;
+  }
+
+  if (status) {
+    if (status === "PAID") {
+      whereQuery.status = PaymentStatus.VALIDATED;
+    } else if (status === "UNPAID") {
+      whereQuery.status = PaymentStatus.PENDING;
+    } else if (status === "OVERDUE") {
+      whereQuery.status = PaymentStatus.PENDING_REVIEW;
+    } else if (status === "REFUNDED") {
+      whereQuery.status = PaymentStatus.FAILED;
+    } else {
+      whereQuery.status = status;
+    }
+  }
+
+  if (search) {
+    whereQuery.OR = [
+      {
+        tranId: {
+          contains: search,
+          mode: "insensitive",
+        },
+      },
+      {
+        user: {
+          fullName: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+      },
+      {
+        user: {
+          email: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+      },
+      {
+        company: {
+          name: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+      },
+    ];
   }
 
   const transactions = await prisma.paymentTransaction.findMany({
@@ -418,6 +469,9 @@ const getTransactions = async (
     include: {
       user: {
         select: { fullName: true, email: true },
+      },
+      company: {
+        select: { name: true, logoUrl: true },
       },
     },
   });
