@@ -30,8 +30,17 @@ export const jobSeekerAdminListQuery = z.object({
 export const adminJobListQuery = z.object({
   page: z.coerce.number().min(1).optional().default(1),
   limit: z.coerce.number().min(1).max(100).optional().default(20),
-  q: z.string().optional(),
-  type: z.string().optional(),
+  q: z
+    .string()
+    .trim()
+    .max(200)
+    .optional()
+    .transform((value) => (value && value.length > 0 ? value : undefined)),
+  type: z
+    .string()
+    .trim()
+    .optional()
+    .transform((value) => (value && value.length > 0 ? value : undefined)),
   status: z.enum(["ACTIVE", "DRAFT", "CLOSED", "EXPIRED"]).optional(),
 });
 

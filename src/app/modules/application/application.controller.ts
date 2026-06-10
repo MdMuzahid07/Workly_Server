@@ -2,6 +2,7 @@ import httpStatus from "http-status";
 import asyncHandler from "../../../utils/asyncHandler.js";
 import sendApiResponse from "../../../utils/sendApiResponse.js";
 import applicationService from "./application.service.js";
+import applicationValidation from "./application.validation.js";
 
 const createApplication = asyncHandler(async (req, res) => {
   //@ts-ignore
@@ -21,7 +22,18 @@ const createApplication = asyncHandler(async (req, res) => {
 const getMyApplications = asyncHandler(async (req, res) => {
   //@ts-ignore
   const userId = req.user.userId;
-  const result = await applicationService.getMyApplications(userId, req.query);
+  const parsed = applicationValidation.getMyApplications.safeParse(req.query);
+  const queryData = parsed.success
+    ? parsed.data
+    : {
+        page: "1",
+        limit: "10",
+        status: undefined,
+        q: undefined,
+        dateFilter: undefined,
+      };
+
+  const result = await applicationService.getMyApplications(userId, queryData);
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,

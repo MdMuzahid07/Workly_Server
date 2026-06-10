@@ -20,9 +20,22 @@ const createApplication = z.object({
 });
 
 const getMyApplications = z.object({
-  page: z.string().optional(),
-  limit: z.string().optional(),
-  status: z.string().optional(),
+  page: z.string().optional().default("1"),
+  limit: z.string().optional().default("10"),
+  status: z
+    .enum([
+      "SUBMITTED",
+      "REVIEWING",
+      "SHORTLISTED",
+      "INTERVIEWED",
+      "REJECTED",
+      "OFFERED",
+      "ACCEPTED",
+      "WITHDRAWN",
+    ])
+    .optional(),
+  q: z.string().optional(),
+  dateFilter: z.enum(["today", "last_7_days", "this_month"]).optional(),
 });
 
 const getJobApplications = z.object({

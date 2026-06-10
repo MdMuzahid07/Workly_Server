@@ -534,7 +534,6 @@ const adminService = {
     type?: string;
     status?: any;
   }) => {
-    console.log("=== GET ACTIVE JOBS LIST QUERY IN SERVICE ===", query);
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 20;
     const skip = (page - 1) * limit;
