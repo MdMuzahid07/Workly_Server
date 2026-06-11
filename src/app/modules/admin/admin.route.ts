@@ -53,6 +53,12 @@ router.get(
   adminController.getJobSeekersList,
 );
 
+router.get(
+  "/job-seekers/:userId/resume",
+  authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  adminController.streamJobSeekerResume,
+);
+
 router.patch(
   "/job-seekers/:userId/suspend",
   authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
@@ -105,6 +111,12 @@ router.patch(
   "/staff/:userId/status",
   authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
   adminController.setStaffStatus,
+);
+
+router.patch(
+  "/staff/:userId/role",
+  authValidator(UserRole.SUPER_ADMIN),
+  adminController.setStaffRole,
 );
 
 router.get(

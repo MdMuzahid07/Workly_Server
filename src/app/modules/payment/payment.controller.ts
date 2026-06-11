@@ -132,8 +132,10 @@ const getTransactionsList = asyncHandler(async (req: Request, res: Response) => 
   const { userId, role } = (req as any).user;
   const page = parseInt((req.query.page as string) || "1");
   const limit = parseInt((req.query.limit as string) || "10");
+  const search = req.query.search as string;
+  const status = req.query.status as string;
 
-  const result = await paymentService.getTransactions(userId, role, page, limit);
+  const result = await paymentService.getTransactions(userId, role, page, limit, search, status);
 
   sendApiResponse(res, {
     statusCode: httpStatus.OK,

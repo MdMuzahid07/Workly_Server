@@ -18,22 +18,41 @@ export const userIdParams = z.object({
 export const jobSeekerAdminListQuery = z.object({
   page: z.coerce.number().min(1).optional().default(1),
   limit: z.coerce.number().min(1).max(100).optional().default(20),
-  q: z.string().optional(),
+  q: z
+    .string()
+    .trim()
+    .max(200)
+    .optional()
+    .transform((value) => (value && value.length > 0 ? value : undefined)),
   status: z.enum(["Hired", "Looking", "Active", "Suspended"]).optional(),
 });
 
 export const adminJobListQuery = z.object({
   page: z.coerce.number().min(1).optional().default(1),
   limit: z.coerce.number().min(1).max(100).optional().default(20),
-  q: z.string().optional(),
-  type: z.string().optional(),
+  q: z
+    .string()
+    .trim()
+    .max(200)
+    .optional()
+    .transform((value) => (value && value.length > 0 ? value : undefined)),
+  type: z
+    .string()
+    .trim()
+    .optional()
+    .transform((value) => (value && value.length > 0 ? value : undefined)),
   status: z.enum(["ACTIVE", "DRAFT", "CLOSED", "EXPIRED"]).optional(),
 });
 
 export const staffAdminListQuery = z.object({
   page: z.coerce.number().min(1).optional().default(1),
   limit: z.coerce.number().min(1).max(100).optional().default(20),
-  q: z.string().optional(),
+  q: z
+    .string()
+    .trim()
+    .max(200)
+    .optional()
+    .transform((value) => (value && value.length > 0 ? value : undefined)),
   role: z.enum(["ADMIN", "SUPER_ADMIN"]).optional(),
 });
 
@@ -44,9 +63,14 @@ export const createStaffZodSchema = z.object({
   phone: z.string().optional(),
 });
 
+export const updateStaffRoleSchema = z.object({
+  role: z.enum(["ADMIN", "SUPER_ADMIN"], { message: "Role is required" }),
+});
+
 export const auditLogQuery = z.object({
   page: z.coerce.number().min(1).optional().default(1),
-  limit: z.coerce.number().min(1).max(100).optional().default(20),
+  limit: z.coerce.number().min(1).max(500).optional().default(20),
   entityType: z.string().optional(),
   action: z.string().optional(),
+  staffId: z.string().min(1).optional(),
 });
