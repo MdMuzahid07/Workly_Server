@@ -395,7 +395,34 @@ const cancelPayment = async (tranId: string) => {
 };
 
 /**
- * Retrieves transactions for users or full stats for admins
+ * Lazily expires stale PENDING transactions older than the given TTL (default 24h).
+ * Runs non-blocking (fire-and-forget) so it never adds latency to the response.
+ * Only expires transactions that never received a success/fail/cancel callback from SSLCommerz.
+ */
+const expireStaleTransactions = async (ttlHours = 24): Promise<void> => {
+  const cutoff = new Date(Date.now() - ttlHours * 60 * 60 * 1000);
+  await prisma.paymentTransaction.updateMany({
+    where: {
+      status: PaymentStatus.PENDING,
+      createdAt: { lt: cutoff },
+    },
+    data: { status: PaymentStatus.CANCELLED },
+  });
+};
+
+/**
+ * Retrieves transactions for users or full stats for admins.
+ *
+ * Status filter mapping (UI → DB):
+ *   PAID       → VALIDATED
+ *   ABANDONED  → PENDING   (orphaned checkouts where user never completed payment)
+ *   OVERDUE    → PENDING_REVIEW
+ *   REFUNDED   → FAILED
+ *   CANCELLED  → CANCELLED
+ *
+ * For admin roles, raw PENDING rows are excluded from the default view (no status filter)
+ * because they represent in-flight or soon-to-be-expired abandoned checkouts — not
+ * actionable data. Admins can explicitly filter by ABANDONED to inspect them.
  */
 const getTransactions = async (
   userId: string,
@@ -405,25 +432,43 @@ const getTransactions = async (
   search?: string,
   status?: string,
 ) => {
+  const isAdmin = role === "ADMIN" || role === "SUPER_ADMIN";
+
+  // Fire-and-forget stale expiry for admin requests only.
+  // No await — never blocks the response.
+  if (isAdmin) {
+    expireStaleTransactions(24).catch((err) => console.error("[payment] stale expiry error:", err));
+  }
+
   const skip = (page - 1) * limit;
 
   const whereQuery: any = {};
-  if (role !== "ADMIN" && role !== "SUPER_ADMIN") {
+  if (!isAdmin) {
     whereQuery.userId = userId;
   }
 
   if (status) {
     if (status === "PAID") {
       whereQuery.status = PaymentStatus.VALIDATED;
-    } else if (status === "UNPAID") {
+    } else if (status === "ABANDONED") {
+      // Abandoned = user started checkout but never completed it
       whereQuery.status = PaymentStatus.PENDING;
     } else if (status === "OVERDUE") {
       whereQuery.status = PaymentStatus.PENDING_REVIEW;
     } else if (status === "REFUNDED") {
       whereQuery.status = PaymentStatus.FAILED;
+    } else if (status === "CANCELLED") {
+      whereQuery.status = PaymentStatus.CANCELLED;
     } else {
+      // Direct DB enum pass-through (for non-admin user history queries)
       whereQuery.status = status;
     }
+  } else if (isAdmin) {
+    // Default admin view: exclude raw PENDING (in-flight / abandoned checkouts).
+    // Admins can still see them by explicitly selecting the ABANDONED filter.
+    whereQuery.status = {
+      not: PaymentStatus.PENDING,
+    };
   }
 
   if (search) {
@@ -490,33 +535,92 @@ const getTransactions = async (
 };
 
 /**
- * Gets payment statistics for admin overview
+ * Gets payment statistics for admin overview — all computed via targeted DB aggregates
  */
 const getPaymentStats = async () => {
-  const validatedPayments = await prisma.paymentTransaction.findMany({
-    where: { status: PaymentStatus.VALIDATED },
-    select: { amount: true, cardType: true, category: true, createdAt: true },
-  });
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const totalEarnings = validatedPayments.reduce((acc: number, curr: any) => acc + curr.amount, 0);
+  // Run all aggregates in parallel for minimum DB round-trips
+  const [
+    totalRevenueAgg,
+    monthlyVolumeAgg,
+    pendingAgg,
+    validatedCount,
+    failedCancelledCount,
+    categoryBreakdown,
+    cardBreakdown,
+  ] = await Promise.all([
+    // Total revenue: sum of all VALIDATED payments ever
+    prisma.paymentTransaction.aggregate({
+      where: { status: PaymentStatus.VALIDATED },
+      _sum: { amount: true },
+      _count: { id: true },
+    }),
+    // Monthly volume: sum of VALIDATED payments this calendar month
+    prisma.paymentTransaction.aggregate({
+      where: {
+        status: PaymentStatus.VALIDATED,
+        createdAt: { gte: startOfMonth },
+      },
+      _sum: { amount: true },
+    }),
+    // Pending: count + sum of PENDING transactions (unpaid invoices)
+    prisma.paymentTransaction.aggregate({
+      where: { status: PaymentStatus.PENDING },
+      _sum: { amount: true },
+      _count: { id: true },
+    }),
+    // Validated count for success rate numerator
+    prisma.paymentTransaction.count({
+      where: { status: PaymentStatus.VALIDATED },
+    }),
+    // Failed + Cancelled for success rate denominator
+    prisma.paymentTransaction.count({
+      where: { status: { in: [PaymentStatus.FAILED, PaymentStatus.CANCELLED] } },
+    }),
+    // Revenue by payment category
+    prisma.paymentTransaction.groupBy({
+      by: ["category"],
+      where: { status: PaymentStatus.VALIDATED },
+      _sum: { amount: true },
+    }),
+    // Payment method breakdown (card types)
+    prisma.paymentTransaction.groupBy({
+      by: ["cardType"],
+      where: { status: PaymentStatus.VALIDATED, cardType: { not: null } },
+      _count: { id: true },
+    }),
+  ]);
 
-  // Group by category
-  const categorySummary = validatedPayments.reduce((acc: any, curr: any) => {
-    acc[curr.category] = (acc[curr.category] || 0) + curr.amount;
+  const totalEarnings = totalRevenueAgg._sum.amount ?? 0;
+  const totalValidatedCount = totalRevenueAgg._count.id ?? 0;
+  const monthlyVolume = monthlyVolumeAgg._sum.amount ?? 0;
+  const pendingAmount = pendingAgg._sum.amount ?? 0;
+  const pendingCount = pendingAgg._count.id ?? 0;
+
+  const totalAttempted = validatedCount + failedCancelledCount;
+  const successRate = totalAttempted > 0 ? (validatedCount / totalAttempted) * 100 : 100;
+
+  const categorySummary = categoryBreakdown.reduce((acc: any, row: any) => {
+    acc[row.category] = row._sum.amount ?? 0;
     return acc;
   }, {});
 
-  // Group by cardType (Visa, bkash etc)
-  const cardSummary = validatedPayments.reduce((acc: any, curr: any) => {
-    if (curr.cardType) {
-      acc[curr.cardType] = (acc[curr.cardType] || 0) + 1;
+  const cardSummary = cardBreakdown.reduce((acc: any, row: any) => {
+    if (row.cardType) {
+      acc[row.cardType] = row._count.id ?? 0;
     }
     return acc;
   }, {});
 
   return {
     totalEarnings,
-    totalCount: validatedPayments.length,
+    totalCount: totalValidatedCount,
+    monthlyVolume,
+    pendingAmount,
+    pendingCount,
+    successRate: Math.round(successRate * 10) / 10,
     categorySummary,
     cardSummary,
   };
