@@ -1,6 +1,13 @@
 import z from "zod";
 
 const register = z.object({
+  fullName: z
+    .string({ message: "Full name must be a string" })
+    .min(1, { message: "Full name is required" })
+    .max(250, { message: "Full name is too long" }),
+  role: z
+    .enum(["JOB_SEEKER", "EMPLOYER", "ADMIN", "SUPER_ADMIN"], { message: "Invalid user role" })
+    .default("JOB_SEEKER"),
   email: z
     .string({ message: "Invalid email address" })
     .min(1, { message: "Email is required" })

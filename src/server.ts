@@ -2,8 +2,67 @@ import http, { type Server } from "http";
 import app from "./app.js";
 import config from "./config/index.js";
 import { initSocket } from "./socket/index.js";
+import prisma from "./utils/prismaClient.js";
+import bcrypt from "bcrypt";
 
 const port = config.port || 5000;
+
+async function seedDevUsers() {
+  try {
+    const devUsers = [
+      {
+        email: "mydevcafe@gmail.com",
+        password: "Admin#$12345@",
+        fullName: "Admin Dev",
+        role: "ADMIN" as const,
+      },
+      {
+        email: "mdmuzahid7396@gmail.com",
+        password: "HDiotuIDG85678%7%$#KjgDJG",
+        fullName: "Muzahid Employer",
+        role: "EMPLOYER" as const,
+      },
+      {
+        email: "mdmuzahid.dev@gmail.com",
+        password: "FKJhOFIt985^&54#$%#",
+        fullName: "Muzahid Seeker",
+        role: "JOB_SEEKER" as const,
+      },
+    ];
+
+    for (const u of devUsers) {
+      const exists = await prisma.user.findUnique({
+        where: { email: u.email },
+      });
+
+      if (!exists) {
+        console.log(`[Seed] Creating dev user: ${u.email}`);
+        const passwordHash = await bcrypt.hash(u.password, Number(config.bcrypt_salt_rounds || 12));
+        await prisma.user.create({
+          data: {
+            email: u.email,
+            passwordHash,
+            fullName: u.fullName,
+            role: u.role,
+            isVerified: true,
+            isActive: true,
+          },
+        });
+      } else {
+        // Ensure they are verified & active
+        if (!exists.isVerified || !exists.isActive) {
+          console.log(`[Seed] Ensuring dev user ${u.email} is active and verified`);
+          await prisma.user.update({
+            where: { id: exists.id },
+            data: { isVerified: true, isActive: true },
+          });
+        }
+      }
+    }
+  } catch (error) {
+    console.error("[Seed] Failed to seed dev users:", error);
+  }
+}
 
 /**
  * Main entry point for the server. This function starts the server and
@@ -19,6 +78,10 @@ const port = config.port || 5000;
 async function main() {
   const server: Server = http.createServer(app);
   initSocket(server);
+
+  if (config.environment === "development") {
+    await seedDevUsers();
+  }
 
   server.listen(Number(port), "0.0.0.0", () => {
     console.log(`Server running 🚀🚀 on => port  ${port}`);
