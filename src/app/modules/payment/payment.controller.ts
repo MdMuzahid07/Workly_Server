@@ -87,6 +87,11 @@ const initiatePayment = asyncHandler(async (req: Request, res: Response) => {
     frontendUrl = config.frontend_url;
   }
 
+  // Get backendUrl dynamically from host headers
+  const protocol = req.headers["x-forwarded-proto"] || req.protocol || "http";
+  const host = req.get("host");
+  const backendUrl = `${protocol}://${host}`;
+
   const result = await paymentService.initiatePayment(
     {
       planId,
@@ -101,6 +106,7 @@ const initiatePayment = asyncHandler(async (req: Request, res: Response) => {
       cusPostcode,
       cusCountry,
       frontendUrl,
+      backendUrl,
     },
     userId,
     companyId,
