@@ -19,7 +19,8 @@
     "prisma-push": "prisma db push",
     "prisma-pull": "prisma db pull",
     "prepare": "husky install",
-    "vercel-build": "prisma generate && tsc"
+    "vercel-build": "prisma generate && tsc",
+    "db:seed": "tsx prisma/seed.ts"
   },
   "packageManager": "yarn@1.22.22",
   "devDependencies": {
@@ -76,5 +77,8 @@
     "*.{json,md,yaml,yml}": [
       "prettier --write"
     ]
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   }
 }
