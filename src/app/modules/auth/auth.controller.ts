@@ -28,6 +28,8 @@ const register: RequestHandler = asyncHandler(async (req, res) => {
       email: result.safeUser.email,
       isVerified: result.safeUser.isVerified,
       accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      safeUser: result.safeUser,
     },
   });
 });
@@ -44,14 +46,16 @@ const login: RequestHandler = asyncHandler(async (req, res) => {
   });
 
   sendApiResponse(res, {
-    statusCode: httpStatus.CREATED,
+    statusCode: httpStatus.OK,
     success: true,
-    message: "User registered successfully",
+    message: "User logged in successfully",
     data: {
       fullName: result.safeUser.fullName,
       email: result.safeUser.email,
       phone: result.safeUser.phone,
       accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      safeUser: result.safeUser,
     },
   });
 });

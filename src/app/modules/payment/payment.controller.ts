@@ -7,6 +7,38 @@ import prisma from "../../../utils/prismaClient.js";
 import config from "../../../config/index.js";
 import AppError from "../../error/AppError.js";
 
+// Validate and sanitize frontend redirect URLs to prevent Open Redirect attacks
+const getSafeRedirectUrl = (urlParam: unknown): string => {
+  if (!urlParam || typeof urlParam !== "string") {
+    return config.frontend_url;
+  }
+  try {
+    const targetUrl = new URL(urlParam);
+    const targetOrigin = targetUrl.origin;
+
+    // 1. Match configured frontend_url
+    if (new URL(config.frontend_url).origin === targetOrigin) {
+      return targetOrigin;
+    }
+
+    // 2. Match allowed CORS origins
+    const isAllowed = config.allowed_origins.some((allowed: string) => {
+      try {
+        return new URL(allowed).origin === targetOrigin;
+      } catch {
+        return allowed.trim().toLowerCase() === targetOrigin.toLowerCase();
+      }
+    });
+
+    if (isAllowed) {
+      return targetOrigin;
+    }
+  } catch (error) {
+    // Fall back for parsing errors
+  }
+  return config.frontend_url;
+};
+
 // Initiate payment checkout session
 const initiatePayment = asyncHandler(async (req: Request, res: Response) => {
   const { userId, role } = (req as any).user;
@@ -42,6 +74,19 @@ const initiatePayment = asyncHandler(async (req: Request, res: Response) => {
     companyId = employerProfile.companyId;
   }
 
+  // Get frontendUrl dynamically from payload or request origin/referer
+  let frontendUrl = req.body.frontendUrl || req.headers.origin;
+  if (!frontendUrl && req.headers.referer) {
+    try {
+      frontendUrl = new URL(req.headers.referer).origin;
+    } catch (e) {
+      // ignore invalid URL referers
+    }
+  }
+  if (!frontendUrl) {
+    frontendUrl = config.frontend_url;
+  }
+
   const result = await paymentService.initiatePayment(
     {
       planId,
@@ -55,6 +100,7 @@ const initiatePayment = asyncHandler(async (req: Request, res: Response) => {
       cusCity,
       cusPostcode,
       cusCountry,
+      frontendUrl,
     },
     userId,
     companyId,
@@ -71,18 +117,17 @@ const initiatePayment = asyncHandler(async (req: Request, res: Response) => {
 // Success redirect called by SSLCommerz
 const paymentSuccess = asyncHandler(async (req: Request, res: Response) => {
   const { tran_id, val_id, amount } = req.body;
+  const frontendUrl = getSafeRedirectUrl(req.query.frontend_url);
 
   try {
     await paymentService.validatePayment(tran_id, val_id, req.body);
 
     // HTTP 302 Redirect to Client Success Route
-    return res.redirect(
-      `${config.frontend_url}/payment/success?tranId=${tran_id}&amount=${amount}`,
-    );
+    return res.redirect(`${frontendUrl}/payment/success?tranId=${tran_id}&amount=${amount}`);
   } catch (error: any) {
     console.error("Success Callback Error:", error);
     return res.redirect(
-      `${config.frontend_url}/payment/fail?tranId=${tran_id || ""}&reason=${encodeURIComponent(
+      `${frontendUrl}/payment/fail?tranId=${tran_id || ""}&reason=${encodeURIComponent(
         error?.message || "Verification Failed",
       )}`,
     );
@@ -93,16 +138,18 @@ const paymentSuccess = asyncHandler(async (req: Request, res: Response) => {
 const paymentFail = asyncHandler(async (req: Request, res: Response) => {
   const { tran_id } = req.body;
   await paymentService.failPayment(tran_id);
+  const frontendUrl = getSafeRedirectUrl(req.query.frontend_url);
 
-  return res.redirect(`${config.frontend_url}/payment/fail?tranId=${tran_id || ""}`);
+  return res.redirect(`${frontendUrl}/payment/fail?tranId=${tran_id || ""}`);
 });
 
 // Cancel redirect called by SSLCommerz
 const paymentCancel = asyncHandler(async (req: Request, res: Response) => {
   const { tran_id } = req.body;
   await paymentService.cancelPayment(tran_id);
+  const frontendUrl = getSafeRedirectUrl(req.query.frontend_url);
 
-  return res.redirect(`${config.frontend_url}/payment/cancel?tranId=${tran_id || ""}`);
+  return res.redirect(`${frontendUrl}/payment/cancel?tranId=${tran_id || ""}`);
 });
 
 // IPN background handler called directly by SSLCommerz

@@ -64,9 +64,10 @@ const initiatePayment = async (
   });
 
   // Backend callback endpoints
-  const successUrl = `${config.backend_url}/api/v1/payments/success`;
-  const failUrl = `${config.backend_url}/api/v1/payments/fail`;
-  const cancelUrl = `${config.backend_url}/api/v1/payments/cancel`;
+  const redirectFrontendUrl = encodeURIComponent(payload.frontendUrl || config.frontend_url);
+  const successUrl = `${config.backend_url}/api/v1/payments/success?frontend_url=${redirectFrontendUrl}`;
+  const failUrl = `${config.backend_url}/api/v1/payments/fail?frontend_url=${redirectFrontendUrl}`;
+  const cancelUrl = `${config.backend_url}/api/v1/payments/cancel?frontend_url=${redirectFrontendUrl}`;
   const ipnUrl = `${config.backend_url}/api/v1/payments/ipn`;
 
   // SSLCommerz payment data structure

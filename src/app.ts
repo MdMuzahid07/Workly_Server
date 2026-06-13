@@ -17,11 +17,16 @@ app.use(passport.initialize());
 app.use(
   cors({
     origin: (origin, callback) => {
+      // Allow all origins in development
+      if (config.environment !== "production") {
+        return callback(null, true);
+      }
+
       // Allow requests with no origin or literal "null" (like cross-origin form POST redirects)
       if (!origin || origin === "null") return callback(null, true);
 
       // Allow SSLCommerz callback origins
-      if (origin.includes("sslcommerz.com")) {
+      if (origin && origin.includes("sslcommerz.com")) {
         return callback(null, true);
       }
 
