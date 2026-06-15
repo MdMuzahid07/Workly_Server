@@ -2,6 +2,7 @@ import express from "express";
 import { UserRole } from "../../../generated/prisma/index.js";
 import authValidator from "../../middleware/authValidator.js";
 import requestValidator from "../../middleware/requestValidator.js";
+import { requireEntitlement } from "../../middleware/requireEntitlement.js";
 import jobController from "./job.controller.js";
 import jobValidation from "./job.validation.js";
 
@@ -11,6 +12,7 @@ router
   .post(
     "/create",
     authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+    requireEntitlement("maxActiveJobs"),
     requestValidator(jobValidation.createJob),
     jobController.createJob,
   )

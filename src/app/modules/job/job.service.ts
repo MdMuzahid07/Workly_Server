@@ -4,6 +4,7 @@ import factoryFunctions from "../../../utils/FactoryFunctionsWithFilterEngine.js
 import generateUniqueSlug from "../../../utils/generateUniqueSlug.js";
 import prisma from "../../../utils/prismaClient.js";
 import AppError from "../../error/AppError.js";
+import { EntitlementService } from "../../../services/entitlement.service.js";
 
 //* ============ helper functions ============>
 
@@ -193,6 +194,8 @@ const createJob = async (userId: string, payload: Job & { skillsRequired: JobSki
 
     return updatedJob;
   });
+
+  await EntitlementService.incrementUsage(userId, "jobsPosted");
 
   return result;
 };

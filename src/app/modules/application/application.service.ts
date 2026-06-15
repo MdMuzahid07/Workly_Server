@@ -6,6 +6,7 @@ import factoryFunctions from "../../../utils/FactoryFunctionsWithFilterEngine.js
 import prisma from "../../../utils/prismaClient.js";
 import AppError from "../../error/AppError.js";
 import notificationService from "../notification/notification.service.js";
+import { EntitlementService } from "../../../services/entitlement.service.js";
 
 const APPLICATION_STATUSES = [
   "SUBMITTED",
@@ -66,26 +67,6 @@ const createApplication = async (userId: string, payload: any) => {
 
   if (!user) {
     throw new AppError(httpStatus.BAD_REQUEST, "User not found or inactive");
-  }
-
-  // Monthly application limit for free job seekers (Premium users have no limit)
-  if (!user.isPremium && user.role === "JOB_SEEKER") {
-    const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    const monthlyApplicationCount = await prisma.application.count({
-      where: {
-        applicantId: userId,
-        createdAt: {
-          gte: monthStart,
-        },
-      },
-    });
-
-    if (monthlyApplicationCount >= 30) {
-      throw new AppError(
-        httpStatus.FORBIDDEN,
-        "Monthly application limit reached (30/month). Upgrade to Premium to apply for unlimited jobs and fast-track your career!",
-      );
-    }
   }
 
   const job = await prisma.job.findUnique({
@@ -207,6 +188,8 @@ const createApplication = async (userId: string, payload: any) => {
         console.error("Failed to create application received notification:", err);
       });
   }
+
+  await EntitlementService.incrementUsage(userId, "applicationsSubmitted");
 
   return result;
 };

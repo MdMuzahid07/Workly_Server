@@ -2,6 +2,7 @@ import express from "express";
 import { UserRole } from "../../../generated/prisma/index.js";
 import authValidator from "../../middleware/authValidator.js";
 import requestValidator from "../../middleware/requestValidator.js";
+import { requireEntitlement } from "../../middleware/requireEntitlement.js";
 import applicationController from "./application.controller.js";
 import applicationValidation from "./application.validation.js";
 
@@ -10,6 +11,7 @@ const router = express.Router();
 router.post(
   "/create",
   authValidator(UserRole.JOB_SEEKER, UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  requireEntitlement("maxMonthlyApplications"),
   requestValidator(applicationValidation.createApplication),
   applicationController.createApplication,
 );

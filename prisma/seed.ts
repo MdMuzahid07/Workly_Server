@@ -47,6 +47,8 @@ const seedDatabase = async () => {
     await prisma.rateLimit.deleteMany();
     await prisma.legalDocument.deleteMany();
     await prisma.systemSettings.deleteMany();
+    await prisma.userSubscription.deleteMany();
+    await prisma.usageCounter.deleteMany();
 
     // Break user -> profile circular dependency before deleting
     await prisma.user.updateMany({ data: { profileId: null } });
@@ -55,236 +57,148 @@ const seedDatabase = async () => {
     await prisma.plan.deleteMany();
     console.log("✨ Database reset complete!");
 
-    // ======= 2. Seed Subscription Plans (20 Plans) =======
-    console.log("💳 Seeding 20 subscription plans...");
+    // ======= 2. Seed Subscription Plans (6 Plans) =======
+    console.log("💳 Seeding subscription plans...");
     const plansData = [
-      // Employer plans (10)
+      // Employer plans
       {
-        name: "emp_free",
-        description: "Get started with professional local recruiting at zero cost.",
+        name: "Free",
+        planType: "EMPLOYER" as const,
+        description: "Standard local recruiting package at zero cost.",
         price: 0.0,
         currency: "BDT",
         interval: "month",
-        features: ["1 Active Job Listing", "Basic Recruiting Tools"],
+        features: {
+          maxActiveJobs: 1,
+          maxUsers: 1,
+          maxMonthlyApplications: 0,
+          maxResumes: 0,
+          canMessage: false,
+          canViewAnalytics: false,
+          canViewProfileAnalytics: false,
+          isFeaturedProfile: false,
+          canMessageEmployer: false,
+        },
         maxActiveJobs: 1,
         maxUsers: 1,
         isActive: true,
       },
       {
-        name: "emp_starter",
-        description: "Best for growing teams and focused local recruiting campaigns.",
-        price: 4999.0,
+        name: "Growth",
+        planType: "EMPLOYER" as const,
+        description: "Best for growing teams and active recruitment campaigns.",
+        price: 7999.0,
         currency: "BDT",
         interval: "month",
-        features: ["5 Active Job Listings", "Priority Support"],
-        maxActiveJobs: 5,
-        maxUsers: 2,
-        isActive: true,
-      },
-      {
-        name: "emp_pro",
-        description: "The ultimate recruiting solution with high discount rates.",
-        price: 14999.0,
-        currency: "BDT",
-        interval: "month",
-        features: ["15 Active Job Listings", "Featured Postings Badge"],
-        maxActiveJobs: 15,
-        maxUsers: 5,
-        isActive: true,
-      },
-      {
-        name: "emp_enterprise",
-        description: "Customizable plan for enterprise level corporations.",
-        price: 49999.0,
-        currency: "BDT",
-        interval: "month",
-        features: ["Unlimited Jobs", "Dedicated Account Manager"],
-        maxActiveJobs: 999,
-        maxUsers: 20,
-        isActive: true,
-      },
-      {
-        name: "emp_ultimate",
-        description: "Elite recruiting for multinational corporate groups.",
-        price: 99999.0,
-        currency: "BDT",
-        interval: "month",
-        features: ["Unlimited Jobs", "Global Talent Pool Access"],
-        maxActiveJobs: 9999,
-        maxUsers: 100,
-        isActive: true,
-      },
-      {
-        name: "emp_growth",
-        description: "Perfect for mid-size scaling startups.",
-        price: 9999.0,
-        currency: "BDT",
-        interval: "month",
-        features: ["10 Active Job Listings", "Custom Filters"],
+        features: {
+          maxActiveJobs: 10,
+          maxUsers: 4,
+          maxMonthlyApplications: 0,
+          maxResumes: 0,
+          canMessage: true,
+          canViewAnalytics: true,
+          canViewProfileAnalytics: false,
+          isFeaturedProfile: false,
+          canMessageEmployer: false,
+        },
         maxActiveJobs: 10,
         maxUsers: 4,
         isActive: true,
       },
       {
-        name: "emp_scaling",
-        description: "Accelerate your hiring cadence with automation.",
+        name: "Enterprise",
+        planType: "EMPLOYER" as const,
+        description: "Unlimited options and custom solutions for large corporate teams.",
         price: 24999.0,
         currency: "BDT",
         interval: "month",
-        features: ["25 Active Job Listings", "Applicant Tracking Integration"],
-        maxActiveJobs: 25,
-        maxUsers: 10,
-        isActive: true,
-      },
-      {
-        name: "emp_premium",
-        description: "All-in-one recruiting pack with standard API access.",
-        price: 34999.0,
-        currency: "BDT",
-        interval: "month",
-        features: ["50 Active Job Listings", "Dedicated support"],
-        maxActiveJobs: 50,
-        maxUsers: 15,
-        isActive: true,
-      },
-      {
-        name: "emp_custom",
-        description: "Tailored limits and support structures.",
-        price: 74999.0,
-        currency: "BDT",
-        interval: "month",
-        features: ["Custom Limits", "Custom Billing"],
-        maxActiveJobs: 500,
-        maxUsers: 50,
-        isActive: true,
-      },
-      {
-        name: "emp_global",
-        description: "For international recruiters seeking cross-border hiring.",
-        price: 124999.0,
-        currency: "BDT",
-        interval: "month",
-        features: ["Cross-border listings", "AI Sourcing Assistant"],
-        maxActiveJobs: 9999,
-        maxUsers: 200,
-        isActive: true,
-      },
-      // Candidate plans (10)
-      {
-        name: "cand_free",
-        description: "Standard job search and profile builder for everyday candidates.",
-        price: 0.0,
-        currency: "BDT",
-        interval: "month",
-        features: ["Up to 40 Job Applications/mo", "Single Resume Upload"],
-        maxActiveJobs: 40,
-        maxUsers: 1,
-        isActive: true,
-      },
-      {
-        name: "cand_pro",
-        description: "Perfect for active job seekers looking for profile boosts.",
-        price: 199.0,
-        currency: "BDT",
-        interval: "month",
-        features: ["Up to 120 Job Applications/mo", "Who Viewed My Profile"],
-        maxActiveJobs: 120,
-        maxUsers: 5,
-        isActive: true,
-      },
-      {
-        name: "cand_elite",
-        description: "Complete career acceleration package including mock interviews.",
-        price: 499.0,
-        currency: "BDT",
-        interval: "month",
-        features: ["Unlimited Applications", "1-on-1 Monthly Counseling"],
+        features: {
+          maxActiveJobs: 9999,
+          maxUsers: 9999,
+          maxMonthlyApplications: 0,
+          maxResumes: 0,
+          canMessage: true,
+          canViewAnalytics: true,
+          canViewProfileAnalytics: false,
+          isFeaturedProfile: false,
+          canMessageEmployer: false,
+        },
         maxActiveJobs: 9999,
         maxUsers: 9999,
         isActive: true,
       },
+      // Job Seeker plans
       {
-        name: "cand_bronze",
-        description: "Slight boost to application limits at minimal cost.",
-        price: 99.0,
+        name: "Free",
+        planType: "JOB_SEEKER" as const,
+        description: "Basic job search and profile builder for seekers.",
+        price: 0.0,
         currency: "BDT",
         interval: "month",
-        features: ["60 Job Applications/mo", "2 Resumes Uploads"],
-        maxActiveJobs: 60,
-        maxUsers: 2,
+        features: {
+          maxActiveJobs: 0,
+          maxUsers: 0,
+          maxMonthlyApplications: 40,
+          maxResumes: 1,
+          canMessage: false,
+          canViewAnalytics: false,
+          canViewProfileAnalytics: false,
+          isFeaturedProfile: false,
+          canMessageEmployer: false,
+        },
+        maxActiveJobs: 0,
+        maxUsers: 0,
         isActive: true,
       },
       {
-        name: "cand_silver",
-        description: "Standard premium package for active seekers.",
-        price: 149.0,
-        currency: "BDT",
-        interval: "month",
-        features: ["80 Job Applications/mo", "3 Resumes Uploads"],
-        maxActiveJobs: 80,
-        maxUsers: 3,
-        isActive: true,
-      },
-      {
-        name: "cand_gold",
-        description: "Advanced career promotion and custom cover styling.",
-        price: 299.0,
-        currency: "BDT",
-        interval: "month",
-        features: ["150 Job Applications/mo", "Featured Candidate Tag"],
-        maxActiveJobs: 150,
-        maxUsers: 10,
-        isActive: true,
-      },
-      {
-        name: "cand_platinum",
-        description: "Top priority application placement in HR dashboards.",
+        name: "Pro",
+        planType: "JOB_SEEKER" as const,
+        description: "Accelerate your career search with higher limits and messaging.",
         price: 399.0,
         currency: "BDT",
         interval: "month",
-        features: ["200 Job Applications/mo", "Top-tier placement"],
-        maxActiveJobs: 200,
-        maxUsers: 15,
+        features: {
+          maxActiveJobs: 0,
+          maxUsers: 0,
+          maxMonthlyApplications: 120,
+          maxResumes: 5,
+          canMessage: false,
+          canViewAnalytics: false,
+          canViewProfileAnalytics: true,
+          isFeaturedProfile: false,
+          canMessageEmployer: true,
+        },
+        maxActiveJobs: 0,
+        maxUsers: 0,
         isActive: true,
       },
       {
-        name: "cand_vip",
-        description: "VIP direct contact lines to verified company recruiters.",
-        price: 599.0,
-        currency: "BDT",
-        interval: "month",
-        features: ["Unlimited Applications", "Direct Messaging to HRs"],
-        maxActiveJobs: 9999,
-        maxUsers: 20,
-        isActive: true,
-      },
-      {
-        name: "cand_career_plus",
-        description: "Personal career consultant review of resume profiles.",
-        price: 799.0,
-        currency: "BDT",
-        interval: "month",
-        features: ["Resume Optimization Service", "Mock Interviews"],
-        maxActiveJobs: 9999,
-        maxUsers: 30,
-        isActive: true,
-      },
-      {
-        name: "cand_job_seeker_max",
-        description: "Maximum visibility and career acceleration service.",
+        name: "Premium",
+        planType: "JOB_SEEKER" as const,
+        description: "The ultimate package with maximum visibility and unlimited features.",
         price: 999.0,
         currency: "BDT",
         interval: "month",
-        features: ["All Features Unlocked", "Guaranteed HR referrals"],
-        maxActiveJobs: 9999,
-        maxUsers: 50,
+        features: {
+          maxActiveJobs: 0,
+          maxUsers: 0,
+          maxMonthlyApplications: 9999,
+          maxResumes: 9999,
+          canMessage: false,
+          canViewAnalytics: false,
+          canViewProfileAnalytics: true,
+          isFeaturedProfile: true,
+          canMessageEmployer: true,
+        },
+        maxActiveJobs: 0,
+        maxUsers: 0,
         isActive: true,
       },
     ];
 
     const plans: Record<string, any> = {};
     for (const p of plansData) {
-      plans[p.name] = await prisma.plan.create({ data: p });
+      plans[`${p.planType}_${p.name}`] = await prisma.plan.create({ data: p });
     }
     console.log(`✅ Seeded ${Object.keys(plans).length} plans successfully.`);
 
@@ -817,6 +731,20 @@ const seedDatabase = async () => {
         },
       });
 
+      if (role === "JOB_SEEKER") {
+        const planName = isPremium ? (Math.random() > 0.5 ? "Premium" : "Pro") : "Free";
+        const seekerPlan = plans[`JOB_SEEKER_${planName}`];
+        await prisma.userSubscription.create({
+          data: {
+            userId: user.id,
+            planId: seekerPlan.id,
+            status: "ACTIVE",
+            startDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+            endDate: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000),
+          },
+        });
+      }
+
       users[email] = user;
       profiles[email] = updatedProfile;
     };
@@ -1076,6 +1004,14 @@ const seedDatabase = async () => {
     ];
 
     const companies: Record<string, any> = {};
+    const planMapping: Record<string, string> = {
+      emp_free: "Free",
+      emp_starter: "Growth",
+      emp_growth: "Growth",
+      emp_pro: "Growth",
+      emp_enterprise: "Enterprise",
+      emp_ultimate: "Enterprise",
+    };
 
     for (const c of companiesData) {
       const owner = users[c.ownerEmail];
@@ -1111,7 +1047,8 @@ const seedDatabase = async () => {
         },
       });
 
-      const plan = plans[c.planName];
+      const mappedName = planMapping[c.planName] || "Free";
+      const plan = plans[`EMPLOYER_${mappedName}`];
       await prisma.subscription.create({
         data: {
           companyId: company.id,
@@ -1167,7 +1104,7 @@ const seedDatabase = async () => {
             currency: "BDT",
             status: "VALIDATED",
             category: "EMPLOYER_PLAN",
-            planId: "emp_starter",
+            planId: plans["EMPLOYER_Growth"].id,
             bankTranId: `BANK-TX-${2000 + idx}`,
             cardType: "VISA",
             storeAmount: 4999.0,
