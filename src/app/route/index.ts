@@ -22,6 +22,7 @@ import { messageRoutes } from "../modules/message/message.route.js";
 import paymentRoute from "../modules/payment/payment.route.js";
 import planRoute from "../modules/plan/plan.route.js";
 import subscriptionRoute from "../modules/subscription/subscription.route.js";
+import statisticsRoute from "../modules/statistics/statistics.route.js";
 
 const router = express.Router();
 
@@ -117,6 +118,10 @@ const routeConfigs = [
   {
     path: "/subscriptions",
     route: subscriptionRoute,
+  },
+  {
+    path: "/statistics",
+    route: statisticsRoute,
   },
 ];
 
