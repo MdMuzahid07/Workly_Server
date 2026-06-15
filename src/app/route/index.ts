@@ -21,6 +21,7 @@ import legalRoute from "../modules/legal/legal.route.js";
 import { messageRoutes } from "../modules/message/message.route.js";
 import paymentRoute from "../modules/payment/payment.route.js";
 import planRoute from "../modules/plan/plan.route.js";
+import subscriptionRoute from "../modules/subscription/subscription.route.js";
 
 const router = express.Router();
 
@@ -112,6 +113,10 @@ const routeConfigs = [
   {
     path: "/plans",
     route: planRoute,
+  },
+  {
+    path: "/subscriptions",
+    route: subscriptionRoute,
   },
 ];
 

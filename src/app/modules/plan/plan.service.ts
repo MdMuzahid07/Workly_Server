@@ -1,105 +1,140 @@
 import prisma from "../../../utils/prismaClient.js";
+import { PlanType } from "../../../generated/prisma/index.js";
 
 // Standard plans data matching frontend constants/pricing.ts
 const SEED_PLANS = [
+  // Employer plans
   {
-    name: "emp_free",
-    description: "Get started with professional local recruiting at zero cost.",
+    name: "Free",
+    planType: PlanType.EMPLOYER,
+    description: "Standard local recruiting package at zero cost.",
     price: 0.0,
     currency: "BDT",
     interval: "month",
-    features: [
-      "1 Active Job Listing",
-      "Basic Recruiting Tools",
-      "Standard Resume Search",
-      "Email Support",
-    ],
+    features: {
+      maxActiveJobs: 1,
+      maxUsers: 1,
+      maxMonthlyApplications: 0,
+      maxResumes: 0,
+      canMessage: false,
+      canViewAnalytics: false,
+      canViewProfileAnalytics: false,
+      isFeaturedProfile: false,
+      canMessageEmployer: false,
+    },
     maxActiveJobs: 1,
     maxUsers: 1,
     isActive: true,
   },
   {
-    name: "emp_starter",
-    description: "Best for growing teams and focused local recruiting campaigns.",
-    price: 4999.0,
+    name: "Growth",
+    planType: PlanType.EMPLOYER,
+    description: "Best for growing teams and active recruitment campaigns.",
+    price: 7999.0,
     currency: "BDT",
     interval: "month",
-    features: [
-      "5 Active Job Listings",
-      "Priority Support",
-      "Instant Candidate Alerts",
-      "Advanced Applicant Filters",
-    ],
-    maxActiveJobs: 5,
-    maxUsers: 2,
+    features: {
+      maxActiveJobs: 10,
+      maxUsers: 4,
+      maxMonthlyApplications: 0,
+      maxResumes: 0,
+      canMessage: true,
+      canViewAnalytics: true,
+      canViewProfileAnalytics: false,
+      isFeaturedProfile: false,
+      canMessageEmployer: false,
+    },
+    maxActiveJobs: 10,
+    maxUsers: 4,
     isActive: true,
   },
   {
-    name: "emp_pro",
-    description: "The ultimate recruiting solution with high discount rates.",
-    price: 14999.0,
+    name: "Enterprise",
+    planType: PlanType.EMPLOYER,
+    description: "Unlimited options and custom solutions for large corporate teams.",
+    price: 24999.0,
     currency: "BDT",
     interval: "month",
-    features: [
-      "15 Active Job Listings",
-      "Featured Postings Badge",
-      "Full HR Pipeline Tool",
-      "1-on-1 Recruiting Counsel",
-    ],
-    maxActiveJobs: 15,
-    maxUsers: 5,
+    features: {
+      maxActiveJobs: 9999,
+      maxUsers: 9999,
+      maxMonthlyApplications: 0,
+      maxResumes: 0,
+      canMessage: true,
+      canViewAnalytics: true,
+      canViewProfileAnalytics: false,
+      isFeaturedProfile: false,
+      canMessageEmployer: false,
+    },
+    maxActiveJobs: 9999,
+    maxUsers: 9999,
     isActive: true,
   },
+  // Job Seeker plans
   {
-    name: "cand_free",
-    description: "Standard job search and profile builder for everyday candidates.",
+    name: "Free",
+    planType: PlanType.JOB_SEEKER,
+    description: "Basic job search and profile builder for seekers.",
     price: 0.0,
     currency: "BDT",
     interval: "month",
-    features: [
-      "Up to 40 Job Applications/mo",
-      "Single Resume Upload",
-      "Standard Profile Search",
-      "In-App Notifications",
-    ],
-    maxActiveJobs: 40,
-    maxUsers: 1,
+    features: {
+      maxActiveJobs: 0,
+      maxUsers: 0,
+      maxMonthlyApplications: 40,
+      maxResumes: 1,
+      canMessage: false,
+      canViewAnalytics: false,
+      canViewProfileAnalytics: false,
+      isFeaturedProfile: false,
+      canMessageEmployer: false,
+    },
+    maxActiveJobs: 0,
+    maxUsers: 0,
     isActive: true,
   },
   {
-    name: "cand_pro",
-    description:
-      "Perfect for active job seekers looking for profile boosts and direct HR connections.",
-    price: 199.0,
+    name: "Pro",
+    planType: PlanType.JOB_SEEKER,
+    description: "Accelerate your career search with higher limits and messaging.",
+    price: 399.0,
     currency: "BDT",
     interval: "month",
-    features: [
-      "Up to 120 Job Applications/mo",
-      "Multiple Resumes Uploads",
-      "Priority Profile Boost",
-      "Direct Messaging to HRs",
-      "Who Viewed My Profile Tracker",
-    ],
-    maxActiveJobs: 120,
-    maxUsers: 5,
+    features: {
+      maxActiveJobs: 0,
+      maxUsers: 0,
+      maxMonthlyApplications: 120,
+      maxResumes: 5,
+      canMessage: false,
+      canViewAnalytics: false,
+      canViewProfileAnalytics: true,
+      isFeaturedProfile: false,
+      canMessageEmployer: true,
+    },
+    maxActiveJobs: 0,
+    maxUsers: 0,
     isActive: true,
   },
   {
-    name: "cand_elite",
-    description:
-      "Complete career acceleration package including mock interviews and direct counseling.",
-    price: 499.0,
+    name: "Premium",
+    planType: PlanType.JOB_SEEKER,
+    description: "The ultimate package with maximum visibility and unlimited features.",
+    price: 999.0,
     currency: "BDT",
     interval: "month",
-    features: [
-      "Unlimited Job Applications",
-      "Unlimited Resume Uploads",
-      "5x Profile Featured Boost",
-      "1-on-1 Monthly Counseling",
-      "1 Mock Interview prep/mo",
-    ],
-    maxActiveJobs: 9999,
-    maxUsers: 9999,
+    features: {
+      maxActiveJobs: 0,
+      maxUsers: 0,
+      maxMonthlyApplications: 9999,
+      maxResumes: 9999,
+      canMessage: false,
+      canViewAnalytics: false,
+      canViewProfileAnalytics: true,
+      isFeaturedProfile: true,
+      canMessageEmployer: true,
+    },
+    maxActiveJobs: 0,
+    maxUsers: 0,
     isActive: true,
   },
 ];
@@ -112,14 +147,16 @@ const seedPlans = async () => {
       await prisma.plan.create({
         data: {
           name: plan.name,
+          planType: plan.planType,
           description: plan.description,
           price: plan.price,
           currency: plan.currency,
           interval: plan.interval,
-          features: plan.features,
+          features: plan.features as any,
           maxActiveJobs: plan.maxActiveJobs,
           maxUsers: plan.maxUsers,
           isActive: plan.isActive,
+          isCustom: false,
         },
       });
     }
@@ -135,11 +172,11 @@ const getPlans = async (query: any) => {
     where.isActive = query.isActive === "true";
   }
 
-  // Filter plans by name prefixes
+  // Filter plans by proper PlanType
   if (query.type === "employer") {
-    where.name = { startsWith: "emp_" };
-  } else if (query.type === "candidate") {
-    where.name = { startsWith: "cand_" };
+    where.planType = PlanType.EMPLOYER;
+  } else if (query.type === "candidate" || query.type === "seeker" || query.type === "job_seeker") {
+    where.planType = PlanType.JOB_SEEKER;
   }
 
   const plans = await prisma.plan.findMany({
@@ -151,10 +188,15 @@ const getPlans = async (query: any) => {
 };
 
 const createPlan = async (data: any) => {
-  const features = Array.isArray(data.features) ? data.features : JSON.parse(data.features || "[]");
+  let features = data.features;
+  if (typeof features === "string") {
+    features = JSON.parse(features);
+  }
+
   const plan = await prisma.plan.create({
     data: {
       name: data.name,
+      planType: data.planType || PlanType.JOB_SEEKER,
       description: data.description,
       price: Number(data.price),
       currency: data.currency || "BDT",
@@ -163,6 +205,8 @@ const createPlan = async (data: any) => {
       maxActiveJobs: data.maxActiveJobs ? Number(data.maxActiveJobs) : null,
       maxUsers: data.maxUsers ? Number(data.maxUsers) : null,
       isActive: data.isActive !== undefined ? data.isActive : true,
+      isCustom: data.isCustom !== undefined ? data.isCustom : false,
+      createdByAdminId: data.createdByAdminId || null,
     },
   });
   return plan;
@@ -172,6 +216,7 @@ const updatePlan = async (id: string, data: any) => {
   const updateData: any = {};
 
   if (data.name !== undefined) updateData.name = data.name;
+  if (data.planType !== undefined) updateData.planType = data.planType;
   if (data.description !== undefined) updateData.description = data.description;
   if (data.price !== undefined) updateData.price = Number(data.price);
   if (data.currency !== undefined) updateData.currency = data.currency;
@@ -182,9 +227,8 @@ const updatePlan = async (id: string, data: any) => {
   if (data.maxUsers !== undefined)
     updateData.maxUsers = data.maxUsers ? Number(data.maxUsers) : null;
   if (data.features !== undefined) {
-    updateData.features = Array.isArray(data.features)
-      ? data.features
-      : JSON.parse(data.features || "[]");
+    updateData.features =
+      typeof data.features === "string" ? JSON.parse(data.features) : data.features;
   }
 
   const plan = await prisma.plan.update({

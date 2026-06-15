@@ -2,6 +2,7 @@ import express from "express";
 import { UserRole } from "../../../generated/prisma/index.js";
 import authValidator from "../../middleware/authValidator.js";
 import requestValidator from "../../middleware/requestValidator.js";
+import { requireEntitlement } from "../../middleware/requireEntitlement.js";
 import resumeController from "./resume.controller.js";
 import resumeValidation from "./resume.validation.js";
 import upload from "../../../config/multer.config.js";
@@ -19,6 +20,7 @@ router.get(
 router.post(
   "/resumes",
   authValidator(UserRole.JOB_SEEKER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  requireEntitlement("maxResumes"),
   upload.single("file"),
   requestValidator(resumeValidation.uploadResume),
   resumeController.uploadResume,

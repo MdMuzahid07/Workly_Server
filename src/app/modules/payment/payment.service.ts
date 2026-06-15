@@ -8,9 +8,11 @@ import {
   PaymentCategory,
   PaymentStatus,
   SubscriptionStatus,
+  PlanType,
 } from "../../../generated/prisma/index.js";
 import { InitiatePaymentPayload } from "./payment.interface.js";
 import notificationService from "../notification/notification.service.js";
+import { EntitlementService } from "../../../services/entitlement.service.js";
 
 // Initialize SSLCommerz instance
 const sslcz = new SSLCommerzPayment(
@@ -277,53 +279,37 @@ const validatePayment = async (tranId: string, valId: string, payload: any) => {
       }
 
       // Ensure Plan exists in database
+      const mappedPlanName =
+        transaction.planId === "emp_starter" || transaction.planId === "emp_pro"
+          ? "Growth"
+          : transaction.planId === "emp_enterprise" || transaction.planId === "emp_ultimate"
+            ? "Enterprise"
+            : transaction.planId;
       let dbPlan = await tx.plan.findUnique({
-        where: { name: transaction.planId },
+        where: {
+          name_planType: {
+            name: mappedPlanName,
+            planType: PlanType.EMPLOYER,
+          },
+        },
       });
 
       if (!dbPlan) {
-        const plans = {
-          free: { maxActiveJobs: 1, maxUsers: 1 },
-          starter: { maxActiveJobs: 5, maxUsers: 2 },
-          pro: { maxActiveJobs: 15, maxUsers: 5 },
-          enterprise: { maxActiveJobs: 9999, maxUsers: 9999 },
-          emp_free: { maxActiveJobs: 1, maxUsers: 1 },
-          emp_starter: { maxActiveJobs: 5, maxUsers: 2 },
-          emp_pro: { maxActiveJobs: 15, maxUsers: 5 },
-        };
-
-        const planName = transaction.planId as keyof typeof plans;
-        const planConfig = plans[planName] || { maxActiveJobs: 1, maxUsers: 1 };
-
-        dbPlan = await tx.plan.create({
-          data: {
-            name: transaction.planId,
-            description: `${transaction.planId} plan`,
-            price: transaction.amount,
-            currency: transaction.currency,
-            features: planConfig.maxActiveJobs
-              ? [
-                  `${planConfig.maxActiveJobs} Active Job Listings`,
-                  `Up to ${planConfig.maxUsers} Users`,
-                ]
-              : [],
-            maxActiveJobs: planConfig.maxActiveJobs,
-            maxUsers: planConfig.maxUsers,
-          },
-        });
+        throw new AppError(httpStatus.NOT_FOUND, `Plan '${mappedPlanName}' not found in database.`);
       }
 
       const subscriptionStart = new Date();
       const subscriptionEnd = new Date();
       subscriptionEnd.setDate(subscriptionEnd.getDate() + 30); // 30-day billing cycle
 
-      await tx.subscription.upsert({
+      const subscription = await tx.subscription.upsert({
         where: { companyId: transaction.companyId },
         update: {
           planId: dbPlan.id,
           status: SubscriptionStatus.ACTIVE,
           startDate: subscriptionStart,
           endDate: subscriptionEnd,
+          cancelAtPeriodEnd: false,
         },
         create: {
           companyId: transaction.companyId,
@@ -331,6 +317,20 @@ const validatePayment = async (tranId: string, valId: string, payload: any) => {
           status: SubscriptionStatus.ACTIVE,
           startDate: subscriptionStart,
           endDate: subscriptionEnd,
+          cancelAtPeriodEnd: false,
+        },
+      });
+
+      // Create Invoice
+      await tx.invoice.create({
+        data: {
+          companyId: transaction.companyId,
+          subscriptionId: subscription.id,
+          invoiceNumber: `INV-${transaction.tranId}`,
+          amount: transaction.amount,
+          currency: transaction.currency,
+          status: "PAID",
+          paidAt: new Date(),
         },
       });
 
@@ -340,6 +340,61 @@ const validatePayment = async (tranId: string, valId: string, payload: any) => {
         data: { isPremium: true },
       });
     } else if (transaction.category === PaymentCategory.SEEKER_PREMIUM) {
+      // Ensure Plan exists in database
+      const mappedPlanName =
+        transaction.planId === "cand_pro"
+          ? "Pro"
+          : transaction.planId === "cand_elite" || transaction.planId === "cand_job_seeker_max"
+            ? "Premium"
+            : transaction.planId;
+      let dbPlan = await tx.plan.findUnique({
+        where: {
+          name_planType: {
+            name: mappedPlanName,
+            planType: PlanType.JOB_SEEKER,
+          },
+        },
+      });
+
+      if (!dbPlan) {
+        throw new AppError(httpStatus.NOT_FOUND, `Plan '${mappedPlanName}' not found in database.`);
+      }
+
+      const subscriptionStart = new Date();
+      const subscriptionEnd = new Date();
+      subscriptionEnd.setDate(subscriptionEnd.getDate() + 30); // 30-day billing cycle
+
+      const userSub = await tx.userSubscription.upsert({
+        where: { userId: transaction.userId },
+        update: {
+          planId: dbPlan.id,
+          status: SubscriptionStatus.ACTIVE,
+          startDate: subscriptionStart,
+          endDate: subscriptionEnd,
+          cancelAtPeriodEnd: false,
+        },
+        create: {
+          userId: transaction.userId,
+          planId: dbPlan.id,
+          status: SubscriptionStatus.ACTIVE,
+          startDate: subscriptionStart,
+          endDate: subscriptionEnd,
+          cancelAtPeriodEnd: false,
+        },
+      });
+
+      // Create Invoice
+      await tx.invoice.create({
+        data: {
+          userSubscriptionId: userSub.id,
+          invoiceNumber: `INV-SEEKER-${transaction.tranId}`,
+          amount: transaction.amount,
+          currency: transaction.currency,
+          status: "PAID",
+          paidAt: new Date(),
+        },
+      });
+
       // Job Seeker Upgrade
       await tx.user.update({
         where: { id: transaction.userId },
@@ -372,6 +427,9 @@ const validatePayment = async (tranId: string, valId: string, payload: any) => {
       console.error("Failed to send post-payment notification:", error);
     }
   }
+
+  // Invalidate entitlement cache
+  EntitlementService.invalidateCache(transaction.userId);
 
   return updatedTransaction;
 };

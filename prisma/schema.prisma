@@ -90,6 +90,11 @@ enum SubscriptionStatus {
   TRIALING
 }
 
+enum PlanType {
+  EMPLOYER
+  JOB_SEEKER
+}
+
 enum InvoiceStatus {
   PAID
   UNPAID
@@ -132,26 +137,28 @@ model User {
   updatedAt         DateTime          @default(now()) @updatedAt
 
   //* ==== relations =====>
-  applications       Application[]
-  jobsPosted         Job[]                     @relation("JobPoster")
-  notifications      Notification[]
-  savedJobs          SavedJob[]
-  company            Company?                  @relation(fields: [companyId], references: [id])
-  profile            Profile?                  @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  verificationTokens VerificationToken[]
-  conversations      ConversationParticipant[]
-  profileViews       ProfileView[]             @relation("ViewedUser")
-  profileViewers     ProfileView[]             @relation("ViewerUser")
-  jobViews           JobView[]
-  followedCompanies  Follow[]
-  resumes            Resume[]
-  candidateSaves     SavedCandidate[]          @relation("SavedByEmployers") // as candidate being saved
-  employerSaves      SavedCandidate[]          @relation("SavedCandidates") // as employer saving candidates
-  userSettings       UserSettings?
-  sentMessages       Message[]                 @relation("SenderMessages")
-  auditLogs          AuditLog[]
-  reports            JobReport[]
+  applications        Application[]
+  jobsPosted          Job[]                     @relation("JobPoster")
+  notifications       Notification[]
+  savedJobs           SavedJob[]
+  company             Company?                  @relation(fields: [companyId], references: [id])
+  profile             Profile?                  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  verificationTokens  VerificationToken[]
+  conversations       ConversationParticipant[]
+  profileViews        ProfileView[]             @relation("ViewedUser")
+  profileViewers      ProfileView[]             @relation("ViewerUser")
+  jobViews            JobView[]
+  followedCompanies   Follow[]
+  resumes             Resume[]
+  candidateSaves      SavedCandidate[]          @relation("SavedByEmployers") // as candidate being saved
+  employerSaves       SavedCandidate[]          @relation("SavedCandidates") // as employer saving candidates
+  userSettings        UserSettings?
+  sentMessages        Message[]                 @relation("SenderMessages")
+  auditLogs           AuditLog[]
+  reports             JobReport[]
   paymentTransactions PaymentTransaction[]
+  userSubscription    UserSubscription?
+  usageCounters       UsageCounter[]
 
   @@index([email, isActive])
   @@index([role, isActive])
@@ -340,16 +347,17 @@ model Company {
   updatedAt    DateTime  @updatedAt
   //* ==== relations ======>
 
-  benefits        Benefits[]
-  industry        Industry?        @relation(fields: [industryId], references: [id])
-  jobs            Job[]
-  socialLinks     SocialLink[]
-  employees       User[]
-  follows         Follow[]
-  subscription    Subscription?
-  invoices        Invoice[]
-  companySettings CompanySettings?
+  benefits            Benefits[]
+  industry            Industry?        @relation(fields: [industryId], references: [id])
+  jobs                Job[]
+  socialLinks         SocialLink[]
+  employees           User[]
+  follows             Follow[]
+  subscription        Subscription?
+  invoices            Invoice[]
+  companySettings     CompanySettings?
   paymentTransactions PaymentTransaction[]
+  usageCounters       UsageCounter[]
 
   @@index([slug])
   @@index([isVerified, deletedAt])
@@ -704,22 +712,28 @@ model Follow {
 //* ===== subscription & billing ======>
 
 model Plan {
-  id            String   @id @default(uuid())
-  name          String   @unique @db.VarChar(100)
-  description   String?
-  price         Float
-  currency      String   @default("USD")
-  interval      String   @default("month")
-  features      Json
-  maxActiveJobs Int?
-  maxUsers      Int?
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id               String   @id @default(uuid())
+  name             String   @db.VarChar(100)
+  planType         PlanType @default(JOB_SEEKER)
+  description      String?
+  price            Float
+  currency         String   @default("BDT")
+  interval         String   @default("month")
+  features         Json
+  maxActiveJobs    Int?
+  maxUsers         Int?
+  isActive         Boolean  @default(true)
+  isCustom         Boolean  @default(false)
+  createdByAdminId String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   //* ==== relations ======>
-  subscriptions Subscription[]
+  subscriptions     Subscription[]
+  userSubscriptions UserSubscription[]
 
+  @@unique([name, planType])
+  @@index([planType, isActive])
   @@map("plans")
 }
 
@@ -749,11 +763,12 @@ model Subscription {
 
 model Invoice {
   id              String        @id @default(uuid())
-  companyId       String
+  companyId       String? // nullable — seeker invoices have no companyId
   subscriptionId  String?
+  userSubscriptionId String?
   invoiceNumber   String        @unique
   amount          Float
-  currency        String        @default("USD")
+  currency        String        @default("BDT")
   status          InvoiceStatus @default(UNPAID)
   dueDate         DateTime?
   paidAt          DateTime?
@@ -763,8 +778,9 @@ model Invoice {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   //* ==== relations ======>
-  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  subscription    Subscription? @relation(fields: [subscriptionId], references: [id])
+  company          Company?          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  subscription     Subscription?     @relation(fields: [subscriptionId], references: [id])
+  userSubscription UserSubscription? @relation(fields: [userSubscriptionId], references: [id])
 
   @@index([companyId])
   @@index([status])
@@ -1086,4 +1102,46 @@ model PaymentTransaction {
   @@index([companyId])
   @@index([status])
   @@map("payment_transactions")
+}
+
+//* ===== user subscription (job seeker) =====>
+model UserSubscription {
+  id                String             @id @default(uuid())
+  userId            String             @unique
+  planId            String
+  status            SubscriptionStatus @default(ACTIVE)
+  startDate         DateTime
+  endDate           DateTime?
+  autoRenew         Boolean            @default(true)
+  cancelAtPeriodEnd Boolean            @default(false)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan     Plan      @relation(fields: [planId], references: [id])
+  invoices Invoice[]
+
+  @@index([status])
+  @@index([endDate])
+  @@map("user_subscriptions")
+}
+
+//* ===== usage counters (monthly tracking) =====>
+model UsageCounter {
+  id                    String   @id @default(uuid())
+  userId                String
+  companyId             String?
+  period                String // "YYYY-MM"
+  jobsPosted            Int      @default(0)
+  applicationsSubmitted Int      @default(0)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, period])
+  @@index([userId, period])
+  @@index([companyId, period])
+  @@map("usage_counters")
 }
