@@ -3,6 +3,7 @@ import AppError from "../../error/AppError.js";
 import factoryFunctions from "../../../utils/FactoryFunctionsWithFilterEngine.js";
 import { emitToUser } from "../../../socket/index.js";
 import prisma from "../../../utils/prismaClient.js";
+import { pushService } from "../../../services/push.service.js";
 import {
   sendNewApplicationEmail,
   sendApplicationStatusUpdateEmail,
@@ -193,6 +194,29 @@ const createNotification = async (payload: CreateNotificationInput) => {
   triggerEmailNotificationIfPremium(payload.userId, created.id).catch((err) => {
     console.error("Async error in triggerEmailNotificationIfPremium:", err);
   });
+
+  // Trigger push notification asynchronously to ensure non-blocking best practice
+  const pushData: Record<string, string> = {};
+  if (created.metadata && typeof created.metadata === "object") {
+    for (const [key, value] of Object.entries(created.metadata)) {
+      if (value !== null && value !== undefined) {
+        pushData[key] = typeof value === "object" ? JSON.stringify(value) : String(value);
+      }
+    }
+  }
+
+  pushService
+    .send({
+      userId: payload.userId,
+      notificationId: created.id,
+      type: created.type,
+      title: created.title,
+      body: created.message,
+      data: pushData,
+    })
+    .catch((err) => {
+      console.error("Async error in pushService.send:", err);
+    });
 
   return created;
 };

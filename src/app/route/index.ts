@@ -1,6 +1,7 @@
 import express from "express";
 import applicationRoute from "../modules/application/application.route.js";
 import authRoute from "../modules/auth/auth.route.js";
+import userRoute from "../modules/user/user.route.js";
 import categoryRoute from "../modules/category/category.route.js";
 import companyRoute from "../modules/company/company.route.js";
 import educationRoute from "../modules/education/education.route.js";
@@ -30,6 +31,10 @@ const routeConfigs = [
   {
     path: "/auth",
     route: authRoute,
+  },
+  {
+    path: "/users",
+    route: userRoute,
   },
   {
     path: "/profile",

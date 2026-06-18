@@ -137,28 +137,30 @@ model User {
   updatedAt         DateTime          @default(now()) @updatedAt
 
   //* ==== relations =====>
-  applications        Application[]
-  jobsPosted          Job[]                     @relation("JobPoster")
-  notifications       Notification[]
-  savedJobs           SavedJob[]
-  company             Company?                  @relation(fields: [companyId], references: [id])
-  profile             Profile?                  @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  verificationTokens  VerificationToken[]
-  conversations       ConversationParticipant[]
-  profileViews        ProfileView[]             @relation("ViewedUser")
-  profileViewers      ProfileView[]             @relation("ViewerUser")
-  jobViews            JobView[]
-  followedCompanies   Follow[]
-  resumes             Resume[]
-  candidateSaves      SavedCandidate[]          @relation("SavedByEmployers") // as candidate being saved
-  employerSaves       SavedCandidate[]          @relation("SavedCandidates") // as employer saving candidates
-  userSettings        UserSettings?
-  sentMessages        Message[]                 @relation("SenderMessages")
-  auditLogs           AuditLog[]
-  reports             JobReport[]
-  paymentTransactions PaymentTransaction[]
-  userSubscription    UserSubscription?
-  usageCounters       UsageCounter[]
+  applications           Application[]
+  jobsPosted             Job[]                     @relation("JobPoster")
+  notifications          Notification[]
+  savedJobs              SavedJob[]
+  company                Company?                  @relation(fields: [companyId], references: [id])
+  profile                Profile?                  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  verificationTokens     VerificationToken[]
+  conversations          ConversationParticipant[]
+  profileViews           ProfileView[]             @relation("ViewedUser")
+  profileViewers         ProfileView[]             @relation("ViewerUser")
+  jobViews               JobView[]
+  followedCompanies      Follow[]
+  resumes                Resume[]
+  candidateSaves         SavedCandidate[]          @relation("SavedByEmployers") // as candidate being saved
+  employerSaves          SavedCandidate[]          @relation("SavedCandidates") // as employer saving candidates
+  userSettings           UserSettings?
+  sentMessages           Message[]                 @relation("SenderMessages")
+  auditLogs              AuditLog[]
+  reports                JobReport[]
+  paymentTransactions    PaymentTransaction[]
+  userSubscription       UserSubscription?
+  usageCounters          UsageCounter[]
+  pushTokens             PushToken[]
+  notificationPreference NotificationPreference?
 
   @@index([email, isActive])
   @@index([role, isActive])
@@ -348,7 +350,7 @@ model Company {
   //* ==== relations ======>
 
   benefits            Benefits[]
-  industry            Industry?        @relation(fields: [industryId], references: [id])
+  industry            Industry?            @relation(fields: [industryId], references: [id])
   jobs                Job[]
   socialLinks         SocialLink[]
   employees           User[]
@@ -762,25 +764,25 @@ model Subscription {
 }
 
 model Invoice {
-  id              String        @id @default(uuid())
-  companyId       String? // nullable — seeker invoices have no companyId
-  subscriptionId  String?
+  id                 String            @id @default(uuid())
+  companyId          String? // nullable — seeker invoices have no companyId
+  subscriptionId     String?
   userSubscriptionId String?
-  invoiceNumber   String        @unique
-  amount          Float
-  currency        String        @default("BDT")
-  status          InvoiceStatus @default(UNPAID)
-  dueDate         DateTime?
-  paidAt          DateTime?
-  pdfUrl          String?       @db.VarChar(500)
-  stripeInvoiceId String?       @unique
-  metadata        Json?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  invoiceNumber      String            @unique
+  amount             Float
+  currency           String            @default("BDT")
+  status             InvoiceStatus     @default(UNPAID)
+  dueDate            DateTime?
+  paidAt             DateTime?
+  pdfUrl             String?           @db.VarChar(500)
+  stripeInvoiceId    String?           @unique
+  metadata           Json?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
   //* ==== relations ======>
-  company          Company?          @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  subscription     Subscription?     @relation(fields: [subscriptionId], references: [id])
-  userSubscription UserSubscription? @relation(fields: [userSubscriptionId], references: [id])
+  company            Company?          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  subscription       Subscription?     @relation(fields: [subscriptionId], references: [id])
+  userSubscription   UserSubscription? @relation(fields: [userSubscriptionId], references: [id])
 
   @@index([companyId])
   @@index([status])
@@ -790,15 +792,15 @@ model Invoice {
 
 //* ====== company settings ======>
 model CompanySettings {
-  id                 String  @id @default(uuid())
-  companyId          String  @unique
-  emailNotifications Boolean @default(true)
-  applicationAlerts  Boolean @default(true)
-  jobExpiryReminders Boolean @default(true)
-  weeklyReports      Boolean @default(true)
+  id                  String  @id @default(uuid())
+  companyId           String  @unique
+  emailNotifications  Boolean @default(true)
+  applicationAlerts   Boolean @default(true)
+  jobExpiryReminders  Boolean @default(true)
+  weeklyReports       Boolean @default(true)
   //* ==== privacy ====>
-  profileVisibility  Boolean @default(true)
-  showEmployeeCount  Boolean @default(true)
+  profileVisibility   Boolean @default(true)
+  showEmployeeCount   Boolean @default(true)
   allowDirectMessages Boolean @default(true)
 
   createdAt DateTime @default(now())
@@ -834,16 +836,16 @@ model UserSettings {
 
 //* ===== resume management =====>
 model Resume {
-  id         String   @id @default(uuid())
+  id         String    @id @default(uuid())
   userId     String
-  fileName   String   @db.VarChar(255)
-  fileUrl    String   @db.VarChar(500)
+  fileName   String    @db.VarChar(255)
+  fileUrl    String    @db.VarChar(500)
   fileSize   Int? // in bytes
-  isDefault  Boolean  @default(false)
-  uploadDate DateTime @default(now())
+  isDefault  Boolean   @default(false)
+  uploadDate DateTime  @default(now())
   deletedAt  DateTime?
   //* ==== relations ======>
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([deletedAt])
@@ -904,16 +906,16 @@ model RateLimit {
 }
 
 model Address {
-  id         String   @id @default(uuid())
-  profileId  String   @unique
-  street     String?  @db.VarChar(255)
-  city       String?  @db.VarChar(100)
-  state      String?  @db.VarChar(100)
-  zipCode    String?  @db.VarChar(20)
-  country    String?  @db.VarChar(100)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  profile    Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  id        String   @id @default(uuid())
+  profileId String   @unique
+  street    String?  @db.VarChar(255)
+  city      String?  @db.VarChar(100)
+  state     String?  @db.VarChar(100)
+  zipCode   String?  @db.VarChar(20)
+  country   String?  @db.VarChar(100)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@map("addresses")
 }
@@ -968,30 +970,30 @@ model Publication {
 }
 
 model Reference {
-  id          String   @id @default(uuid())
-  profileId   String
-  name        String   @db.VarChar(255)
+  id           String   @id @default(uuid())
+  profileId    String
+  name         String   @db.VarChar(255)
   relationship String   @db.VarChar(255)
-  company     String?  @db.VarChar(255)
-  position    String?  @db.VarChar(255)
-  email       String?  @db.VarChar(255)
-  phone       String?  @db.VarChar(50)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  company      String?  @db.VarChar(255)
+  position     String?  @db.VarChar(255)
+  email        String?  @db.VarChar(255)
+  phone        String?  @db.VarChar(50)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  profile      Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@index([profileId])
   @@map("references")
 }
 
 model Language {
-  id         String   @id @default(uuid())
-  profileId  String
-  language   String   @db.VarChar(100)
+  id          String   @id @default(uuid())
+  profileId   String
+  language    String   @db.VarChar(100)
   proficiency String   @db.VarChar(50)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  profile    Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@index([profileId])
   @@map("languages")
@@ -1077,26 +1079,26 @@ enum PaymentCategory {
 }
 
 model PaymentTransaction {
-  id             String          @id @default(uuid())
-  tranId         String          @unique @db.VarChar(30)
-  valId          String?         @db.VarChar(100)
-  sessionKey     String?         @db.VarChar(255)
-  userId         String
-  companyId      String?
-  amount         Float
-  currency       String          @default("BDT") @db.VarChar(10)
-  status         PaymentStatus   @default(PENDING)
-  category       PaymentCategory
-  planId         String          @db.VarChar(100)
-  cardType       String?         @db.VarChar(100)
-  bankTranId     String?         @db.VarChar(100)
-  storeAmount    Float?
-  riskLevel      Int             @default(0)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  id          String          @id @default(uuid())
+  tranId      String          @unique @db.VarChar(30)
+  valId       String?         @db.VarChar(100)
+  sessionKey  String?         @db.VarChar(255)
+  userId      String
+  companyId   String?
+  amount      Float
+  currency    String          @default("BDT") @db.VarChar(10)
+  status      PaymentStatus   @default(PENDING)
+  category    PaymentCategory
+  planId      String          @db.VarChar(100)
+  cardType    String?         @db.VarChar(100)
+  bankTranId  String?         @db.VarChar(100)
+  storeAmount Float?
+  riskLevel   Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  company        Company?        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([companyId])
@@ -1145,3 +1147,59 @@ model UsageCounter {
   @@index([companyId, period])
   @@map("usage_counters")
 }
+
+//* ===== push notifications(mobile app - expo) =====>
+
+model PushToken {
+  id            String   @id @default(uuid())
+  userId        String
+  expoPushToken String   @unique
+  deviceToken   String?
+  platform      String
+  isActive      Boolean  @default(true)
+  lastSeenAt    DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+  @@index([expoPushToken])
+  @@map("push_tokens")
+}
+
+model PushReceipt {
+  id             String    @id @default(uuid())
+  ticketId       String    @unique
+  notificationId String
+  userId         String
+  pushToken      String
+  status         String    @default("pending")
+  errorCode      String?
+  checkedAt      DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([status, createdAt])
+  @@index([ticketId])
+  @@map("push_receipts")
+}
+
+model NotificationPreference {
+  id                  String   @id @default(uuid())
+  userId              String   @unique
+  applicationUpdates  Boolean  @default(true)
+  newMessages         Boolean  @default(true)
+  jobRecommendations  Boolean  @default(true)
+  jobAlerts           Boolean  @default(true)
+  interviewAlerts     Boolean  @default(true)
+  subscriptionAlerts  Boolean  @default(true)
+  systemAnnouncements Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+//* ===== push notifications(mobile app - expo) //////====>

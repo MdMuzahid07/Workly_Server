@@ -4,6 +4,7 @@ import config from "./config/index.js";
 import { initSocket } from "./socket/index.js";
 import prisma from "./utils/prismaClient.js";
 import bcrypt from "bcrypt";
+import { startPushReceiptJob } from "./jobs/push.receipt.job.js";
 
 const port = config.port || 5000;
 
@@ -82,6 +83,9 @@ async function main() {
   if (config.environment === "development") {
     await seedDevUsers();
   }
+
+  // Start push receipt check cron job
+  startPushReceiptJob();
 
   server.listen(Number(port), "0.0.0.0", () => {
     console.log(`Server running 🚀🚀 on => port  ${port}`);
