@@ -784,222 +784,442 @@ const seedDatabase = async () => {
       {
         name: "BrainStation IT",
         slug: "brainstation-it",
-        description: "BrainStation IT is a leading global software solutions provider.",
+        description:
+          "BrainStation IT is a leading global software solutions provider, specialized in enterprise application development, cloud solutions, and system integration. We partner with companies worldwide to build high-performance software products that drive digital transformation.",
         websiteUrl: "https://brainstation.it",
         location: "Dhaka, Bangladesh",
         size: "100-500 employees",
         ownerEmail: "mdmuzahid7396@gmail.com",
         industrySlug: "software-it",
         planName: "emp_pro",
+        mission:
+          "To empower businesses globally through innovative, scalable, and cutting-edge software solutions that simplify complex operational challenges.",
+        values: ["Innovation", "Collaboration", "Excellence"],
+        founded: "2014",
+        contactEmail: "careers@brainstation.it",
+        contactPhone: "+8801712345678",
+        logoUrl:
+          "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=128&h=128&auto=format&fit=crop",
+        coverUrl:
+          "https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=1000&h=400&auto=format&fit=crop",
       },
       {
         name: "LankaBangla Finance",
         slug: "lankabangla-finance",
-        description: "A premier financial institution providing investment broker services.",
+        description:
+          "LankaBangla Finance Limited is a premier financial services provider in Bangladesh. We offer a comprehensive suite of financial products, including corporate finance, retail finance, SME loans, stock broking, and wealth management solutions designed to secure financial growth.",
         websiteUrl: "https://lankabangla.com",
         location: "Chittagong, Bangladesh",
         size: "500-1000 employees",
         ownerEmail: "employer.finance@company.com",
         industrySlug: "financial-services",
         planName: "emp_starter",
+        mission:
+          "To be the most preferred financial services provider in Bangladesh, creating wealth and sustainable value for our customers, stakeholders, and community.",
+        values: ["Integrity", "Excellence", "Customer First"],
+        founded: "1997",
+        contactEmail: "careers@lankabangla.com",
+        contactPhone: "+8801722334455",
+        logoUrl:
+          "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?q=80&w=128&h=128&auto=format&fit=crop",
+        coverUrl:
+          "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1000&h=400&auto=format&fit=crop",
       },
       {
         name: "Arogga Healthcare",
         slug: "arogga-healthcare",
-        description: "Arogga is an online pharmacy delivery app.",
+        description:
+          "Arogga is Bangladesh's leading online pharmacy and healthcare platform. We make healthcare accessible and affordable by delivering genuine medicines, wellness products, and lab tests directly to customers' doorsteps through a state-of-the-art logistics network.",
         websiteUrl: "https://arogga.com",
         location: "Dhaka, Bangladesh",
         size: "50-100 employees",
         ownerEmail: "employer.health@company.com",
         industrySlug: "healthcare-biotech",
         planName: "emp_free",
+        mission:
+          "To make healthcare accessible, affordable, and trustworthy for every citizen in Bangladesh through modern delivery networks and digital convenience.",
+        values: ["Customer First", "Impact", "Collaboration"],
+        founded: "2020",
+        contactEmail: "hr@arogga.com",
+        contactPhone: "+8801733445566",
+        logoUrl:
+          "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?q=80&w=128&h=128&auto=format&fit=crop",
+        coverUrl:
+          "https://images.unsplash.com/photo-1497366811353-6870744d04b2?q=80&w=1000&h=400&auto=format&fit=crop",
       },
       {
         name: "10 Minute School",
         slug: "10-minute-school",
-        description: "The largest online school platform in Bangladesh.",
+        description:
+          "10 Minute School is the largest ed-tech platform in Bangladesh, offering comprehensive learning resources, live classes, skill development courses, and academic materials to millions of students daily. We bridge the educational gap by bringing quality learning online.",
         websiteUrl: "https://10minuteschool.com",
         location: "Dhaka, Bangladesh",
         size: "100-200 employees",
         ownerEmail: "employer.edu@company.com",
         industrySlug: "education-elearning",
         planName: "emp_starter",
+        mission:
+          "To democratize education in Bangladesh by providing high-quality, interactive, and affordable learning materials to every student, anywhere.",
+        values: ["Growth", "Collaboration", "Innovation"],
+        founded: "2015",
+        contactEmail: "join@10minuteschool.com",
+        contactPhone: "+8801744556677",
+        logoUrl:
+          "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?q=80&w=128&h=128&auto=format&fit=crop",
+        coverUrl:
+          "https://images.unsplash.com/photo-1524758631624-e2822e304c36?q=80&w=1000&h=400&auto=format&fit=crop",
       },
       {
         name: "Pathao Logistics",
         slug: "pathao-logistics",
-        description: "Pathao logistics coordinates fast delivery and ride-sharing operations.",
+        description:
+          "Pathao is the leading ride-sharing, food delivery, and e-commerce logistics platform in Bangladesh. We build crucial infrastructure for transport, food, and delivery services, empowering thousands of local freelance riders and merchants every single day.",
         websiteUrl: "https://pathao.com",
         location: "Dhaka, Bangladesh",
         size: "200-500 employees",
         ownerEmail: "employer.logistics@company.com",
         industrySlug: "logistics-supply-chain",
         planName: "emp_pro",
+        mission:
+          "To move Bangladesh forward by building the country's most efficient, reliable, and technology-driven transport and delivery network.",
+        values: ["Agility", "Customer First", "Impact"],
+        founded: "2015",
+        contactEmail: "recruiting@pathao.com",
+        contactPhone: "+8801755667788",
+        logoUrl:
+          "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=128&h=128&auto=format&fit=crop",
+        coverUrl:
+          "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=1000&h=400&auto=format&fit=crop",
       },
       {
         name: "Analyzen Digital",
         slug: "analyzen-digital",
-        description: "Analyzen is a data-driven creative marketing agency.",
+        description:
+          "Analyzen is the first digital agency in Bangladesh. We are a team of data-driven digital marketers, visual creators, and technologists who craft outstanding brand campaigns, interactive web solutions, and social media engagements for leading national and global brands.",
         websiteUrl: "https://analyzen.com",
         location: "Dhaka, Bangladesh",
         size: "50-100 employees",
         ownerEmail: "employer.marketing@company.com",
         industrySlug: "digital-marketing-agency",
         planName: "emp_starter",
+        mission:
+          "To transform digital brand engagements through innovative marketing insights, creative narratives, and state-of-the-art tech platforms.",
+        values: ["Innovation", "Growth", "Excellence"],
+        founded: "2008",
+        contactEmail: "hello@analyzen.com",
+        contactPhone: "+8801766778899",
+        logoUrl:
+          "https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=128&h=128&auto=format&fit=crop",
+        coverUrl:
+          "https://images.unsplash.com/photo-1542744094-3a31f103e35f?q=80&w=1000&h=400&auto=format&fit=crop",
       },
       {
         name: "Studio Dhaka",
         slug: "studio-dhaka",
-        description: "A top-tier design agency focusing on UI/UX mockups and animation grids.",
+        description:
+          "Studio Dhaka is a high-end design agency specializing in digital product design, UI/UX systems, brand identity, and motion animations. We collaborate with international clients to create sleek, modern, and engaging visual layouts that deliver memorable user experiences.",
         websiteUrl: "https://studiodhaka.com",
         location: "Dhaka, Bangladesh",
         size: "10-50 employees",
         ownerEmail: "employer.creative@company.com",
         industrySlug: "creative-arts-design",
         planName: "emp_free",
+        mission:
+          "To design premium digital identities, engaging user experiences, and award-winning products that stand out globally.",
+        values: ["Excellence", "Innovation", "Collaboration"],
+        founded: "2018",
+        contactEmail: "design@studiodhaka.com",
+        contactPhone: "+8801777889900",
+        logoUrl:
+          "https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?q=80&w=128&h=128&auto=format&fit=crop",
+        coverUrl:
+          "https://images.unsplash.com/photo-1457369804613-52c61a468e7d?q=80&w=1000&h=400&auto=format&fit=crop",
       },
       {
         name: "Grameenphone",
         slug: "grameenphone",
-        description: "The leading telecommunications service provider in Bangladesh.",
+        description:
+          "Grameenphone is the leading telecommunications service provider in Bangladesh. With millions of customers, we drive digital connectivity through high-speed internet, mobile financial services, and reliable corporate telecommunication infrastructures nationwide.",
         websiteUrl: "https://grameenphone.com",
         location: "Dhaka, Bangladesh",
         size: "1000+ employees",
         ownerEmail: "employer.telecom@company.com",
         industrySlug: "telecommunications",
         planName: "emp_pro",
+        mission:
+          "To connect people to what matters most, driving social empowerment and high-speed network reliability across the nation.",
+        values: ["Customer First", "Integrity", "Impact"],
+        founded: "1997",
+        contactEmail: "hr@grameenphone.com",
+        contactPhone: "+8801700112233",
+        logoUrl:
+          "https://images.unsplash.com/photo-1520333789090-1afc82db536a?q=80&w=128&h=128&auto=format&fit=crop",
+        coverUrl:
+          "https://images.unsplash.com/photo-1507537297725-24a1c029d3ca?q=80&w=1000&h=400&auto=format&fit=crop",
       },
       {
         name: "Chaldal Grocery",
         slug: "chaldal-grocery",
-        description: "An on-demand online grocery store service.",
+        description:
+          "Chaldal is Bangladesh's pioneer on-demand online grocery shop. We deliver daily essentials, fresh fruits, vegetables, and household cleaning supplies directly to households, providing an unmatched shopping experience through custom warehousing and technology.",
         websiteUrl: "https://chaldal.com",
         location: "Dhaka, Bangladesh",
         size: "200-500 employees",
         ownerEmail: "employer.ecommerce@company.com",
         industrySlug: "ecommerce-retail",
         planName: "emp_starter",
+        mission:
+          "To save time and money for our customers by delivering fresh groceries and essentials straight to their doors with zero hassle.",
+        values: ["Customer First", "Agility", "Excellence"],
+        founded: "2013",
+        contactEmail: "careers@chaldal.com",
+        contactPhone: "+8801711223344",
+        logoUrl:
+          "https://images.unsplash.com/photo-1472851294608-062f824d29cc?q=80&w=128&h=128&auto=format&fit=crop",
+        coverUrl:
+          "https://images.unsplash.com/photo-1557804506-669a67965ba0?q=80&w=1000&h=400&auto=format&fit=crop",
       },
       {
         name: "bti Development",
         slug: "bti-development",
-        description: "Building Technology & Ideas is a premier real estate construction group.",
+        description:
+          "Building Technology & Ideas Ltd. (bti) is a leading real estate developer in Bangladesh. Renowned for architectural excellence and on-time project deliveries, we construct luxury apartments, premium commercial spaces, and mixed-use complexes across Dhaka and Chittagong.",
         websiteUrl: "https://btibd.com",
         location: "Dhaka, Bangladesh",
         size: "100-500 employees",
         ownerEmail: "employer.tech@company.com",
         industrySlug: "construction-real-estate",
         planName: "emp_starter",
+        mission:
+          "To build engineering and ideas that set new standards in aesthetic residential and commercial architectures in Bangladesh.",
+        values: ["Excellence", "Integrity", "Collaboration"],
+        founded: "1984",
+        contactEmail: "jobs@btibd.com",
+        contactPhone: "+8801722334455",
+        logoUrl:
+          "https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=128&h=128&auto=format&fit=crop",
+        coverUrl:
+          "https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?q=80&w=1000&h=400&auto=format&fit=crop",
       },
       {
         name: "Apex Retail",
         slug: "apex-retail",
-        description: "Apex is the leading footwear manufacturer and retailer.",
+        description:
+          "Apex Footwear Limited is a premier shoemaker and lifestyle retailer. We manufacture premium leather shoes for local and international markets, operating over 250 retail stores across the country, committed to fashion, durability, and style.",
         websiteUrl: "https://apexfootwearltd.com",
         location: "Dhaka, Bangladesh",
         size: "1000+ employees",
         ownerEmail: "employer.retail@company.com",
         industrySlug: "ecommerce-retail",
         planName: "emp_starter",
+        mission:
+          "To deliver high-quality footwear and lifestyle fashion accessories that meet international design standards.",
+        values: ["Customer First", "Excellence", "Growth"],
+        founded: "1990",
+        contactEmail: "careers@apexfootwearltd.com",
+        contactPhone: "+8801733445566",
+        logoUrl:
+          "https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=128&h=128&auto=format&fit=crop",
+        coverUrl:
+          "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=1000&h=400&auto=format&fit=crop",
       },
       {
         name: "Boston Consulting",
         slug: "boston-consulting",
-        description: "Global management consulting firm advising local corporates.",
+        description:
+          "Boston Consulting Group (BCG) is a global management consulting firm and a world-leading advisor on business strategy. We partner with local companies, government ministries, and non-profits to identify high-value opportunities and drive organizational change.",
         websiteUrl: "https://bcg.com",
         location: "Dhaka, Bangladesh",
         size: "50-100 employees",
         ownerEmail: "employer.consulting@company.com",
         industrySlug: "human-resources-staffing",
         planName: "emp_enterprise",
+        mission:
+          "To partner with clients from all sectors to identify their highest-value opportunities, address their most critical challenges, and transform their enterprises.",
+        values: ["Impact", "Integrity", "Excellence"],
+        founded: "1963",
+        contactEmail: "dhaka.recruiting@bcg.com",
+        contactPhone: "+8801744556677",
+        logoUrl:
+          "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=128&h=128&auto=format&fit=crop",
+        coverUrl:
+          "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=1000&h=400&auto=format&fit=crop",
       },
       {
         name: "Somoy Media",
         slug: "somoy-media",
-        description: "Somoy TV is a 24-hour Bengali television channel.",
+        description:
+          "Somoy TV is the leading 24-hour news-oriented television channel in Bangladesh. Renowned for timely broadcast updates, investigate reporting, and interactive digital talk shows, we reach millions of viewers globally across TV and digital streams.",
         websiteUrl: "https://somoynews.tv",
         location: "Dhaka, Bangladesh",
         size: "200-500 employees",
         ownerEmail: "employer.media@company.com",
         industrySlug: "media-entertainment",
         planName: "emp_ultimate",
+        mission:
+          "To present authentic news, objective insights, and rich visual entertainment content that empowers citizens and protects democracy.",
+        values: ["Integrity", "Impact", "Collaboration"],
+        founded: "2010",
+        contactEmail: "news@somoynews.tv",
+        contactPhone: "+8801755667788",
+        logoUrl:
+          "https://images.unsplash.com/photo-1598257006458-087169a1f08d?q=80&w=128&h=128&auto=format&fit=crop",
+        coverUrl:
+          "https://images.unsplash.com/photo-1598257006458-087169a1f08d?q=80&w=1000&h=400&auto=format&fit=crop",
       },
       {
         name: "InterContinental Dhaka",
         slug: "intercontinental-dhaka",
-        description: "Luxury hotel offering international hospitality.",
+        description:
+          "InterContinental Dhaka is a luxury 5-star hotel offering international hospitality standards in the heart of the capital. We host state delegations, business corporate meetings, and international travelers, delivering premium accommodations and dining experiences.",
         websiteUrl: "https://intercontinental.com",
         location: "Dhaka, Bangladesh",
         size: "100-200 employees",
         ownerEmail: "employer.hospitality@company.com",
         industrySlug: "hospitality-tourism",
         planName: "emp_starter",
+        mission:
+          "To offer world-class hospitality, absolute luxury, and personalized services that create memorable moments for business and leisure travelers.",
+        values: ["Customer First", "Excellence", "Collaboration"],
+        founded: "1966",
+        contactEmail: "careers.icdhaka@intercontinental.com",
+        contactPhone: "+8801766778899",
+        logoUrl:
+          "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=128&h=128&auto=format&fit=crop",
+        coverUrl:
+          "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1000&h=400&auto=format&fit=crop",
       },
       {
         name: "Runner Automotive",
         slug: "runner-automotive",
-        description: "Runner is a prominent motorcycle manufacturer.",
+        description:
+          "Runner Automobiles Ltd. is the pioneer of two-wheeler manufacturing in Bangladesh. Operating a state-of-the-art assembly and testing plant, we distribute motorcycles and commercial cargo vehicles tailored for the unique road conditions of Bangladesh.",
         websiteUrl: "https://runnerbd.com",
         location: "Dhaka, Bangladesh",
         size: "500-1000 employees",
         ownerEmail: "employer.automotive@company.com",
         industrySlug: "automotive",
         planName: "emp_pro",
+        mission:
+          "To lead the automotive industry in Bangladesh by manufacturing and distributing high-quality and energy-efficient two-wheelers and three-wheelers.",
+        values: ["Excellence", "Innovation", "Agility"],
+        founded: "2000",
+        contactEmail: "recruitment@runnerbd.com",
+        contactPhone: "+8801777889900",
+        logoUrl:
+          "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=128&h=128&auto=format&fit=crop",
+        coverUrl:
+          "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1000&h=400&auto=format&fit=crop",
       },
       {
         name: "Shanta Holdings",
         slug: "shanta-holdings",
-        description: "Premier real estate developer in Bangladesh.",
+        description:
+          "Shanta Holdings Limited is the premier real estate developer in Bangladesh, known for building iconic high-rise condominiums, luxury residences, and state-of-the-art corporate headquarters that redefine the urban skyline of Dhaka.",
         websiteUrl: "https://shantaholdings.com",
         location: "Dhaka, Bangladesh",
         size: "100-200 employees",
         ownerEmail: "employer.realestate@company.com",
         industrySlug: "construction-real-estate",
         planName: "emp_starter",
+        mission:
+          "To set standard-defining real estate structures in Bangladesh, emphasizing state-of-the-art designs, robust build qualities, and client trust.",
+        values: ["Excellence", "Integrity", "Impact"],
+        founded: "2005",
+        contactEmail: "hr@shantaholdings.com",
+        contactPhone: "+8801788990011",
+        logoUrl:
+          "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=128&h=128&auto=format&fit=crop",
+        coverUrl:
+          "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1000&h=400&auto=format&fit=crop",
       },
       {
         name: "Sheba Platform",
         slug: "sheba-platform",
-        description: "Service marketplace platform.",
+        description:
+          "Sheba.xyz is Bangladesh's largest local service marketplace. We connect households and businesses with verified plumbers, electricians, cleaners, and appliance repair professionals through our easy-to-use mobile apps and web platforms.",
         websiteUrl: "https://sheba.xyz",
         location: "Dhaka, Bangladesh",
         size: "100-200 employees",
         ownerEmail: "employer.tech@company.com",
         industrySlug: "software-it",
         planName: "emp_pro",
+        mission:
+          "To digitize and elevate local service industries, connecting households and businesses with verified service professionals seamlessly.",
+        values: ["Customer First", "Agility", "Innovation"],
+        founded: "2016",
+        contactEmail: "careers@sheba.xyz",
+        contactPhone: "+8801799001122",
+        logoUrl:
+          "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=128&h=128&auto=format&fit=crop",
+        coverUrl:
+          "https://images.unsplash.com/photo-1556761175-4b46a572b786?q=80&w=1000&h=400&auto=format&fit=crop",
       },
       {
         name: "Daraz E-commerce",
         slug: "daraz-ecommerce",
-        description: "Largest online shopping mall in Bangladesh.",
+        description:
+          "Daraz is the leading e-commerce marketplace in South Asia, empowering tens of thousands of sellers to connect with millions of active buyers. We provide logistics, marketing, and secure payment processing services to build a seamless retail platform.",
         websiteUrl: "https://daraz.com.bd",
         location: "Dhaka, Bangladesh",
         size: "1000+ employees",
         ownerEmail: "employer.ecommerce@company.com",
         industrySlug: "ecommerce-retail",
         planName: "emp_enterprise",
+        mission:
+          "To make online shopping easy and rewarding for every customer in South Asia through our wide product assortment and fast delivery systems.",
+        values: ["Customer First", "Growth", "Agility"],
+        founded: "2012",
+        contactEmail: "careers@daraz.com.bd",
+        contactPhone: "+8801700112233",
+        logoUrl:
+          "https://images.unsplash.com/photo-1472851294608-062f824d29cc?q=80&w=128&h=128&auto=format&fit=crop",
+        coverUrl:
+          "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=1000&h=400&auto=format&fit=crop",
       },
       {
         name: "IPDC Finance",
         slug: "ipdc-finance",
-        description: "First private financial institution in the country.",
+        description:
+          "IPDC Finance Limited is the first private financial institution in Bangladesh. We offer customized retail loans, home loans, corporate leasing options, and investment savings solutions aimed at supporting infrastructure growth and financial security.",
         websiteUrl: "https://ipdcbd.com",
         location: "Dhaka, Bangladesh",
         size: "100-500 employees",
         ownerEmail: "employer.finance@company.com",
         industrySlug: "financial-services",
         planName: "emp_starter",
+        mission:
+          "To enable our customers to achieve their dreams by offering personalized financial advice and products that contribute to national development.",
+        values: ["Integrity", "Customer First", "Impact"],
+        founded: "1981",
+        contactEmail: "recruitment@ipdcbd.com",
+        contactPhone: "+8801711223344",
+        logoUrl:
+          "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?q=80&w=128&h=128&auto=format&fit=crop",
+        coverUrl:
+          "https://images.unsplash.com/photo-1531973576100-f74f7231c55e?q=80&w=1000&h=400&auto=format&fit=crop",
       },
       {
         name: "Beximco Pharma",
         slug: "beximco-pharma",
-        description: "Leading pharmaceutical manufacturer and exporter.",
+        description:
+          "Beximco Pharmaceuticals Limited is a leading generic pharmaceutical manufacturer and exporter in Bangladesh. Operating FDA-accredited plants, we export life-saving medicines and consumer health products to over 50 countries globally.",
         websiteUrl: "https://beximcopharma.com",
         location: "Dhaka, Bangladesh",
         size: "1000+ employees",
         ownerEmail: "employer.health@company.com",
         industrySlug: "healthcare-biotech",
         planName: "emp_pro",
+        mission:
+          "To manufacture and distribute top-tier generic pharmaceutical products worldwide, improving healthcare quality.",
+        values: ["Excellence", "Impact", "Integrity"],
+        founded: "1976",
+        contactEmail: "careers@beximcopharma.com",
+        contactPhone: "+8801722334455",
+        logoUrl:
+          "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?q=80&w=128&h=128&auto=format&fit=crop",
+        coverUrl:
+          "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?q=80&w=1000&h=400&auto=format&fit=crop",
       },
     ];
 
@@ -1025,9 +1245,13 @@ const seedDatabase = async () => {
           websiteUrl: c.websiteUrl,
           location: c.location,
           size: c.size,
-          logoUrl:
-            "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=128&h=128&auto=format&fit=crop",
-          coverUrl: natureCovers[0],
+          logoUrl: c.logoUrl,
+          coverUrl: c.coverUrl,
+          mission: c.mission,
+          values: c.values,
+          founded: c.founded,
+          contactEmail: c.contactEmail,
+          contactPhone: c.contactPhone,
           isVerified: true,
           industryId: industry.id,
           employees: { connect: { id: owner.id } },
@@ -1044,6 +1268,40 @@ const seedDatabase = async () => {
           companyId: company.id,
           emailNotifications: true,
           applicationAlerts: true,
+        },
+      });
+
+      // Seed 3 Company Benefits
+      await prisma.benefits.create({
+        data: {
+          title: "Comprehensive Health Insurance",
+          description:
+            "Full medical, dental, and vision coverage for employees and their immediate family members.",
+          category: "Healthcare",
+          icon: "HeartPulse",
+          companyId: company.id,
+        },
+      });
+
+      await prisma.benefits.create({
+        data: {
+          title: "Professional Development Fund",
+          description:
+            "Yearly budget allocated for training courses, certifications, and technical conferences.",
+          category: "Education",
+          icon: "GraduationCap",
+          companyId: company.id,
+        },
+      });
+
+      await prisma.benefits.create({
+        data: {
+          title: "Performance Bonuses",
+          description:
+            "Generous bi-annual performance-based bonuses matching individual and company milestones.",
+          category: "Bonus",
+          icon: "Banknote",
+          companyId: company.id,
         },
       });
 
@@ -1284,120 +1542,1098 @@ const seedDatabase = async () => {
         discipline: "Engineering",
         slug: "senior-react-architect",
         company: "brainstation-it",
+        jobType: "FULL_TIME" as const,
+        isRemote: false,
+        experienceLevel: "Senior Level",
+        salaryMin: 130000,
+        salaryMax: 200000,
+        currency: "BDT",
+        contactEmail: "careers@brainstation.it",
+        description:
+          "We are seeking a Senior React Architect to lead the design, development, and scaling of our enterprise web applications. You will be responsible for defining architecture, establishing frontend coding standards, and mentoring junior engineers. You will work closely with product managers and UX designers to build highly responsive, state-of-the-art web interfaces using Next.js and Tailwind CSS.",
+        requirements: [
+          "5+ years of professional frontend engineering experience, with 3+ years focused on React and Next.js.",
+          "Deep understanding of state management tools like Redux Toolkit, Zustand, or React Context.",
+          "Experience with performance optimization, server-side rendering, and micro-frontend architectures.",
+          "Strong communication and leadership skills to drive technical initiatives across cross-functional teams.",
+        ],
+        skills: [
+          { skillName: "React", experienceYears: 5.0, isRequired: true, priority: "HIGH" as const },
+          {
+            skillName: "TypeScript",
+            experienceYears: 4.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Next.js",
+            experienceYears: 3.0,
+            isRequired: true,
+            priority: "MEDIUM" as const,
+          },
+          {
+            skillName: "Redux",
+            experienceYears: 4.0,
+            isRequired: false,
+            priority: "MEDIUM" as const,
+          },
+        ],
+        benefitsData: [
+          {
+            title: "Tech Allowance",
+            description:
+              "Top-tier MacBook Pro, multi-monitor configuration, and modern workspace gadgets.",
+            category: "Laptop",
+            icon: "Laptop",
+          },
+          {
+            title: "Health Insurance",
+            description: "Comprehensive healthcare and life insurance for you and your family.",
+            category: "Healthcare",
+            icon: "HeartPulse",
+          },
+          {
+            title: "Annual Retreats",
+            description:
+              "Company-sponsored international retreats and seasonal team-building meetups.",
+            category: "Leisure",
+            icon: "Plane",
+          },
+        ],
       },
       {
         title: "Backend Team Lead (Node.js)",
         discipline: "Engineering",
         slug: "backend-team-lead",
         company: "brainstation-it",
+        jobType: "FULL_TIME" as const,
+        isRemote: false,
+        experienceLevel: "Senior Level",
+        salaryMin: 140000,
+        salaryMax: 220000,
+        currency: "BDT",
+        contactEmail: "careers@brainstation.it",
+        description:
+          "We are looking for a Backend Team Lead to supervise our server-side engineers, design scalable system architectures, and ensure top-notch performance. You will be building microservices in Node.js/TypeScript, optimizing PostgreSQL queries, and managing deployments on AWS. Your leadership will directly influence the development velocity and security standards of our global applications.",
+        requirements: [
+          "6+ years of backend engineering experience, with at least 3 years as a team lead.",
+          "Advanced proficiency in Node.js, Express, Fastify, and TypeScript.",
+          "Proven track record of designing high-throughput relational databases (PostgreSQL/MySQL) and caching (Redis).",
+          "Experience with Docker, Kubernetes, and AWS deployment strategies (ECS, RDS, S3).",
+        ],
+        skills: [
+          {
+            skillName: "Node.js",
+            experienceYears: 6.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "TypeScript",
+            experienceYears: 4.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "PostgreSQL",
+            experienceYears: 5.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Docker",
+            experienceYears: 3.0,
+            isRequired: false,
+            priority: "MEDIUM" as const,
+          },
+        ],
+        benefitsData: [
+          {
+            title: "Remote Support",
+            description: "Ergonomic chair and home high-speed internet reimbursement.",
+            category: "Laptop",
+            icon: "Laptop",
+          },
+          {
+            title: "Medical Coverage",
+            description: "100% covered health, dental, and eye check-ups.",
+            category: "Healthcare",
+            icon: "HeartPulse",
+          },
+          {
+            title: "Bi-annual Bonuses",
+            description: "Two festival bonuses matching 100% of your basic monthly salary.",
+            category: "Bonus",
+            icon: "Banknote",
+          },
+        ],
       },
       {
         title: "Risk Analyst Officer",
         discipline: "Finance",
         slug: "risk-analyst-officer",
         company: "lankabangla-finance",
+        jobType: "FULL_TIME" as const,
+        isRemote: false,
+        experienceLevel: "Mid-Senior Level",
+        salaryMin: 80000,
+        salaryMax: 120000,
+        currency: "BDT",
+        contactEmail: "careers@lankabangla.com",
+        description:
+          "LankaBangla Finance is seeking an analytical Risk Analyst Officer to identify, evaluate, and mitigate financial and operational risks. You will analyze credit portfolios, draft risk assessment models, and ensure compliance with regulatory standards. You will report findings directly to the senior risk management committee.",
+        requirements: [
+          "3+ years of experience in financial risk management or banking operations.",
+          "Strong expertise in statistical tools, Excel modeling, and data visualization.",
+          "Familiarity with central bank policies and risk regulations in Bangladesh.",
+          "Degree in Finance, Economics, or related quantitative field (FRM/CFA candidate is a plus).",
+        ],
+        skills: [
+          { skillName: "Excel", experienceYears: 4.0, isRequired: true, priority: "HIGH" as const },
+          {
+            skillName: "Risk Analysis",
+            experienceYears: 3.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Financial Modeling",
+            experienceYears: 3.0,
+            isRequired: true,
+            priority: "MEDIUM" as const,
+          },
+        ],
+        benefitsData: [
+          {
+            title: "Provident Fund",
+            description: "Company matching provident fund and gratuity plans.",
+            category: "Finance",
+            icon: "Banknote",
+          },
+          {
+            title: "Wellness Program",
+            description: "Gym memberships and seasonal mental health counseling sessions.",
+            category: "Healthcare",
+            icon: "Heart",
+          },
+        ],
       },
       {
         title: "Financial Investment Advisor",
         discipline: "Finance",
         slug: "investment-advisor",
         company: "lankabangla-finance",
+        jobType: "FULL_TIME" as const,
+        isRemote: false,
+        experienceLevel: "Mid-Senior Level",
+        salaryMin: 75000,
+        salaryMax: 115000,
+        currency: "BDT",
+        contactEmail: "careers@lankabangla.com",
+        description:
+          "As a Financial Investment Advisor at LankaBangla, you will advise retail and institutional clients on investment portfolios, stock broking, and mutual funds. You will manage customer relationships, monitor market trends, and draft personalized financial strategies to maximize client returns.",
+        requirements: [
+          "3+ years of experience in asset management, equity markets, or relationship management.",
+          "Excellent communication and interpersonal skills to build trust with clients.",
+          "Sound understanding of stock market operations, macroeconomic factors, and mutual funds.",
+          "Bachelor's degree in Finance, Business Administration, or similar fields.",
+        ],
+        skills: [
+          {
+            skillName: "Asset Management",
+            experienceYears: 3.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Relationship Management",
+            experienceYears: 3.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Market Analysis",
+            experienceYears: 3.0,
+            isRequired: false,
+            priority: "MEDIUM" as const,
+          },
+        ],
+        benefitsData: [
+          {
+            title: "Performance Commission",
+            description: "Highly rewarding monthly commission matching investment closures.",
+            category: "Bonus",
+            icon: "Coins",
+          },
+          {
+            title: "Health Plan",
+            description: "Group life insurance and medical reimbursement.",
+            category: "Healthcare",
+            icon: "Heart",
+          },
+        ],
       },
       {
         title: "Pharmacist & Medical Support",
         discipline: "Healthcare",
         slug: "pharmacist-support",
         company: "arogga-healthcare",
+        jobType: "FULL_TIME" as const,
+        isRemote: false,
+        experienceLevel: "Junior Level",
+        salaryMin: 35000,
+        salaryMax: 55000,
+        currency: "BDT",
+        contactEmail: "hr@arogga.com",
+        description:
+          "We are looking for a certified Pharmacist & Medical Support Specialist to verify prescriptions, review medication safety, and consult clients on dosage guidelines. You will manage inventory control systems and support customer service teams with medical clarifications.",
+        requirements: [
+          "Graduation in Pharmacy (B.Pharm) from a recognized university.",
+          "Registered with the Pharmacy Council of Bangladesh.",
+          "Familiarity with medicine names, side effects, and online pharmacy management systems.",
+          "Strong attention to detail and professional customer care behavior.",
+        ],
+        skills: [
+          {
+            skillName: "Pharmacology",
+            experienceYears: 1.5,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Prescription Verification",
+            experienceYears: 1.5,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Customer Service",
+            experienceYears: 1.0,
+            isRequired: false,
+            priority: "MEDIUM" as const,
+          },
+        ],
+        benefitsData: [
+          {
+            title: "Medical Subsidies",
+            description: "Deep employee discounts on prescription medications.",
+            category: "Healthcare",
+            icon: "Stethoscope",
+          },
+          {
+            title: "Flexible Shifts",
+            description: "Rotational shift options and weekend allowances.",
+            category: "Work Style",
+            icon: "Briefcase",
+          },
+        ],
       },
       {
         title: "Medical Operations Specialist",
         discipline: "Healthcare",
         slug: "medical-operations",
         company: "arogga-healthcare",
+        jobType: "FULL_TIME" as const,
+        isRemote: false,
+        experienceLevel: "Mid-Senior Level",
+        salaryMin: 60000,
+        salaryMax: 90000,
+        currency: "BDT",
+        contactEmail: "hr@arogga.com",
+        description:
+          "Arogga is seeking a Medical Operations Specialist to coordinate our healthcare inventory pipelines, optimize delivery speeds, and ensure medical supply chain quality control. You will oversee warehouse staff, audit storage environments, and maintain regulatory standards for digital drug distributions.",
+        requirements: [
+          "3+ years of experience in pharmaceutical distribution or healthcare operations.",
+          "Strong leadership, inventory auditing, and logistics coordination skills.",
+          "Understanding of pharmaceutical supply chain regulations and storage safety protocols.",
+          "Excellent problem-solving skills in high-pressure delivery operations.",
+        ],
+        skills: [
+          {
+            skillName: "Operations Management",
+            experienceYears: 3.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Supply Chain",
+            experienceYears: 3.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Regulatory Compliance",
+            experienceYears: 2.0,
+            isRequired: false,
+            priority: "MEDIUM" as const,
+          },
+        ],
+        benefitsData: [
+          {
+            title: "Health Allowance",
+            description: "Monthly medical checks and health coverage.",
+            category: "Healthcare",
+            icon: "Stethoscope",
+          },
+          {
+            title: "Growth Training",
+            description: "Regular training on healthcare operations and digital tools.",
+            category: "Education",
+            icon: "GraduationCap",
+          },
+        ],
       },
       {
         title: "Academic Content Creator",
         discipline: "Education",
         slug: "academic-content",
         company: "10-minute-school",
+        jobType: "FULL_TIME" as const,
+        isRemote: true,
+        experienceLevel: "Junior Level",
+        salaryMin: 40000,
+        salaryMax: 65000,
+        currency: "BDT",
+        contactEmail: "join@10minuteschool.com",
+        description:
+          "We are looking for an Academic Content Creator to design high-quality, engaging educational content. You will write scripts, draft slides, and construct quizzes for high school subjects. You will collaborate with video editors to convert academic content into rich animations.",
+        requirements: [
+          "Excellent academic records in Mathematics, Science, or English (major public university is a plus).",
+          "Passion for teaching, explaining complex topics simply, and creating slide designs.",
+          "Proficiency in Google Slides, PowerPoint, and basic design tools.",
+          "Prior experience in academic mentoring or online coaching is highly preferred.",
+        ],
+        skills: [
+          {
+            skillName: "Slide Design",
+            experienceYears: 1.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Script Writing",
+            experienceYears: 1.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Academic Teaching",
+            experienceYears: 1.0,
+            isRequired: false,
+            priority: "MEDIUM" as const,
+          },
+        ],
+        benefitsData: [
+          {
+            title: "Work From Home",
+            description: "Complete home office equipment funding and monthly internet allowances.",
+            category: "Laptop",
+            icon: "Laptop",
+          },
+          {
+            title: "Learning Allowance",
+            description: "Free access to global learning platforms and professional courses.",
+            category: "Education",
+            icon: "BookOpen",
+          },
+        ],
       },
       {
         title: "Senior Logistics Coordinator",
         discipline: "Logistics",
         slug: "logistics-coordinator",
         company: "pathao-logistics",
+        jobType: "FULL_TIME" as const,
+        isRemote: false,
+        experienceLevel: "Senior Level",
+        salaryMin: 90000,
+        salaryMax: 140000,
+        currency: "BDT",
+        contactEmail: "recruiting@pathao.com",
+        description:
+          "Pathao is hiring a Senior Logistics Coordinator to manage our city-wide delivery channels, optimize warehouse dispatch pipelines, and lead the courier operations team. You will leverage data-driven routing maps to reduce delivery times and minimize shipping overheads.",
+        requirements: [
+          "5+ years of experience in logistics, supply chain, or e-commerce delivery operations.",
+          "Exceptional analytical skills using Excel, SQL, or dashboard metrics.",
+          "Proven team leadership and crisis management skills in large courier networks.",
+          "Strong negotiation and communication skills with local vendors.",
+        ],
+        skills: [
+          {
+            skillName: "Logistics",
+            experienceYears: 5.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Data Analysis",
+            experienceYears: 3.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Fleet Management",
+            experienceYears: 4.0,
+            isRequired: true,
+            priority: "MEDIUM" as const,
+          },
+        ],
+        benefitsData: [
+          {
+            title: "Pathao Credits",
+            description: "Monthly ride-sharing and food delivery credits on the Pathao App.",
+            category: "Perks",
+            icon: "Coins",
+          },
+          {
+            title: "Life Insurance",
+            description: "Premium group life and critical illness coverage.",
+            category: "Healthcare",
+            icon: "Heart",
+          },
+        ],
       },
       {
         title: "Creative Designer & Animator",
         discipline: "Marketing",
         slug: "creative-designer",
         company: "analyzen-digital",
+        jobType: "FULL_TIME" as const,
+        isRemote: false,
+        experienceLevel: "Mid-Senior Level",
+        salaryMin: 70000,
+        salaryMax: 110000,
+        currency: "BDT",
+        contactEmail: "hello@analyzen.com",
+        description:
+          "Analyzen is seeking a highly creative UI/UX and Graphic Designer who also has experience in 2D animation. You will craft engaging social media templates, draft interactive UI wireframes, and create character animations for digital campaigns.",
+        requirements: [
+          "3+ years of professional design agency experience.",
+          "Mastery of Adobe Creative Suite (Photoshop, Illustrator, After Effects) and Figma.",
+          "Strong portfolio demonstrating typography, brand layout, and custom animations.",
+          "Ability to work under tight campaign deadlines and incorporate feedback.",
+        ],
+        skills: [
+          { skillName: "Figma", experienceYears: 3.0, isRequired: true, priority: "HIGH" as const },
+          {
+            skillName: "After Effects",
+            experienceYears: 2.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Graphic Design",
+            experienceYears: 3.0,
+            isRequired: true,
+            priority: "MEDIUM" as const,
+          },
+        ],
+        benefitsData: [
+          {
+            title: "Creative Freedom",
+            description: "Budget for design awards, font licenses, and creative assets.",
+            category: "Perks",
+            icon: "Palette",
+          },
+          {
+            title: "Weekly Snacks",
+            description: "Fully stocked pantry with gourmet coffee, drinks, and snacks.",
+            category: "Perks",
+            icon: "ChefHat",
+          },
+        ],
       },
       {
         title: "Civil Project Engineer",
         discipline: "Construction",
         slug: "civil-engineer",
         company: "bti-development",
+        jobType: "FULL_TIME" as const,
+        isRemote: false,
+        experienceLevel: "Senior Level",
+        salaryMin: 100000,
+        salaryMax: 150000,
+        currency: "BDT",
+        contactEmail: "jobs@btibd.com",
+        description:
+          "bti is looking for an experienced Civil Project Engineer to supervise high-rise residential construction projects. You will review structural designs, inspect site execution qualities, and coordinate contractors to ensure project deliveries align with timelines and safety standards.",
+        requirements: [
+          "Bachelor's degree in Civil Engineering (B.Sc Engg) from a reputed university.",
+          "5+ years of hands-on experience in high-rise building construction.",
+          "Proficiency in AutoCAD, ETABS, and construction project management tools.",
+          "Strong knowledge of building codes, materials testing, and structural safety.",
+        ],
+        skills: [
+          {
+            skillName: "AutoCAD",
+            experienceYears: 5.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Structural Engineering",
+            experienceYears: 5.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Project Management",
+            experienceYears: 3.0,
+            isRequired: false,
+            priority: "MEDIUM" as const,
+          },
+        ],
+        benefitsData: [
+          {
+            title: "Site Allowances",
+            description: "Generous site travel, safety gears, and mobile allowances.",
+            category: "Perks",
+            icon: "Briefcase",
+          },
+          {
+            title: "Insurance Cover",
+            description: "Accidental hazard coverage and premium health insurance.",
+            category: "Healthcare",
+            icon: "Shield",
+          },
+        ],
       },
       {
         title: "E-Commerce Growth Executive",
         discipline: "Marketing",
         slug: "growth-executive",
         company: "chaldal-grocery",
+        jobType: "FULL_TIME" as const,
+        isRemote: false,
+        experienceLevel: "Mid-Senior Level",
+        salaryMin: 60000,
+        salaryMax: 95000,
+        currency: "BDT",
+        contactEmail: "careers@chaldal.com",
+        description:
+          "Chaldal is seeking a growth-oriented marketing executive to optimize customer acquisition, plan conversion campaigns, and analyze sales metrics. You will design email/SMS marketing funnels, manage social ads, and run digital analytics dashboards to boost monthly transactions.",
+        requirements: [
+          "3+ years of growth marketing or analytics experience in e-commerce startups.",
+          "Advanced familiarity with Facebook Ads Manager, Google Analytics, and SEO tools.",
+          "Data-driven mindset with solid experience in client retention strategies.",
+          "Excellent communication and writing skills in English and Bangla.",
+        ],
+        skills: [
+          {
+            skillName: "Google Analytics",
+            experienceYears: 3.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Growth Hacking",
+            experienceYears: 2.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "SEO",
+            experienceYears: 2.0,
+            isRequired: false,
+            priority: "MEDIUM" as const,
+          },
+        ],
+        benefitsData: [
+          {
+            title: "Groceries Subsidy",
+            description: "Significant discount matching monthly family grocery bills on Chaldal.",
+            category: "Perks",
+            icon: "Coins",
+          },
+          {
+            title: "Performance Bonus",
+            description: "Quarterly bonuses tied directly to growth acquisition targets.",
+            category: "Bonus",
+            icon: "Coins",
+          },
+        ],
       },
       {
         title: "Core Network Systems Administrator",
         discipline: "Engineering",
         slug: "network-admin",
         company: "grameenphone",
+        jobType: "FULL_TIME" as const,
+        isRemote: false,
+        experienceLevel: "Senior Level",
+        salaryMin: 110000,
+        salaryMax: 170000,
+        currency: "BDT",
+        contactEmail: "hr@grameenphone.com",
+        description:
+          "We are looking for a Core Network Systems Administrator to maintain our high-volume telecommunication server architectures. You will deploy server security firewalls, manage system virtualization, and coordinate responses to core server interruptions to ensure 24/7 service connectivity.",
+        requirements: [
+          "5+ years of enterprise systems administration experience.",
+          "Expertise in Linux environments (RedHat/CentOS), VMware, and virtualization.",
+          "Deep understanding of TCP/IP, network routing, firewalls, and security protocols.",
+          "Certifications like CCNA, CCNP, or RedHat Certified Engineer (RHCE) are highly valued.",
+        ],
+        skills: [
+          {
+            skillName: "Linux Admin",
+            experienceYears: 5.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "VMware",
+            experienceYears: 4.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Network Security",
+            experienceYears: 4.0,
+            isRequired: true,
+            priority: "MEDIUM" as const,
+          },
+        ],
+        benefitsData: [
+          {
+            title: "Gratuity & Pension",
+            description: "Long-term secure retirement, pension, and gratuity funds.",
+            category: "Finance",
+            icon: "Banknote",
+          },
+          {
+            title: "Unlimited Call Credits",
+            description: "Unlimited post-paid corporate connectivity connection.",
+            category: "Perks",
+            icon: "Phone",
+          },
+        ],
       },
       {
         title: "Senior Flutter Mobile Developer",
         discipline: "Engineering",
         slug: "flutter-developer",
         company: "brainstation-it",
+        jobType: "FULL_TIME" as const,
+        isRemote: true,
+        experienceLevel: "Senior Level",
+        salaryMin: 110000,
+        salaryMax: 160000,
+        currency: "BDT",
+        contactEmail: "careers@brainstation.it",
+        description:
+          "We are seeking a Senior Flutter Developer to build cross-platform mobile apps for international clients. You will write clean Dart code, design smooth UI animations, and integrate local SQL storage with REST APIs. You will lead mobile architectural discussions and mentor junior developers.",
+        requirements: [
+          "4+ years of professional mobile app development, with 3+ years dedicated to Flutter & Dart.",
+          "Experience publishing multiple apps to Google Play Store and Apple App Store.",
+          "Solid understanding of state management patterns (Bloc, Provider, or Riverpod).",
+          "Knowledge of native iOS (Swift) or Android (Kotlin) development is a huge advantage.",
+        ],
+        skills: [
+          {
+            skillName: "Flutter",
+            experienceYears: 3.5,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          { skillName: "Dart", experienceYears: 3.5, isRequired: true, priority: "HIGH" as const },
+          {
+            skillName: "REST APIs",
+            experienceYears: 4.0,
+            isRequired: true,
+            priority: "MEDIUM" as const,
+          },
+        ],
+        benefitsData: [
+          {
+            title: "MacBook Setup",
+            description: "Premium Apple hardware setup for cross-platform app compilations.",
+            category: "Laptop",
+            icon: "Laptop",
+          },
+          {
+            title: "Training Grants",
+            description: "Reimbursement for certification courses and mobile developer summits.",
+            category: "Education",
+            icon: "GraduationCap",
+          },
+        ],
       },
       {
         title: "Digital Campaign Strategist",
         discipline: "Marketing",
         slug: "campaign-strategist",
         company: "analyzen-digital",
+        jobType: "FULL_TIME" as const,
+        isRemote: false,
+        experienceLevel: "Mid-Senior Level",
+        salaryMin: 65000,
+        salaryMax: 105000,
+        currency: "BDT",
+        contactEmail: "hello@analyzen.com",
+        description:
+          "Analyzen is looking for a creative Digital Campaign Strategist to plan and execute multi-channel digital campaigns. You will analyze consumer behavior, draft compelling pitches for brands, and coordinate content teams to deliver viral campaign assets.",
+        requirements: [
+          "3+ years of experience in digital marketing planning or advertising agencies.",
+          "Excellent presentation, storytelling, and copy-writing skills.",
+          "Track record of running successful corporate digital brand campaigns.",
+          "Analytical skill in measuring campaign ROI and client reach metrics.",
+        ],
+        skills: [
+          {
+            skillName: "Brand Strategy",
+            experienceYears: 3.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Copywriting",
+            experienceYears: 3.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Campaign Metrics",
+            experienceYears: 2.0,
+            isRequired: false,
+            priority: "MEDIUM" as const,
+          },
+        ],
+        benefitsData: [
+          {
+            title: "Tech Kit",
+            description: "Premium company laptop and home office setup allowance.",
+            category: "Laptop",
+            icon: "Laptop",
+          },
+          {
+            title: "Annual Trips",
+            description: "Sponsored annual corporate tour and cultural night celebrations.",
+            category: "Leisure",
+            icon: "Plane",
+          },
+        ],
       },
       {
         title: "Creative Art Lead",
         discipline: "Design",
         slug: "art-lead",
         company: "studio-dhaka",
+        jobType: "FULL_TIME" as const,
+        isRemote: false,
+        experienceLevel: "Lead / Director",
+        salaryMin: 130000,
+        salaryMax: 200000,
+        currency: "BDT",
+        contactEmail: "design@studiodhaka.com",
+        description:
+          "Studio Dhaka is hiring a Creative Art Lead to define visual directions for premium digital products. You will guide our team of UI/UX designers and illustrators, run client presentation briefs, and set visual aesthetics for animations and interface grids.",
+        requirements: [
+          "6+ years of visual design experience with at least 2 years in creative leadership.",
+          "Expert portfolio in layout aesthetics, custom vector illustration, and web/app interfaces.",
+          "Mastery of Figma, Photoshop, Illustrator, and presentation templates.",
+          "Excellent leadership and communication skills to present design directions to foreign clients.",
+        ],
+        skills: [
+          {
+            skillName: "UI/UX Design",
+            experienceYears: 6.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          { skillName: "Figma", experienceYears: 5.0, isRequired: true, priority: "HIGH" as const },
+          {
+            skillName: "Visual Art Direction",
+            experienceYears: 4.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+        ],
+        benefitsData: [
+          {
+            title: "Design Gadgets",
+            description:
+              "High-end drawing tablets, dual monitors, and high-performance workstation.",
+            category: "Laptop",
+            icon: "Laptop",
+          },
+          {
+            title: "Wellness Fund",
+            description: "Monthly medical checks and wellness allowance.",
+            category: "Healthcare",
+            icon: "Heart",
+          },
+        ],
       },
       {
         title: "Supply Chain Manager",
         discipline: "Logistics",
         slug: "supply-chain-mgr",
         company: "pathao-logistics",
+        jobType: "FULL_TIME" as const,
+        isRemote: false,
+        experienceLevel: "Senior Level",
+        salaryMin: 120000,
+        salaryMax: 180000,
+        currency: "BDT",
+        contactEmail: "recruiting@pathao.com",
+        description:
+          "Pathao is seeking a Supply Chain Manager to optimize vendor contracting, manage product warehousing, and reduce logistics overheads. You will streamline procurement pipelines and integrate technological inventory monitors to ensure maximum delivery speed and safety.",
+        requirements: [
+          "5+ years of experience in supply chain, vendor contracting, or inventory management.",
+          "Mastery of supply chain analytics, demand planning, and warehouse audit systems.",
+          "Excellent negotiation and contract drafting abilities.",
+          "Degree in Supply Chain Management, Operations, or related field (CSCP/CPIM certification is a plus).",
+        ],
+        skills: [
+          {
+            skillName: "Supply Chain",
+            experienceYears: 5.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Vendor Management",
+            experienceYears: 4.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Procurement",
+            experienceYears: 4.0,
+            isRequired: false,
+            priority: "MEDIUM" as const,
+          },
+        ],
+        benefitsData: [
+          {
+            title: "Transport Credits",
+            description: "Free daily Pathao rides for office commute.",
+            category: "Perks",
+            icon: "Coins",
+          },
+          {
+            title: "Gratuity Fund",
+            description: "Highly rewarding retirement benefits and gratuity schemes.",
+            category: "Finance",
+            icon: "Banknote",
+          },
+        ],
       },
       {
         title: "QA Engineer Automation",
         discipline: "Engineering",
         slug: "qa-automation",
         company: "sheba-platform",
+        jobType: "FULL_TIME" as const,
+        isRemote: false,
+        experienceLevel: "Mid-Senior Level",
+        salaryMin: 70000,
+        salaryMax: 110000,
+        currency: "BDT",
+        contactEmail: "careers@sheba.xyz",
+        description:
+          "Sheba Platform is looking for a QA Automation Engineer to write automated test scripts, perform regression testing, and debug api endpoints. You will work within agile teams, maintaining test frameworks (Selenium, Cypress) to ensure top reliability for our web and mobile portals.",
+        requirements: [
+          "3+ years of experience in software testing and quality assurance.",
+          "Strong programming skills in JavaScript, Python, or Java for writing automation test scripts.",
+          "Hands-on experience with Selenium, Cypress, Playwright, or Appium.",
+          "Experience with API testing tools (Postman, JMeter) and CI/CD pipelines.",
+        ],
+        skills: [
+          {
+            skillName: "QA Automation",
+            experienceYears: 3.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Cypress",
+            experienceYears: 2.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "API Testing",
+            experienceYears: 3.0,
+            isRequired: true,
+            priority: "MEDIUM" as const,
+          },
+        ],
+        benefitsData: [
+          {
+            title: "Laptop Subsidy",
+            description: "Allowance to purchase your preferred development laptop.",
+            category: "Laptop",
+            icon: "Laptop",
+          },
+          {
+            title: "Family Medical",
+            description: "Health insurance covering employee, spouse, and kids.",
+            category: "Healthcare",
+            icon: "HeartPulse",
+          },
+        ],
       },
       {
         title: "Marketing Lead",
         discipline: "Marketing",
         slug: "marketing-lead",
         company: "daraz-ecommerce",
+        jobType: "FULL_TIME",
+        isRemote: false,
+        experienceLevel: "Lead / Director",
+        salaryMin: 150000,
+        salaryMax: 230000,
+        currency: "BDT",
+        contactEmail: "careers@daraz.com.bd",
+        description:
+          "Daraz is seeking a Marketing Lead to design and manage our digital and offline marketing initiatives. You will lead a high-performing creative and media team, manage multi-million campaigns, and partner with top brand agencies to boost monthly user acquisition.",
+        requirements: [
+          "6+ years of marketing experience, with 3+ years leading marketing teams in e-commerce or telecom.",
+          "Exceptional record in multi-channel brand planning and digital acquisition.",
+          "Strong leadership, negotiation, and budget management abilities.",
+          "Solid command of data analytics, market research, and campaign ROI tracking.",
+        ],
+        skills: [
+          {
+            skillName: "Marketing Leadership",
+            experienceYears: 5.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Brand Strategy",
+            experienceYears: 6.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Budget Management",
+            experienceYears: 4.0,
+            isRequired: true,
+            priority: "MEDIUM" as const,
+          },
+        ],
+        benefitsData: [
+          {
+            title: "Daraz Discounts",
+            description: "Exclusive high-value shopping vouchers and monthly discounts on Daraz.",
+            category: "Perks",
+            icon: "Coins",
+          },
+          {
+            title: "Car Facility",
+            description: "Company car facility with driver allowance for official commute.",
+            category: "Perks",
+            icon: "Briefcase",
+          },
+        ],
       },
       {
         title: "Investment Banking Associate",
         discipline: "Finance",
         slug: "ib-associate",
         company: "ipdc-finance",
+        jobType: "FULL_TIME" as const,
+        isRemote: false,
+        experienceLevel: "Mid-Senior Level",
+        salaryMin: 90000,
+        salaryMax: 145000,
+        currency: "BDT",
+        contactEmail: "recruitment@ipdcbd.com",
+        description:
+          "IPDC Finance is seeking an Investment Banking Associate to conduct corporate financial modeling, perform valuation analyses, and support underwriting transactions. You will research market acquisitions and prepare presentation materials for key investment clients.",
+        requirements: [
+          "3+ years of experience in corporate finance, investment banking, or advisory firms.",
+          "Expert level financial modeling, Excel forecasting, and corporate valuations.",
+          "Sound knowledge of regulatory frameworks for securities and corporate mergers.",
+          "Strong academic records (CFA candidate or MBA in Finance preferred).",
+        ],
+        skills: [
+          {
+            skillName: "Financial Modeling",
+            experienceYears: 3.5,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Valuation",
+            experienceYears: 3.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Corporate Finance",
+            experienceYears: 3.5,
+            isRequired: true,
+            priority: "MEDIUM" as const,
+          },
+        ],
+        benefitsData: [
+          {
+            title: "Home Loans",
+            description: "Subsidized home and car financing options for corporate employees.",
+            category: "Finance",
+            icon: "Banknote",
+          },
+          {
+            title: "Health Club",
+            description: "Gym membership and annual health club checkups.",
+            category: "Healthcare",
+            icon: "Heart",
+          },
+        ],
       },
       {
         title: "Chemical Lab Researcher",
         discipline: "Healthcare",
         slug: "chemical-researcher",
         company: "beximco-pharma",
+        jobType: "FULL_TIME" as const,
+        isRemote: false,
+        experienceLevel: "Mid-Senior Level",
+        salaryMin: 85000,
+        salaryMax: 130000,
+        currency: "BDT",
+        contactEmail: "careers@beximcopharma.com",
+        description:
+          "Beximco Pharma is hiring a Chemical Lab Researcher to design drug compositions, evaluate compound stability, and ensure pharmaceutical research matches international safety standards. You will write research papers and log analytical tests on advanced lab machinery.",
+        requirements: [
+          "Master's degree or Ph.D in Chemistry, Biochemistry, or Pharmacy.",
+          "3+ years of laboratory research experience in generic pharmaceutical sectors.",
+          "Proficiency in operating HPLC, GC, and spectral lab instrumentation.",
+          "Excellent technical documentation, reporting, and safety compliance behaviors.",
+        ],
+        skills: [
+          { skillName: "HPLC", experienceYears: 3.0, isRequired: true, priority: "HIGH" as const },
+          {
+            skillName: "Chemical Analysis",
+            experienceYears: 3.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Lab Safety",
+            experienceYears: 3.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+        ],
+        benefitsData: [
+          {
+            title: "Research Grants",
+            description:
+              "Financial support for international paper submissions and pharmacy congresses.",
+            category: "Education",
+            icon: "GraduationCap",
+          },
+          {
+            title: "Safety Insurance",
+            description: "Comprehensive lab risk life insurance and high-grade hazard coverage.",
+            category: "Healthcare",
+            icon: "Shield",
+          },
+        ],
       },
     ];
 
@@ -1414,17 +2650,16 @@ const seedDatabase = async () => {
           title: jConf.title,
           slug: `${jConf.slug}-${comp.slug}`,
           discipline: jConf.discipline,
-          description: `Excellent opportunity for a ${jConf.title}. Work with modern technologies, enjoy competitive salaries, and join a high-performing collaborative team.`,
-          requirements: [
-            "Proven experience in the respective field.",
-            "Strong teamwork and communication abilities.",
-          ],
-          jobType: "FULL_TIME",
+          description: jConf.description,
+          requirements: jConf.requirements,
+          jobType: jConf.jobType,
           location: "Dhaka, Bangladesh",
-          experienceLevel: "Mid-Senior Level",
-          salaryMin: 60000 + idx * 5000,
-          salaryMax: 100000 + idx * 5000,
-          currency: "BDT",
+          experienceLevel: jConf.experienceLevel,
+          isRemote: jConf.isRemote,
+          salaryMin: jConf.salaryMin,
+          salaryMax: jConf.salaryMax,
+          currency: jConf.currency,
+          contactEmail: jConf.contactEmail,
           status: "ACTIVE",
           companyId: comp.id,
           postedById: poster.id,
@@ -1432,24 +2667,27 @@ const seedDatabase = async () => {
         },
       });
 
-      // Benefits (20 Benefits)
-      await prisma.benefits.create({
-        data: {
-          title: "Premium Health Care & Bonuses",
-          description: "Complete wellness coverage and yearly performance bonuses.",
-          jobId: job.id,
-        },
-      });
+      // Seed Job Benefits
+      for (const b of jConf.benefitsData) {
+        await prisma.benefits.create({
+          data: {
+            title: b.title,
+            description: b.description,
+            category: b.category,
+            icon: b.icon,
+            jobId: job.id,
+          },
+        });
+      }
 
-      // Job Skills (60 JobSkills)
-      const jobSkillsList = ["React", "PostgreSQL", "Figma"];
-      for (const s of jobSkillsList) {
+      // Seed Job Skills
+      for (const s of jConf.skills) {
         await prisma.jobSkill.create({
           data: {
-            skillName: s,
-            experienceYears: 3.0,
-            isRequired: true,
-            priority: "HIGH",
+            skillName: s.skillName,
+            experienceYears: s.experienceYears,
+            isRequired: s.isRequired,
+            priority: s.priority,
             jobId: job.id,
           },
         });
