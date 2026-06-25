@@ -8,6 +8,9 @@ const seedDatabase = async () => {
     // ======= 1. Clean Reset =======
     console.log("🧹 Dropping existing database data in reverse relation order...");
     await prisma.paymentTransaction.deleteMany();
+    await prisma.pushReceipt.deleteMany();
+    await prisma.pushToken.deleteMany();
+    await prisma.notificationPreference.deleteMany();
     await prisma.jobReport.deleteMany();
     await prisma.notification.deleteMany();
     await prisma.message.deleteMany();
@@ -509,6 +512,26 @@ const seedDatabase = async () => {
         fullName: "Tariqul Islam",
         role: "EMPLOYER" as const,
       },
+      {
+        email: "employer.sheba@company.com",
+        fullName: "Shehab Uddin",
+        role: "EMPLOYER" as const,
+      },
+      {
+        email: "employer.daraz@company.com",
+        fullName: "Daraz HR Admin",
+        role: "EMPLOYER" as const,
+      },
+      {
+        email: "employer.ipdc@company.com",
+        fullName: "IPDC Recruiting",
+        role: "EMPLOYER" as const,
+      },
+      {
+        email: "employer.beximco@company.com",
+        fullName: "Beximco HR Department",
+        role: "EMPLOYER" as const,
+      },
     ];
 
     const seekersRaw = [
@@ -701,6 +724,13 @@ const seedDatabase = async () => {
               : "HR Recruiting Specialist",
           totalExperienceYears: role === "JOB_SEEKER" ? 4.5 : 8.0,
           userId: "TEMP_UUID",
+          resumeUrl: "https://workly.com/resumes/sample-resume.pdf",
+          videoResumeUrl: "https://workly.com/video-resumes/sample-video.mp4",
+          linkedInUrl: `https://linkedin.com/in/${fullName.toLowerCase().replace(/\s+/g, "-")}`,
+          websiteUrl: `https://${fullName.toLowerCase().replace(/\s+/g, "")}.dev`,
+          githubUrl: `https://github.com/in/${fullName.toLowerCase().replace(/\s+/g, "-")}`,
+          twitterUrl: `https://twitter.com/${fullName.toLowerCase().replace(/\s+/g, "")}`,
+          facebookUrl: `https://facebook.com/${fullName.toLowerCase().replace(/\s+/g, "")}`,
         },
       });
 
@@ -964,7 +994,7 @@ const seedDatabase = async () => {
         websiteUrl: "https://sheba.xyz",
         location: "Dhaka, Bangladesh",
         size: "100-200 employees",
-        ownerEmail: "employer.tech@company.com",
+        ownerEmail: "employer.sheba@company.com",
         industrySlug: "software-it",
         planName: "emp_pro",
       },
@@ -975,7 +1005,7 @@ const seedDatabase = async () => {
         websiteUrl: "https://daraz.com.bd",
         location: "Dhaka, Bangladesh",
         size: "1000+ employees",
-        ownerEmail: "employer.ecommerce@company.com",
+        ownerEmail: "employer.daraz@company.com",
         industrySlug: "ecommerce-retail",
         planName: "emp_enterprise",
       },
@@ -986,7 +1016,7 @@ const seedDatabase = async () => {
         websiteUrl: "https://ipdcbd.com",
         location: "Dhaka, Bangladesh",
         size: "100-500 employees",
-        ownerEmail: "employer.finance@company.com",
+        ownerEmail: "employer.ipdc@company.com",
         industrySlug: "financial-services",
         planName: "emp_starter",
       },
@@ -997,7 +1027,7 @@ const seedDatabase = async () => {
         websiteUrl: "https://beximcopharma.com",
         location: "Dhaka, Bangladesh",
         size: "1000+ employees",
-        ownerEmail: "employer.health@company.com",
+        ownerEmail: "employer.beximco@company.com",
         industrySlug: "healthcare-biotech",
         planName: "emp_pro",
       },
@@ -1013,7 +1043,8 @@ const seedDatabase = async () => {
       emp_ultimate: "Enterprise",
     };
 
-    for (const c of companiesData) {
+    for (let idx = 0; idx < companiesData.length; idx++) {
+      const c = companiesData[idx];
       const owner = users[c.ownerEmail];
       const industry = industries[c.industrySlug];
 
@@ -1027,10 +1058,15 @@ const seedDatabase = async () => {
           size: c.size,
           logoUrl:
             "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=128&h=128&auto=format&fit=crop",
-          coverUrl: natureCovers[0],
+          coverUrl: natureCovers[idx % natureCovers.length],
           isVerified: true,
           industryId: industry.id,
           employees: { connect: { id: owner.id } },
+          mission: `Empowering ${c.name} to achieve global excellence and innovation.`,
+          values: ["Innovation", "Collaboration", "Integrity", "Excellence"],
+          contactEmail: c.ownerEmail,
+          contactPhone: `+88017${Math.floor(10000000 + Math.random() * 90000000)}`,
+          founded: String(2010 + (idx % 15)),
         },
       });
 
@@ -1401,6 +1437,149 @@ const seedDatabase = async () => {
       },
     ];
 
+    const disciplineDetails: Record<
+      string,
+      {
+        description: string;
+        requirements: string[];
+        benefits: string[];
+        skills: string[];
+      }
+    > = {
+      Engineering: {
+        description:
+          "Excellent opportunity for a Senior/Lead engineer. Join a fast-growing tech team to build high-performance, scalable web and mobile applications using modern frameworks and cloud platforms.",
+        requirements: [
+          "5+ years of software development experience.",
+          "Solid knowledge of relational databases and system design.",
+          "Proficiency in modern programming paradigms and version control.",
+          "Strong communication and engineering leadership potential.",
+        ],
+        benefits: ["Remote work support", "Premium medical coverage", "Yearly education allowance"],
+        skills: ["React", "Node.js", "TypeScript", "PostgreSQL", "Docker"],
+      },
+      Finance: {
+        description:
+          "Seeking a detail-oriented professional to guide financial assessments, evaluate market risk, and manage corporate asset portfolios.",
+        requirements: [
+          "Bachelor's degree in Finance, Economics, or related fields.",
+          "Proven analytical skills with complex spreadsheets and accounting software.",
+          "Familiarity with national bank compliance and regulatory frameworks.",
+          "Strong reporting and numerical modeling capabilities.",
+        ],
+        benefits: ["Performance bonuses", "Provident fund", "Paid maternity/paternity leave"],
+        skills: ["Excel", "Risk Management", "Financial Analysis", "Accounting", "SQL"],
+      },
+      Healthcare: {
+        description:
+          "Join our healthcare team to coordinate patient support operations, handle pharmaceutical inventory, and run bio-medical lab research.",
+        requirements: [
+          "Graduate degree in Pharmacy, Nursing, or related sciences.",
+          "Deep understanding of pharmaceutical safety and drug interactions.",
+          "Strong patient-first service mindset and clinical skills.",
+          "Willingness to work flexible shifts in medical centers.",
+        ],
+        benefits: ["Health insurance for family", "Overtime allowance", "Annual health screenings"],
+        skills: [
+          "Pharmacy Operations",
+          "Clinical Care",
+          "Patient Relations",
+          "Medical Safety",
+          "EHR Systems",
+        ],
+      },
+      Education: {
+        description:
+          "Help shape the future of learning by creating high-quality e-learning materials, designing academic curriculums, and mentoring online class groups.",
+        requirements: [
+          "Strong academic record in science, math, or language fields.",
+          "Experience presenting and teaching complex topics clearly to large audiences.",
+          "Proficiency with online teaching platforms and screen capture software.",
+          "Passion for democratizing education access.",
+        ],
+        benefits: [
+          "Flexible teaching hours",
+          "Home studio setup allowance",
+          "Performance-based bonuses",
+        ],
+        skills: [
+          "Content Creation",
+          "Teaching",
+          "Curriculum Design",
+          "Video Editing",
+          "Presentation",
+        ],
+      },
+      Logistics: {
+        description:
+          "We are looking for a coordinator to streamline supply chain flows, optimize distribution routing, and manage heavy transport/delivery tracking systems.",
+        requirements: [
+          "Bachelor's degree in Business Administration or Supply Chain Management.",
+          "Experience coordinating third-party courier services and drivers.",
+          "High adaptability in solving real-time shipping delays and issues.",
+          "Experience using inventory and GPS tracking software.",
+        ],
+        benefits: ["Transport allowance", "Subsidized lunch", "Festival bonuses"],
+        skills: [
+          "Supply Chain",
+          "Route Planning",
+          "Inventory Management",
+          "ERP Software",
+          "Vendor Relations",
+        ],
+      },
+      Marketing: {
+        description:
+          "Lead our creative brand campaigns, coordinate social media outreach, run analytics audit loops, and plan paid media acquisition strategies.",
+        requirements: [
+          "3+ years managing digital marketing budgets and ads.",
+          "Proficiency in Google Analytics, SEO tools, and Facebook Ads Manager.",
+          "Excellent copywriting, visual storytelling, and communication skills.",
+          "Data-driven mindset focusing on customer acquisition cost (CAC).",
+        ],
+        benefits: ["Performance commissions", "Gym membership", "Modern workspace tools"],
+        skills: ["SEO", "Google Analytics", "Paid Acquisition", "Copywriting", "Social Media"],
+      },
+      Construction: {
+        description:
+          "Manage civil development works, review architectural schematics, oversee contractor progress on site, and enforce strict safety standards.",
+        requirements: [
+          "Degree in Civil Engineering or Construction Management.",
+          "Familiarity with AutoCAD, BIM modeling, and site planning tools.",
+          "Solid leadership skills to direct labor crews on site.",
+          "Knowledge of local safety codes and zoning laws.",
+        ],
+        benefits: [
+          "Mobile phone package",
+          "On-site accommodation support",
+          "Annual incentive bonus",
+        ],
+        skills: [
+          "AutoCAD",
+          "Structural Engineering",
+          "Project Management",
+          "Site Safety",
+          "Estimating",
+        ],
+      },
+      Design: {
+        description:
+          "Help craft visual experiences. Design beautiful app layouts, draw vector brand assets, and collaborate closely with product management teams.",
+        requirements: [
+          "Exceptional portfolio of UI/UX layouts or graphic designs.",
+          "Expert command of Figma, Adobe Illustrator, and Photoshop.",
+          "Good intuition for typography, grid systems, and component micro-animations.",
+          "Strong communication to present and defend design choices.",
+        ],
+        benefits: [
+          "Premium hardware (MacBook)",
+          "Design team offsites",
+          "Flexible working location",
+        ],
+        skills: ["Figma", "UI/UX Design", "Illustrator", "Brand Design", "Wireframing"],
+      },
+    };
+
     const jobs: Record<string, any> = {};
 
     for (let idx = 0; idx < jobsConfig.length; idx++) {
@@ -1409,47 +1588,64 @@ const seedDatabase = async () => {
       const poster = await prisma.user.findFirst({ where: { companyId: comp.id } });
       if (!poster) continue;
 
+      const details = disciplineDetails[jConf.discipline] || {
+        description: `Excellent opportunity for a ${jConf.title}. Work with modern technologies, enjoy competitive salaries, and join a high-performing collaborative team.`,
+        requirements: [
+          "Proven experience in the respective field.",
+          "Strong teamwork and communication abilities.",
+        ],
+        benefits: ["Medical Insurance", "Performance Bonus", "Flexible Hours"],
+        skills: ["React", "PostgreSQL", "Figma"],
+      };
+
       const job = await prisma.job.create({
         data: {
           title: jConf.title,
           slug: `${jConf.slug}-${comp.slug}`,
           discipline: jConf.discipline,
-          description: `Excellent opportunity for a ${jConf.title}. Work with modern technologies, enjoy competitive salaries, and join a high-performing collaborative team.`,
-          requirements: [
-            "Proven experience in the respective field.",
-            "Strong teamwork and communication abilities.",
-          ],
-          jobType: "FULL_TIME",
-          location: "Dhaka, Bangladesh",
-          experienceLevel: "Mid-Senior Level",
-          salaryMin: 60000 + idx * 5000,
-          salaryMax: 100000 + idx * 5000,
+          description: details.description,
+          requirements: details.requirements,
+          jobType: idx % 4 === 0 ? "CONTRACT" : idx % 5 === 0 ? "PART_TIME" : "FULL_TIME",
+          location: idx % 3 === 0 ? "Chittagong, Bangladesh" : "Dhaka, Bangladesh",
+          experienceLevel:
+            idx % 3 === 0 ? "Senior Level" : idx % 2 === 0 ? "Mid Level" : "Entry Level",
+          isRemote: idx % 3 === 0,
+          salaryMin: 45000 + idx * 5000,
+          salaryMax: 80000 + idx * 7000,
           currency: "BDT",
           status: "ACTIVE",
+          isFeatured: idx % 2 === 0,
           companyId: comp.id,
           postedById: poster.id,
           industryId: comp.industryId,
+          contactEmail: poster.email,
+          applicationDeadline: new Date(Date.now() + 75 * 24 * 60 * 60 * 1000), // 2.5 months in future (at least 2 months)
+          expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 3 months in future (at least 2 months)
+          maxApplications: 100,
+          autoCloseApplications: false,
+          benefits: details.benefits,
         },
       });
 
-      // Benefits (20 Benefits)
-      await prisma.benefits.create({
-        data: {
-          title: "Premium Health Care & Bonuses",
-          description: "Complete wellness coverage and yearly performance bonuses.",
-          jobId: job.id,
-        },
-      });
+      // Benefits entries
+      for (const b of details.benefits) {
+        await prisma.benefits.create({
+          data: {
+            title: b,
+            description: `Top-tier benefit option for ${job.title} roles.`,
+            jobId: job.id,
+          },
+        });
+      }
 
-      // Job Skills (60 JobSkills)
-      const jobSkillsList = ["React", "PostgreSQL", "Figma"];
-      for (const s of jobSkillsList) {
+      // Job Skills entries
+      for (const s of details.skills) {
         await prisma.jobSkill.create({
           data: {
             skillName: s,
-            experienceYears: 3.0,
+            experienceYears: 2.0 + (idx % 3),
             isRequired: true,
-            priority: "HIGH",
+            priority: idx % 2 === 0 ? "HIGH" : "MEDIUM",
             jobId: job.id,
           },
         });
@@ -1738,11 +1934,13 @@ const seedDatabase = async () => {
 
     console.table(counts);
 
-    const checkFailed = counts.some((m) => m.Count < 20);
+    const checkFailed = counts.some((m) => m.Model !== "Plan" && m.Count < 20);
     if (checkFailed) {
       console.warn("⚠️ Warning: Some tables have fewer than 20 elements!");
     } else {
-      console.log("✨ All 43 tables successfully seeded with a minimum of 20 elements!");
+      console.log(
+        "✨ All 43 tables successfully seeded with a minimum of 20 elements (excluding Plan)!",
+      );
     }
 
     console.log("🎉 Seeding completed successfully!");

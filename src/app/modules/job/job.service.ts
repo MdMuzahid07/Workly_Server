@@ -312,12 +312,18 @@ const getJobs = async (
     };
   }
 
-  // Industry filter (relation with company)
+  // Industry filter (relation with company or direct on Job)
   const industries = parseArray(industry);
   if (industries?.length) {
-    where.company = {
-      industry: { in: industries },
-    };
+    if (!where.AND) {
+      where.AND = [];
+    }
+    where.AND.push({
+      OR: [
+        { industry: { name: { in: industries, mode: "insensitive" } } },
+        { company: { industry: { name: { in: industries, mode: "insensitive" } } } },
+      ],
+    });
   }
 
   const result = await prisma.job.findMany({
