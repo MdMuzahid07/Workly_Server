@@ -7,6 +7,8 @@ import router from "./app/route/index.js";
 import config from "./config/index.js";
 import passport from "./config/passport.config.js";
 
+import { maintenanceModeMiddleware } from "./app/middleware/maintenanceMode.middleware.js";
+
 const app: Application = express();
 
 app.use(express.json({ limit: "50mb" }));
@@ -64,7 +66,7 @@ app.use(
   }),
 );
 
-app.use("/api/v1", router);
+app.use("/api/v1", maintenanceModeMiddleware, router);
 
 app.use(apiNotFound);
 

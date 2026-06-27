@@ -1048,17 +1048,23 @@ model JobReport {
 }
 
 model SystemSettings {
-  id                   String   @id @default(uuid())
-  aiMatchmaking        Boolean  @default(true)
-  publicRegistration   Boolean  @default(true)
-  globalNotifications  Boolean  @default(true)
-  extendedAuditLogging Boolean  @default(true)
-  maintenanceMode      Boolean  @default(false)
-  siteName             String   @default("Workly")
+  id                   String    @id @default("singleton")
+  aiMatchmaking        Boolean   @default(true)
+  publicRegistration   Boolean   @default(true)
+  globalNotifications  Boolean   @default(true)
+  extendedAuditLogging Boolean   @default(true)
+  maintenanceMode      Boolean   @default(false)
+  maintenanceMessage   String    @default("We're performing scheduled maintenance. We'll be back shortly.")
+  maintenanceSetAt     DateTime?
+  maintenanceSetBy     String?
+  maintenanceEstimatedEnd DateTime?
+  siteName             String    @default("Workly")
   siteSlogan           String?
   siteLogo             String?
   supportEmail         String?
-  updatedAt            DateTime @updatedAt
+  qrCodeUrl            String    @default("https://mdmuzahid.vercel.app")
+  footerSocials        Json?
+  updatedAt            DateTime  @updatedAt
 
   @@map("system_settings")
 }

@@ -346,6 +346,15 @@ const adminController = {
       data: result,
     });
   }),
+  getPublicSystemSettings: asyncHandler(async (_req, res) => {
+    const result = await adminService.getPublicSystemSettings();
+    sendApiResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Public system settings fetched successfully",
+      data: result,
+    });
+  }),
   updateSystemSettings: asyncHandler(async (req, res) => {
     const result = await adminService.updateSystemSettings(req.body);
     sendApiResponse(res, {

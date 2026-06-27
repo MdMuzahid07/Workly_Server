@@ -24,6 +24,8 @@ import paymentRoute from "../modules/payment/payment.route.js";
 import planRoute from "../modules/plan/plan.route.js";
 import subscriptionRoute from "../modules/subscription/subscription.route.js";
 import statisticsRoute from "../modules/statistics/statistics.route.js";
+import adminSettingsRouter from "../../routes/admin/settings.routes.js";
+import publicStatusRouter from "../../routes/public/status.routes.js";
 
 const router = express.Router();
 
@@ -127,6 +129,14 @@ const routeConfigs = [
   {
     path: "/statistics",
     route: statisticsRoute,
+  },
+  {
+    path: "/admin/settings",
+    route: adminSettingsRouter,
+  },
+  {
+    path: "/public/status",
+    route: publicStatusRouter,
   },
 ];
 

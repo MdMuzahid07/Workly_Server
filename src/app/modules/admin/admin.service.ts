@@ -4,6 +4,8 @@ import { Prisma } from "../../../generated/prisma/index.js";
 import { streamPdfToClient } from "../../../services/file/fileStream.service.js";
 import AppError from "../../error/AppError.js";
 import prisma from "../../../utils/prismaClient.js";
+import { maintenanceCache } from "../../../lib/maintenanceCache.js";
+import { getIO } from "../../../socket/index.js";
 
 type EmployerStatus = "Verified" | "Pending" | "Suspended";
 type JobSeekerStatus = "Hired" | "Looking" | "Active" | "Suspended";
@@ -1105,26 +1107,92 @@ const adminService = {
   },
 
   getSystemSettings: async () => {
-    let settings = await prisma.systemSettings.findFirst();
-    if (!settings) {
-      settings = await prisma.systemSettings.create({
-        data: {},
-      });
-    }
-    return settings;
+    return prisma.systemSettings.upsert({
+      where: { id: "singleton" },
+      create: { id: "singleton" },
+      update: {},
+    });
+  },
+
+  getPublicSystemSettings: async () => {
+    return prisma.systemSettings.upsert({
+      where: { id: "singleton" },
+      create: { id: "singleton" },
+      update: {},
+      select: {
+        siteName: true,
+        siteSlogan: true,
+        siteLogo: true,
+        supportEmail: true,
+        qrCodeUrl: true,
+        footerSocials: true,
+        maintenanceMode: true,
+      },
+    });
   },
 
   updateSystemSettings: async (data: any) => {
-    const settings = await prisma.systemSettings.findFirst();
-    if (!settings) {
-      return prisma.systemSettings.create({
-        data,
-      });
+    // Strip id if passed to prevent prisma errors trying to change primary key
+    const { id, maintenanceEstimatedEnd, ...updateData } = data;
+
+    const formattedUpdateData: any = { ...updateData };
+
+    if (data.maintenanceMode !== undefined) {
+      formattedUpdateData.maintenanceSetAt = data.maintenanceMode ? new Date() : null;
+      formattedUpdateData.maintenanceEstimatedEnd =
+        data.maintenanceMode && maintenanceEstimatedEnd ? new Date(maintenanceEstimatedEnd) : null;
+    } else if (maintenanceEstimatedEnd !== undefined) {
+      formattedUpdateData.maintenanceEstimatedEnd = maintenanceEstimatedEnd
+        ? new Date(maintenanceEstimatedEnd)
+        : null;
     }
-    return prisma.systemSettings.update({
-      where: { id: settings.id },
-      data,
+
+    const settings = await prisma.systemSettings.upsert({
+      where: { id: "singleton" },
+      create: {
+        id: "singleton",
+        ...formattedUpdateData,
+      },
+      update: formattedUpdateData,
     });
+
+    // Sync cache immediately so the server/edge queries see the update instantly
+    maintenanceCache.set(
+      settings.maintenanceMode,
+      settings.maintenanceMessage,
+      settings.maintenanceSetAt,
+      settings.maintenanceEstimatedEnd,
+    );
+
+    // If maintenanceMode was updated, emit Socket.io events
+    if (updateData.maintenanceMode !== undefined) {
+      const io = getIO();
+      if (io) {
+        if (settings.maintenanceMode) {
+          io.emit("maintenance:warning", {
+            gracePeriodMs: 10_000,
+            message: settings.maintenanceMessage,
+          });
+          setTimeout(() => {
+            io.emit("maintenance:change", {
+              enabled: true,
+              message: settings.maintenanceMessage,
+              setAt: settings.maintenanceSetAt,
+              estimatedEnd: settings.maintenanceEstimatedEnd,
+            });
+          }, 10_000);
+        } else {
+          io.emit("maintenance:change", {
+            enabled: false,
+            message: null,
+            setAt: null,
+            estimatedEnd: null,
+          });
+        }
+      }
+    }
+
+    return settings;
   },
 
   getJobReports: async (query: any) => {
