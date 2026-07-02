@@ -5,6 +5,7 @@ import generateUniqueSlug from "../../../utils/generateUniqueSlug.js";
 import prisma from "../../../utils/prismaClient.js";
 import AppError from "../../error/AppError.js";
 import { EntitlementService } from "../../../services/entitlement.service.js";
+import { env } from "../../../config/index.js";
 
 //* ============ helper functions ============>
 
@@ -116,11 +117,7 @@ const createJob = async (userId: string, payload: Job & { skillsRequired: JobSki
   }
 
   // Enforce 1 active job limit for free (non-premium) employers (only in production)
-  if (
-    process.env.NODE_ENV === "production" &&
-    !isUserExits.isPremium &&
-    payload.status === "ACTIVE"
-  ) {
+  if (env.NODE_ENV === "production" && !isUserExits.isPremium && payload.status === "ACTIVE") {
     const activeJobsCount = await prisma.job.count({
       where: {
         postedById: userId,
@@ -474,7 +471,7 @@ const updateJob = async (
 
   // Enforce 1 active job limit for free (non-premium) employers when activating a job (only in production)
   if (
-    process.env.NODE_ENV === "production" &&
+    env.NODE_ENV === "production" &&
     !user.isPremium &&
     payload.status === "ACTIVE" &&
     job.status !== "ACTIVE"

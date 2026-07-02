@@ -2,6 +2,24 @@ import prisma from "../src/utils/prismaClient.js";
 import bcrypt from "bcrypt";
 
 const seedDatabase = async () => {
+  // P0.1 / B3 — Production guard for prisma/seed.ts
+  // This file runs standalone via `yarn db:seed` / `prisma db seed` and can
+  // target ANY database that DATABASE_URL points to. Without this guard,
+  // running the seed against a production database would:
+  //   1. DELETE ALL ROWS in every table (the clean-reset block below), and
+  //   2. Insert the three hardcoded dev credentials plus 35 fake users.
+  //
+  // Uses process.env directly (not the app's zod `env`) because this file
+  // is invoked by the Prisma CLI before the app boots. process.exit(1) is
+  // the correct response — we never want to silently skip and succeed.
+  if (process.env.NODE_ENV === "production") {
+    console.error(
+      "❌  [Seed] Refusing to run: NODE_ENV=production.\n" +
+        "    Aborting to protect the production database from being wiped and seeded with dev data.",
+    );
+    process.exit(1);
+  }
+
   try {
     console.log("🌱 Connecting to the database...");
 
@@ -46,6 +64,7 @@ const seedDatabase = async () => {
     await prisma.userSettings.deleteMany();
     await prisma.resume.deleteMany();
     await prisma.verificationToken.deleteMany();
+    await prisma.refreshToken.deleteMany();
     await prisma.auditLog.deleteMany();
     await prisma.rateLimit.deleteMany();
     await prisma.legalDocument.deleteMany();
@@ -397,21 +416,20 @@ const seedDatabase = async () => {
       await prisma.legalDocument.create({ data: doc });
     }
 
-    // Seed 20 System Settings rows
-    for (let idx = 0; idx < 20; idx++) {
-      await prisma.systemSettings.create({
-        data: {
-          aiMatchmaking: idx % 2 === 0,
-          publicRegistration: true,
-          globalNotifications: true,
-          extendedAuditLogging: true,
-          maintenanceMode: false,
-          siteName: idx === 0 ? "Workly" : `Workly Instance ${idx + 1}`,
-          siteSlogan: `Connecting Talent with Opportunity #${idx + 1}`,
-          supportEmail: `support${idx === 0 ? "" : idx}@workly.com`,
-        },
-      });
-    }
+    // Seed System Settings (Singleton Pattern)
+    await prisma.systemSettings.create({
+      data: {
+        id: "singleton",
+        aiMatchmaking: true,
+        publicRegistration: true,
+        globalNotifications: true,
+        extendedAuditLogging: true,
+        maintenanceMode: false,
+        siteName: "Workly",
+        siteSlogan: "Connecting Talent with Opportunity",
+        supportEmail: "support@workly.com",
+      },
+    });
 
     // Seed 20 Rate Limit rows
     for (let idx = 0; idx < 20; idx++) {

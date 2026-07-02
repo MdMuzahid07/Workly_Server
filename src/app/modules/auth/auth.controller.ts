@@ -1,6 +1,6 @@
 import type { RequestHandler } from "express";
 import httpStatus from "http-status";
-import config from "../../../config/index.js";
+import { env } from "../../../config/index.js";
 import asyncHandler from "../../../utils/asyncHandler.js";
 import prisma from "../../../utils/prismaClient.js";
 import sendApiResponse from "../../../utils/sendApiResponse.js";
@@ -13,7 +13,7 @@ const register: RequestHandler = asyncHandler(async (req, res) => {
   const refreshToken = result.refreshToken;
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
-    secure: config.environment === "production" ? true : false,
+    secure: env.NODE_ENV === "production",
     sameSite: "strict",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
@@ -40,7 +40,7 @@ const login: RequestHandler = asyncHandler(async (req, res) => {
   const refreshToken = result.refreshToken;
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
-    secure: config.environment === "production" ? true : false,
+    secure: env.NODE_ENV === "production",
     sameSite: "strict",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
@@ -66,7 +66,7 @@ const logout: RequestHandler = asyncHandler(async (req, res) => {
 
   res.clearCookie("refreshToken", {
     httpOnly: true,
-    secure: config.environment === "production" ? true : false,
+    secure: env.NODE_ENV === "production",
     sameSite: "strict",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
@@ -124,7 +124,7 @@ const verifyEmail: RequestHandler = asyncHandler(async (req, res) => {
   if (result.refreshToken) {
     res.cookie("refreshToken", result.refreshToken, {
       httpOnly: true,
-      secure: config.environment === "production" ? true : false,
+      secure: env.NODE_ENV === "production",
       sameSite: "strict",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
@@ -181,7 +181,7 @@ const getCurrentUser: RequestHandler = asyncHandler(async (req, res) => {
 
   const data = {
     ...rest,
-    isPremium: process.env.NODE_ENV !== "production" ? true : isPremium,
+    isPremium: env.NODE_ENV !== "production" ? true : isPremium,
   };
 
   sendApiResponse(res, {
@@ -219,13 +219,13 @@ const googleOAuth = asyncHandler(async (req, res) => {
   // Set refresh token in httpOnly cookie (same pattern as login/register)
   res.cookie("refreshToken", result.refreshToken, {
     httpOnly: true,
-    secure: config.environment === "production" ? true : false,
+    secure: env.NODE_ENV === "production",
     sameSite: "strict",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
   // Redirect back to frontend callback page with accessToken + user data
-  const redirectUrl = new URL(`${config.frontend_url}/auth/google/callback`);
+  const redirectUrl = new URL(`${env.FRONTEND_URL}/auth/google/callback`);
   redirectUrl.searchParams.set("accessToken", result.accessToken);
   redirectUrl.searchParams.set("user", JSON.stringify(result.safeUser));
 

@@ -1,6 +1,7 @@
 import express from "express";
 import config from "../../../config/index.js";
 import passport from "../../../config/passport.config.js";
+import { authLimiter } from "../../../lib/rateLimiters.js";
 import authValidator from "../../middleware/authValidator.js";
 import requestValidator from "../../middleware/requestValidator.js";
 import authController from "./auth.controller.js";
@@ -8,13 +9,20 @@ import authValidation from "./auth.validation.js";
 
 const router = express.Router();
 
+// P1: authLimiter applied to all sensitive auth endpoints.
+// skipSuccessfulRequests=true means only failed attempts count toward the limit.
 router
-  .post("/register", requestValidator(authValidation.register), authController.register)
-  .post("/login", authController.login)
+  .post(
+    "/register",
+    authLimiter,
+    requestValidator(authValidation.register),
+    authController.register,
+  )
+  .post("/login", authLimiter, authController.login)
   .post("/logout", authController.logout)
   .post("/refresh", authController.refresh)
-  .post("/forgot-password", authController.forgotPassword)
-  .post("/reset-password", authController.resetPassword)
+  .post("/forgot-password", authLimiter, authController.forgotPassword)
+  .post("/reset-password", authLimiter, authController.resetPassword)
   .post("/verify-email", requestValidator(authValidation.verifyEmail), authController.verifyEmail)
   .post("/change-password", authValidator(), authController.changePassword)
   .get("/me", authValidator(), authController.getCurrentUser);

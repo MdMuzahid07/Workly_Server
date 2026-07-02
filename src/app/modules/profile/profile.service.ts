@@ -2,6 +2,7 @@ import httpStatus from "http-status";
 import prisma from "../../../utils/prismaClient.js";
 import AppError from "../../error/AppError.js";
 import type { IProfile, ISkill } from "./profile.interface.js";
+import { env } from "../../../config/index.js";
 
 const createProfile = async (userId: string, payload: IProfile) => {
   const isUserExits = await prisma.user.findUnique({
@@ -130,7 +131,7 @@ const myProfile = async (userId: string) => {
     throw new AppError(httpStatus.NOT_FOUND, "Profile not found");
   }
 
-  const { passwordHash, ...rest } = result;
+  const rest = result;
 
   let isPremium = rest.isPremium;
   if (!isPremium && rest.role === "EMPLOYER" && rest.companyId) {
@@ -144,7 +145,7 @@ const myProfile = async (userId: string) => {
 
   return {
     ...rest,
-    isPremium: process.env.NODE_ENV !== "production" ? true : isPremium,
+    isPremium: env.NODE_ENV !== "production" ? true : isPremium,
   };
 };
 

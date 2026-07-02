@@ -1,14 +1,40 @@
 import http, { type Server } from "http";
 import app from "./app.js";
-import config from "./config/index.js";
+import { env } from "./config/index.js";
+import { initRateLimiters } from "./lib/rateLimiters.js";
 import { initSocket } from "./socket/index.js";
 import prisma from "./utils/prismaClient.js";
 import bcrypt from "bcrypt";
 import { startPushReceiptJob } from "./jobs/push.receipt.job.js";
 
-const port = config.port || 5000;
+const port = env.PORT;
 
+/**
+ * Seeds the three hardcoded dev accounts on first boot in development.
+ *
+ * Credentials are intentionally kept as-is (mydevcafe@gmail.com/ADMIN,
+ * mdmuzahid7396@gmail.com/EMPLOYER, mdmuzahid.dev@gmail.com/JOB_SEEKER)
+ * for fast local login. This is a deliberate choice, not an oversight.
+ *
+ * TWO independent guards prevent this from ever touching a non-dev database:
+ *  1. The caller in main() checks env.NODE_ENV === "development" (P0.2 fix:
+ *     was config.environment which read ENVIRONMENT, not NODE_ENV — now both
+ *     read the same zod-validated value, closing the gating-var mismatch bug).
+ *  2. This function itself throws immediately if NODE_ENV=production, so even
+ *     if a future refactor calls it from somewhere new (cron, admin endpoint)
+ *     without the caller check, it refuses to run.
+ *
+ * The database boundary is the real control (dev/staging/prod must never share
+ * a database). The code guards are defense-in-depth.
+ */
 async function seedDevUsers() {
+  // P0.1 — Second independent guard: reject unconditionally in production.
+  // This throws rather than returning silently so a misconfigured caller fails
+  // loudly instead of silently doing nothing.
+  if (env.NODE_ENV === "production") {
+    throw new Error("[Seed] seedDevUsers() must never run with NODE_ENV=production. Aborting.");
+  }
+
   try {
     const devUsers = [
       {
@@ -38,7 +64,7 @@ async function seedDevUsers() {
 
       if (!exists) {
         console.log(`[Seed] Creating dev user: ${u.email}`);
-        const passwordHash = await bcrypt.hash(u.password, Number(config.bcrypt_salt_rounds || 12));
+        const passwordHash = await bcrypt.hash(u.password, env.BCRYPT_SALT_ROUNDS);
         await prisma.user.create({
           data: {
             email: u.email,
@@ -66,21 +92,20 @@ async function seedDevUsers() {
 }
 
 /**
- * Main entry point for the server. This function starts the server and
- * sets up error handling. The server will listen on the port specified
- * in the config object, or port 5000 if no port is specified.
- *
- * If an error is encountered while starting the server, the server will
- * log the error to the console and exit with a non-zero status code.
- *
- * This function should be called once the config object has been loaded.
+ * Main entry point. Resolves the rate-limit store before binding the server
+ * so the limiter is fully configured (Redis or MemoryStore) from request #1.
  */
-
 async function main() {
+  // Initialise rate limiters (may connect to Redis if REDIS_URL is set)
+  await initRateLimiters();
+
   const server: Server = http.createServer(app);
   initSocket(server);
 
-  if (config.environment === "development") {
+  // P0.1 + P0.2 fix: both guards now use env.NODE_ENV (the single zod-validated
+  // source of truth). The old split between process.env.NODE_ENV and
+  // config.environment (reading ENVIRONMENT) is closed.
+  if (env.NODE_ENV === "development") {
     await seedDevUsers();
   }
 
@@ -97,7 +122,8 @@ async function main() {
   });
 }
 
-if (process.env.NODE_ENV !== "production") {
+// P0.1 fix: was process.env.NODE_ENV — now uses env.NODE_ENV (zod-validated).
+if (env.NODE_ENV !== "production") {
   main();
 }
 

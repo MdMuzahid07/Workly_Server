@@ -125,7 +125,9 @@ const getAllCandidates = async (query: any, employerId?: string) => {
     ]);
 
     const result = candidates.map((user) => {
-      const { passwordHash, candidateSaves, ...rest } = user as any;
+      const { candidateSaves, ...rest } = user as typeof user & {
+        candidateSaves?: { id: string }[];
+      };
       return {
         ...rest,
         isSaved:
@@ -185,7 +187,9 @@ const getCandidateById = async (id: string, employerId?: string) => {
       throw new AppError(httpStatus.NOT_FOUND, "Candidate not found");
     }
 
-    const { passwordHash, candidateSaves, ...rest } = candidate as any;
+    const { candidateSaves, ...rest } = candidate as typeof candidate & {
+      candidateSaves?: { id: string }[];
+    };
     return {
       ...rest,
       isSaved:
@@ -267,8 +271,8 @@ const getSavedCandidates = async (employerId: string, query: any) => {
     ]);
 
     return {
-      data: saved.map((s: any) => {
-        const { passwordHash, ...rest } = s.candidate as any;
+      data: saved.map((s) => {
+        const rest = s.candidate;
         return {
           ...rest,
           isSaved: true,

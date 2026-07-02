@@ -2,6 +2,7 @@ import httpStatus from "http-status";
 import AppError from "../../error/AppError.js";
 import factoryFunctions from "../../../utils/FactoryFunctionsWithFilterEngine.js";
 import { emitToUser } from "../../../socket/index.js";
+import { env } from "../../../config/index.js";
 import prisma from "../../../utils/prismaClient.js";
 import { pushService } from "../../../services/push.service.js";
 import {
@@ -60,7 +61,7 @@ const triggerEmailNotificationIfPremium = async (userId: string, notificationId:
   if (!notification) return;
 
   const settings = recipient.userSettings;
-  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+  const frontendUrl = env.FRONTEND_URL;
 
   try {
     if (notification.type === "APPLICATION_RECEIVED") {

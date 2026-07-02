@@ -3,7 +3,7 @@
   "type": "module",
   "version": "1.0.0",
   "engines": {
-    "node": ">=18"
+    "node": ">=24.0.0 <25.0.0"
   },
   "scripts": {
     "dev": "concurrently \"tsx watch src/server.ts\" \"prisma studio\"",
@@ -28,6 +28,7 @@
     "@types/cookie-parser": "^1.4.9",
     "@types/cors": "^2",
     "@types/express": "^5",
+    "@types/hpp": "^0.2.7",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2",
     "@types/node": "^20.11.0",
@@ -57,9 +58,12 @@
     "dotenv": "^17.2.1",
     "expo-server-sdk": "^6.1.0",
     "express": "^5.1.0",
-    "helmet": "^8.1.0",
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^8.2.0",
+    "hpp": "^0.2.3",
     "http-status": "^2.1.0",
     "husky": "^9.1.7",
+    "ioredis": "5.11.1",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
     "multer-storage-cloudinary": "^4.0.0",
@@ -68,6 +72,7 @@
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "pg": "^8.16.3",
+    "rate-limit-redis": "5.0.0",
     "socket.io": "^4.8.3",
     "sslcommerz-lts": "^1.2.0",
     "zod": "^4.0.17"
