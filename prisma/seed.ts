@@ -100,6 +100,12 @@ const seedDatabase = async () => {
           canViewProfileAnalytics: false,
           isFeaturedProfile: false,
           canMessageEmployer: false,
+          durationMonths: 0,
+          displayFeatures: [
+            "1 active job listing",
+            "1 user account",
+            "Standard applicant tracking",
+          ],
         },
         maxActiveJobs: 1,
         maxUsers: 1,
@@ -122,6 +128,13 @@ const seedDatabase = async () => {
           canViewProfileAnalytics: false,
           isFeaturedProfile: false,
           canMessageEmployer: false,
+          durationMonths: 1,
+          displayFeatures: [
+            "10 active job listings",
+            "4 user accounts",
+            "Direct candidate messaging",
+            "Basic analytics dashboard",
+          ],
         },
         maxActiveJobs: 10,
         maxUsers: 4,
@@ -144,6 +157,14 @@ const seedDatabase = async () => {
           canViewProfileAnalytics: false,
           isFeaturedProfile: false,
           canMessageEmployer: false,
+          durationMonths: 1,
+          displayFeatures: [
+            "Unlimited active jobs",
+            "Unlimited user accounts",
+            "Direct candidate messaging",
+            "Advanced analytics dashboard",
+            "Priority customer support",
+          ],
         },
         maxActiveJobs: 9999,
         maxUsers: 9999,
@@ -153,7 +174,7 @@ const seedDatabase = async () => {
       {
         name: "Free",
         planType: "JOB_SEEKER" as const,
-        description: "Basic job search and profile builder for seekers.",
+        description: "Start your job search with essential tools at no cost.",
         price: 0.0,
         currency: "BDT",
         interval: "month",
@@ -167,6 +188,47 @@ const seedDatabase = async () => {
           canViewProfileAnalytics: false,
           isFeaturedProfile: false,
           canMessageEmployer: false,
+          durationMonths: 0,
+          displayFeatures: [
+            "40 job applications per month",
+            "1 active CV upload",
+            "Standard algorithmic ranking",
+            "7-day view history",
+            "Standard in-app alerts",
+            "Basic application status",
+          ],
+        },
+        maxActiveJobs: 0,
+        maxUsers: 0,
+        isActive: true,
+      },
+      {
+        name: "Starter",
+        planType: "JOB_SEEKER" as const,
+        description: "1-month premium access. Great entry point for active job seekers.",
+        price: 90.0,
+        currency: "BDT",
+        interval: "month",
+        features: {
+          maxActiveJobs: 0,
+          maxUsers: 0,
+          maxMonthlyApplications: 200,
+          maxResumes: 5,
+          canMessage: false,
+          canViewAnalytics: false,
+          canViewProfileAnalytics: true,
+          isFeaturedProfile: false,
+          canMessageEmployer: true,
+          durationMonths: 1,
+          firstTimeDiscountPercent: 45,
+          displayFeatures: [
+            "200 job applications per month",
+            "5 active CV uploads",
+            "Direct messaging to HR",
+            "30-day view history",
+            "Priority real-time alerts",
+            "Detailed stage tracking",
+          ],
         },
         maxActiveJobs: 0,
         maxUsers: 0,
@@ -175,20 +237,31 @@ const seedDatabase = async () => {
       {
         name: "Pro",
         planType: "JOB_SEEKER" as const,
-        description: "Accelerate your career search with higher limits and messaging.",
-        price: 399.0,
+        description: "2-month premium access. Better value for sustained job searching.",
+        price: 160.0,
         currency: "BDT",
         interval: "month",
         features: {
           maxActiveJobs: 0,
           maxUsers: 0,
-          maxMonthlyApplications: 120,
-          maxResumes: 5,
+          maxMonthlyApplications: 300,
+          maxResumes: 10,
           canMessage: false,
           canViewAnalytics: false,
           canViewProfileAnalytics: true,
           isFeaturedProfile: false,
           canMessageEmployer: true,
+          durationMonths: 2,
+          firstTimeDiscountPercent: 35,
+          displayFeatures: [
+            "300 job applications per month",
+            "10 active CV uploads",
+            "Direct messaging to HR",
+            "30-day view history",
+            "Priority real-time alerts",
+            "Detailed stage tracking",
+            "Advanced search optimization",
+          ],
         },
         maxActiveJobs: 0,
         maxUsers: 0,
@@ -197,8 +270,8 @@ const seedDatabase = async () => {
       {
         name: "Premium",
         planType: "JOB_SEEKER" as const,
-        description: "The ultimate package with maximum visibility and unlimited features.",
-        price: 999.0,
+        description: "3-month premium access. Maximum visibility with Featured Candidate status.",
+        price: 225.0,
         currency: "BDT",
         interval: "month",
         features: {
@@ -211,6 +284,17 @@ const seedDatabase = async () => {
           canViewProfileAnalytics: true,
           isFeaturedProfile: true,
           canMessageEmployer: true,
+          durationMonths: 3,
+          firstTimeDiscountPercent: 25,
+          displayFeatures: [
+            "Unlimited job applications",
+            "Unlimited CV uploads",
+            "Direct messaging to HR",
+            "Full view history (90 days)",
+            "Priority real-time alerts",
+            "Detailed stage tracking",
+            "Featured candidate profile",
+          ],
         },
         maxActiveJobs: 0,
         maxUsers: 0,
@@ -1562,29 +1646,68 @@ const seedDatabase = async () => {
       });
     }
 
-    // ======= 8. Seed 20 PaymentTransactions =======
-    console.log("💳 Seeding 20 Payment Transactions...");
+    // ======= 8. Seed 20 PaymentTransactions (10 Employer, 10 Candidate) =======
+    console.log("💳 Seeding 20 Payment Transactions (10 Employer, 10 Candidate)...");
+    const seekersForTx = Object.values(users).filter((u) => u.role === "JOB_SEEKER");
+
     for (let idx = 0; idx < 20; idx++) {
-      const company = companyList[idx % companyList.length];
-      const employer = await prisma.user.findFirst({ where: { companyId: company.id } });
-      if (employer) {
-        await prisma.paymentTransaction.create({
-          data: {
-            tranId: `TRAN-ID-ONYX-${1000 + idx}`,
-            valId: `VAL-ID-${1000 + idx}`,
-            sessionKey: `SESSION-KEY-ONYX-${1000 + idx}`,
-            userId: employer.id,
-            companyId: company.id,
-            amount: 4999.0,
-            currency: "BDT",
-            status: "VALIDATED",
-            category: "EMPLOYER_PLAN",
-            planId: plans["EMPLOYER_Growth"].id,
-            bankTranId: `BANK-TX-${2000 + idx}`,
-            cardType: "VISA",
-            storeAmount: 4999.0,
-          },
-        });
+      if (idx % 2 === 0) {
+        // Employer Plan
+        const company = companyList[Math.floor(idx / 2) % companyList.length];
+        const employer = await prisma.user.findFirst({ where: { companyId: company.id } });
+        if (employer) {
+          const planKey = idx % 4 === 0 ? "EMPLOYER_Growth" : "EMPLOYER_Enterprise";
+          const dbPlan = plans[planKey];
+          await prisma.paymentTransaction.create({
+            data: {
+              tranId: `TRAN-ID-ONYX-${1000 + idx}`,
+              valId: `VAL-ID-${1000 + idx}`,
+              sessionKey: `SESSION-KEY-ONYX-${1000 + idx}`,
+              userId: employer.id,
+              companyId: company.id,
+              amount: dbPlan.price,
+              currency: "BDT",
+              status: "VALIDATED",
+              category: "EMPLOYER_PLAN",
+              planId: dbPlan.name,
+              bankTranId: `BANK-TX-${2000 + idx}`,
+              cardType: "VISA",
+              storeAmount: dbPlan.price,
+            },
+          });
+        }
+      } else {
+        // Seeker Premium Plan
+        const seeker = seekersForTx[Math.floor(idx / 2) % seekersForTx.length];
+        if (seeker) {
+          const seekerPlanKeys = ["JOB_SEEKER_Starter", "JOB_SEEKER_Pro", "JOB_SEEKER_Premium"];
+          const planKey = seekerPlanKeys[Math.floor(idx / 2) % seekerPlanKeys.length];
+          const dbPlan = plans[planKey];
+
+          // Calculate correct dynamic discounted amount for seeded transaction
+          const planFeatures = dbPlan.features as any;
+          const discountPercent = Number(planFeatures?.firstTimeDiscountPercent || 0);
+          const discountAmount = dbPlan.price * (discountPercent / 100);
+          const finalAmount = Math.floor(dbPlan.price - discountAmount);
+
+          await prisma.paymentTransaction.create({
+            data: {
+              tranId: `TRAN-ID-ONYX-${1000 + idx}`,
+              valId: `VAL-ID-${1000 + idx}`,
+              sessionKey: `SESSION-KEY-ONYX-${1000 + idx}`,
+              userId: seeker.id,
+              companyId: null,
+              amount: finalAmount,
+              currency: "BDT",
+              status: "VALIDATED",
+              category: "SEEKER_PREMIUM",
+              planId: dbPlan.name,
+              bankTranId: `BANK-TX-${2000 + idx}`,
+              cardType: "BKASH",
+              storeAmount: finalAmount,
+            },
+          });
+        }
       }
     }
 

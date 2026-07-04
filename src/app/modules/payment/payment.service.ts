@@ -43,6 +43,101 @@ const initiatePayment = async (
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
 
+  // ── First-time package discount calculated 100% from backend ────────────────
+  // Lookup target plan configuration in database to obtain price & discount configs
+  const mappedPlanId =
+    payload.planId === "cand_starter"
+      ? "Starter"
+      : payload.planId === "cand_pro"
+        ? "Pro"
+        : payload.planId === "cand_elite" || payload.planId === "cand_job_seeker_max"
+          ? "Premium"
+          : payload.planId;
+
+  const dbPlan = await prisma.plan.findFirst({
+    where: {
+      name: {
+        equals: mappedPlanId,
+        mode: "insensitive",
+      },
+      planType:
+        payload.category === PaymentCategory.EMPLOYER_PLAN
+          ? PlanType.EMPLOYER
+          : PlanType.JOB_SEEKER,
+    },
+  });
+
+  // ── Production-grade safety check: Prevent double purchasing currently active plan ──
+  if (payload.category === PaymentCategory.EMPLOYER_PLAN) {
+    if (!companyId) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Company identification is required to purchase subscriptions.",
+      );
+    }
+    if (dbPlan) {
+      const activeSub = await prisma.subscription.findFirst({
+        where: {
+          companyId,
+          planId: dbPlan.id,
+          status: SubscriptionStatus.ACTIVE,
+          endDate: { gte: new Date() },
+        },
+      });
+      if (activeSub) {
+        throw new AppError(
+          httpStatus.BAD_REQUEST,
+          `You already have an active subscription to the ${dbPlan.name} plan.`,
+        );
+      }
+    }
+  } else if (payload.category === PaymentCategory.SEEKER_PREMIUM) {
+    if (dbPlan) {
+      const activeUserSub = await prisma.userSubscription.findFirst({
+        where: {
+          userId,
+          planId: dbPlan.id,
+          status: SubscriptionStatus.ACTIVE,
+          endDate: { gte: new Date() },
+        },
+      });
+      if (activeUserSub) {
+        throw new AppError(
+          httpStatus.BAD_REQUEST,
+          `You already have an active subscription to the ${dbPlan.name} package.`,
+        );
+      }
+    }
+  }
+
+  let finalAmount =
+    typeof payload.amount === "string" ? parseFloat(payload.amount) : payload.amount;
+
+  if (dbPlan && payload.category === PaymentCategory.SEEKER_PREMIUM) {
+    const planFeatures = dbPlan.features as any;
+    const discountPercent = Number(planFeatures?.firstTimeDiscountPercent || 0);
+
+    if (discountPercent > 0) {
+      // Check if user qualifies (zero previously validated SEEKER_PREMIUM packages)
+      const prevValidatedCount = await prisma.paymentTransaction.count({
+        where: {
+          userId,
+          category: PaymentCategory.SEEKER_PREMIUM,
+          status: PaymentStatus.VALIDATED,
+        },
+      });
+
+      if (prevValidatedCount === 0) {
+        // Apply the discount percent and round to flat integer (no fractions allowed)
+        const discountAmount = dbPlan.price * (discountPercent / 100);
+        finalAmount = Math.floor(dbPlan.price - discountAmount);
+        console.log(
+          `[Payment] First-time ${discountPercent}% discount applied dynamically for user ${userId} on plan ${dbPlan.name}: ৳${finalAmount} (regular ৳${dbPlan.price})`,
+        );
+      }
+    }
+  }
+
   // Pre-check plan or subscription info based on category
   let productName = "Premium Upgrade";
   if (payload.category === PaymentCategory.EMPLOYER_PLAN) {
@@ -57,7 +152,7 @@ const initiatePayment = async (
       tranId,
       userId,
       companyId: payload.category === PaymentCategory.EMPLOYER_PLAN ? companyId || null : null,
-      amount: typeof payload.amount === "string" ? parseFloat(payload.amount) : payload.amount,
+      amount: finalAmount,
       currency: payload.currency || "BDT",
       status: PaymentStatus.PENDING,
       category: payload.category,
@@ -75,7 +170,7 @@ const initiatePayment = async (
 
   // SSLCommerz payment data structure
   const paymentData = {
-    total_amount: payload.amount,
+    total_amount: finalAmount,
     currency: payload.currency || "BDT",
     tran_id: tranId,
     success_url: successUrl,
@@ -248,6 +343,15 @@ const validatePayment = async (tranId: string, valId: string, payload: any) => {
 
   // 6. Upgrade privileges inside a secure database transaction
   const updatedTransaction = await prisma.$transaction(async (tx: any) => {
+    // Concurrency / Idempotency guard: Re-fetch transaction state inside transaction block
+    const currentTx = await tx.paymentTransaction.findUnique({
+      where: { id: transaction.id },
+    });
+
+    if (currentTx.status === PaymentStatus.VALIDATED) {
+      return currentTx;
+    }
+
     // Update the transaction record
     const updatedTx = await tx.paymentTransaction.update({
       where: { id: transaction.id },
@@ -341,12 +445,15 @@ const validatePayment = async (tranId: string, valId: string, payload: any) => {
       });
     } else if (transaction.category === PaymentCategory.SEEKER_PREMIUM) {
       // Ensure Plan exists in database
+      // Map legacy planIds and current direct plan names through to DB name
       const mappedPlanName =
-        transaction.planId === "cand_pro"
-          ? "Pro"
-          : transaction.planId === "cand_elite" || transaction.planId === "cand_job_seeker_max"
-            ? "Premium"
-            : transaction.planId;
+        transaction.planId === "cand_starter"
+          ? "Starter"
+          : transaction.planId === "cand_pro"
+            ? "Pro"
+            : transaction.planId === "cand_elite" || transaction.planId === "cand_job_seeker_max"
+              ? "Premium"
+              : transaction.planId; // Direct names (Starter/Pro/Premium) pass through
       let dbPlan = await tx.plan.findUnique({
         where: {
           name_planType: {
@@ -360,9 +467,16 @@ const validatePayment = async (tranId: string, valId: string, payload: any) => {
         throw new AppError(httpStatus.NOT_FOUND, `Plan '${mappedPlanName}' not found in database.`);
       }
 
+      // Use durationMonths from plan features to set the correct subscription period
+      const planFeatures = dbPlan.features as any;
+      const durationMonths =
+        typeof planFeatures?.durationMonths === "number" && planFeatures.durationMonths > 0
+          ? planFeatures.durationMonths
+          : 1;
+
       const subscriptionStart = new Date();
       const subscriptionEnd = new Date();
-      subscriptionEnd.setDate(subscriptionEnd.getDate() + 30); // 30-day billing cycle
+      subscriptionEnd.setMonth(subscriptionEnd.getMonth() + durationMonths);
 
       const userSub = await tx.userSubscription.upsert({
         where: { userId: transaction.userId },

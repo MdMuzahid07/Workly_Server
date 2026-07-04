@@ -18,9 +18,11 @@ import { globalLimiter } from "./lib/rateLimiters.js";
 //  3. No duplicate frontend_url check (folded into ALLOWED_ORIGINS array)
 //  4. SSLCommerz real origins must be added to ALLOWED_ORIGINS env var
 // ---------------------------------------------------------------------------
-const allowedOrigins = env.ALLOWED_ORIGINS.split(",")
-  .map((o) => o.trim())
-  .filter(Boolean);
+const allowedOrigins = [
+  ...env.ALLOWED_ORIGINS.split(",").map((o) => o.trim()),
+  env.BACKEND_URL,
+  env.FRONTEND_URL,
+].filter(Boolean);
 
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
@@ -70,7 +72,26 @@ app.set("trust proxy", 1);
 // CORS is registered BEFORE body parsers so bad origins are rejected before
 // any body parsing work happens.
 app.use(helmet());
-app.use(cors(corsOptions));
+app.use((req: any, res: any, next: any) => {
+  const isPaymentCallback =
+    req.path.startsWith("/api/v1/payments/success") ||
+    req.path.startsWith("/api/v1/payments/fail") ||
+    req.path.startsWith("/api/v1/payments/cancel") ||
+    req.path.startsWith("/api/v1/payments/ipn");
+
+  if (isPaymentCallback) {
+    // Permit all external POST checkouts from SSLCommerz sandbox / live servers
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    if (req.method === "OPTIONS") {
+      return res.sendStatus(200);
+    }
+    return next();
+  }
+
+  cors(corsOptions)(req, res, next);
+});
 app.use(globalLimiter);
 app.use(express.json({ limit: "1mb" })); // was 50mb — P0.6
 app.use(express.urlencoded({ extended: true, limit: "1mb" })); // was 50mb — P0.6
