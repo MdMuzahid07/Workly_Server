@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 import httpStatus from "http-status";
 import jwt from "jsonwebtoken";
-import config from "../../../config/index.js";
+import config, { env } from "../../../config/index.js";
 import {
   sendPasswordResetEmail,
   sendResendVerificationEmail,
@@ -87,7 +87,7 @@ const register = async (payload: any) => {
     console.error("Failed to send verification email =>", error);
   }
 
-  const isPremium = process.env.NODE_ENV !== "production" ? true : await isUserPremium(user);
+  const isPremium = env.NODE_ENV !== "production" ? true : await isUserPremium(user);
 
   const jwtPayload = {
     userId: user.id,
@@ -104,7 +104,7 @@ const register = async (payload: any) => {
   const { passwordHash: _, ...safeUser } = {
     ...user,
     isPremium,
-  };
+  } as typeof user & { passwordHash?: string; isPremium: boolean };
 
   return {
     safeUser,
@@ -125,16 +125,49 @@ const login = async (payload: any) => {
     where: {
       email: normalizedEmail,
     },
+    omit: {
+      passwordHash: false,
+    },
   });
 
   if (!isExits || !isExits?.isActive) {
     throw new AppError(httpStatus.BAD_REQUEST, `User not found with ${normalizedEmail} this email`);
   }
 
+  // P2 — Account lockout check.
+  // Must happen BEFORE bcrypt.compare so a locked account can't be probed.
+  // Use 429 (Too Many Requests) so the client knows to wait, not 401/403.
+  if (isExits.lockedUntil && isExits.lockedUntil > new Date()) {
+    const retryAfterSeconds = Math.ceil((isExits.lockedUntil.getTime() - Date.now()) / 1000);
+    throw new AppError(
+      httpStatus.TOO_MANY_REQUESTS,
+      `Account temporarily locked due to too many failed attempts. Try again in ${Math.ceil(retryAfterSeconds / 60)} minute(s).`,
+    );
+  }
+
   const isPasswordMatch = await bcrypt.compare(payload.password, isExits.passwordHash);
 
   if (!isPasswordMatch) {
+    // Increment failed attempt counter; lock after 5 failures for 15 minutes.
+    const newFailCount = (isExits.failedLoginAttempts ?? 0) + 1;
+    const shouldLock = newFailCount >= 5;
+
+    await prisma.user.update({
+      where: { id: isExits.id },
+      data: {
+        failedLoginAttempts: newFailCount,
+        lockedUntil: shouldLock ? new Date(Date.now() + 15 * 60 * 1000) : null,
+      },
+    });
     throw new AppError(httpStatus.BAD_REQUEST, "Invalid credentials");
+  }
+
+  // Reset lockout on successful login
+  if (isExits.failedLoginAttempts > 0 || isExits.lockedUntil) {
+    await prisma.user.update({
+      where: { id: isExits.id },
+      data: { failedLoginAttempts: 0, lockedUntil: null },
+    });
   }
 
   if (!isExits.isVerified) {
@@ -150,7 +183,7 @@ const login = async (payload: any) => {
     data: { lastLogin: new Date() },
   });
 
-  const isPremium = process.env.NODE_ENV !== "production" ? true : await isUserPremium(user);
+  const isPremium = env.NODE_ENV !== "production" ? true : await isUserPremium(user);
 
   const jwtPayload = {
     userId: user.id,
@@ -167,7 +200,7 @@ const login = async (payload: any) => {
   const { passwordHash: _, ...safeUser } = {
     ...user,
     isPremium,
-  };
+  } as typeof user & { passwordHash?: string; isPremium: boolean };
 
   return {
     accessToken,
@@ -186,7 +219,10 @@ const refresh = async (refreshToken: string) => {
 
   let decodedRefreshToken: any;
   try {
-    decodedRefreshToken = jwt.verify(refreshToken, config.jwt_refresh_secret);
+    // B2 fix — algorithm pinning on verify (matches sign in generateJsonWebToken.ts)
+    decodedRefreshToken = jwt.verify(refreshToken, env.JWT_REFRESH_SECRET, {
+      algorithms: [env.JWT_ALGORITHM as jwt.Algorithm],
+    });
   } catch (error) {
     throw new AppError(httpStatus.UNAUTHORIZED, "Invalid refresh token");
   }
@@ -208,8 +244,7 @@ const refresh = async (refreshToken: string) => {
     );
   }
 
-  const isPremium =
-    process.env.NODE_ENV !== "production" ? true : await isUserPremium(isUserExists);
+  const isPremium = env.NODE_ENV !== "production" ? true : await isUserPremium(isUserExists);
 
   const jwtPayload = {
     userId: isUserExists.id,
@@ -342,7 +377,13 @@ const resetPassword = async (payload: any) => {
 
   const resetTokenRecord = await prisma.verificationToken.findUnique({
     where: { token: token.trim() },
-    include: { user: true },
+    include: {
+      user: {
+        omit: {
+          passwordHash: false,
+        },
+      },
+    },
   });
 
   if (!resetTokenRecord || resetTokenRecord.type !== "PASSWORD_RESET") {
@@ -437,7 +478,7 @@ const verifyEmail = async (payload: any) => {
   });
 
   const isPremium =
-    process.env.NODE_ENV !== "production" ? true : await isUserPremium(verificationToken.user);
+    env.NODE_ENV !== "production" ? true : await isUserPremium(verificationToken.user);
 
   const jwtPayload = {
     userId: verificationToken.user.id,
@@ -589,7 +630,7 @@ const googleOAuth = async (
     });
   }
 
-  const isPremium = process.env.NODE_ENV !== "production" ? true : await isUserPremium(user);
+  const isPremium = env.NODE_ENV !== "production" ? true : await isUserPremium(user);
 
   const jwtPayload = {
     userId: user.id,
@@ -607,7 +648,7 @@ const googleOAuth = async (
   const { passwordHash: _, ...safeUser } = {
     ...user,
     isPremium,
-  };
+  } as typeof user & { passwordHash?: string; isPremium: boolean };
 
   return {
     safeUser,
@@ -621,6 +662,9 @@ const changePassword = async (userId: string, payload: any) => {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
+    omit: {
+      passwordHash: false,
+    },
   });
 
   if (!user) {

@@ -1,6 +1,7 @@
 import express from "express";
 import applicationRoute from "../modules/application/application.route.js";
 import authRoute from "../modules/auth/auth.route.js";
+import userRoute from "../modules/user/user.route.js";
 import categoryRoute from "../modules/category/category.route.js";
 import companyRoute from "../modules/company/company.route.js";
 import educationRoute from "../modules/education/education.route.js";
@@ -23,6 +24,8 @@ import paymentRoute from "../modules/payment/payment.route.js";
 import planRoute from "../modules/plan/plan.route.js";
 import subscriptionRoute from "../modules/subscription/subscription.route.js";
 import statisticsRoute from "../modules/statistics/statistics.route.js";
+import adminSettingsRouter from "../../routes/admin/settings.routes.js";
+import publicStatusRouter from "../../routes/public/status.routes.js";
 
 const router = express.Router();
 
@@ -30,6 +33,10 @@ const routeConfigs = [
   {
     path: "/auth",
     route: authRoute,
+  },
+  {
+    path: "/users",
+    route: userRoute,
   },
   {
     path: "/profile",
@@ -122,6 +129,14 @@ const routeConfigs = [
   {
     path: "/statistics",
     route: statisticsRoute,
+  },
+  {
+    path: "/admin/settings",
+    route: adminSettingsRouter,
+  },
+  {
+    path: "/public/status",
+    route: publicStatusRouter,
   },
 ];
 

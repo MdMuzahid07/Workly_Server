@@ -179,6 +179,8 @@ router.delete(
   adminController.deleteJobListing,
 );
 
+router.get("/settings/public", adminController.getPublicSystemSettings);
+
 router.get(
   "/settings",
   authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
