@@ -550,6 +550,31 @@ const seedDatabase = async () => {
         fullName: "Beximco HR Department",
         role: "EMPLOYER" as const,
       },
+      {
+        email: "employer.agritech@company.com",
+        fullName: "Saiful Islam",
+        role: "EMPLOYER" as const,
+      },
+      {
+        email: "employer.energy@company.com",
+        fullName: "Farhan Ahmed",
+        role: "EMPLOYER" as const,
+      },
+      {
+        email: "employer.pharma@company.com",
+        fullName: "Masud Rana",
+        role: "EMPLOYER" as const,
+      },
+      {
+        email: "employer.cyber@company.com",
+        fullName: "Tasnim Rahman",
+        role: "EMPLOYER" as const,
+      },
+      {
+        email: "employer.cloud@company.com",
+        fullName: "Riyad Khan",
+        role: "EMPLOYER" as const,
+      },
     ];
 
     const seekersRaw = [
@@ -674,6 +699,36 @@ const seedDatabase = async () => {
         fullName: "Charlotte Robinson",
         role: "JOB_SEEKER" as const,
         gender: "female",
+      },
+      {
+        email: "seeker.saiful@gmail.com",
+        fullName: "Saiful Rahman",
+        role: "JOB_SEEKER" as const,
+        gender: "male",
+      },
+      {
+        email: "seeker.farhan@gmail.com",
+        fullName: "Farhan Chowdhury",
+        role: "JOB_SEEKER" as const,
+        gender: "male",
+      },
+      {
+        email: "seeker.masud@gmail.com",
+        fullName: "Masud Alom",
+        role: "JOB_SEEKER" as const,
+        gender: "male",
+      },
+      {
+        email: "seeker.tasnim@gmail.com",
+        fullName: "Tasnim Ahmed",
+        role: "JOB_SEEKER" as const,
+        gender: "male",
+      },
+      {
+        email: "seeker.riyad@gmail.com",
+        fullName: "Riyad Hasan",
+        role: "JOB_SEEKER" as const,
+        gender: "male",
       },
     ];
 
@@ -1269,6 +1324,116 @@ const seedDatabase = async () => {
         coverUrl:
           "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?q=80&w=1000&h=400&auto=format&fit=crop",
       },
+      {
+        name: "GreenAgro Bangladesh",
+        slug: "greenagro-bd",
+        description:
+          "GreenAgro Bangladesh is dedicated to introducing sustainable organic farming techniques and high-yield seeds to local farmers across Bangladesh. We work closely with agricultural experts to optimize organic crop health and modern soil nutrition profiles.",
+        websiteUrl: "https://greenagro.com.bd",
+        location: "Rajshahi, Bangladesh",
+        size: "50-100 employees",
+        ownerEmail: "employer.agritech@company.com",
+        industrySlug: "agriculture-farming",
+        planName: "emp_starter",
+        mission:
+          "To establish sustainable farming practices and green food chains that ensure long-term food security and support local farming livelihoods.",
+        values: ["Sustainability", "Innovation", "Livelihood"],
+        founded: "2018",
+        contactEmail: "contact@greenagro.com.bd",
+        contactPhone: "+8801733445566",
+        logoUrl:
+          "https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?q=80&w=128&h=128&auto=format&fit=crop",
+        coverUrl:
+          "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?q=80&w=1000&h=400&auto=format&fit=crop",
+      },
+      {
+        name: "Beximco Energy",
+        slug: "beximco-energy",
+        description:
+          "Beximco Energy is a leading private provider of utility-scale wind, solar, and power infrastructure grid networks in Bangladesh. We deploy clean energy production lines to minimize carbon footprints and drive national grid efficiency.",
+        websiteUrl: "https://beximcoenergy.com",
+        location: "Dhaka, Bangladesh",
+        size: "100-500 employees",
+        ownerEmail: "employer.energy@company.com",
+        industrySlug: "energy-utilities",
+        planName: "emp_growth",
+        mission:
+          "To accelerate green energy transformation across Bangladesh, delivering reliable and carbon-neutral utility solutions.",
+        values: ["Clean Energy", "Grid Integrity", "Leadership"],
+        founded: "2015",
+        contactEmail: "info@beximcoenergy.com",
+        contactPhone: "+8801744556677",
+        logoUrl:
+          "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?q=80&w=128&h=128&auto=format&fit=crop",
+        coverUrl:
+          "https://images.unsplash.com/photo-1466611653911-95081537e5b7?q=80&w=1000&h=400&auto=format&fit=crop",
+      },
+      {
+        name: "Square Pharma",
+        slug: "square-pharma",
+        description:
+          "Square Pharmaceuticals Limited is the pioneer of modern pharmaceutical manufacturing in Bangladesh. We build state-of-the-art biological labs, formulate world-class treatments, and maintain strict GMP compliance across our distribution streams.",
+        websiteUrl: "https://squarepharma.com.bd",
+        location: "Dhaka, Bangladesh",
+        size: "1000+ employees",
+        ownerEmail: "employer.pharma@company.com",
+        industrySlug: "healthcare-biotech",
+        planName: "emp_pro",
+        mission:
+          "To provide high-quality healthcare and pharmaceutical products that promote human wellness and longevity globally.",
+        values: ["Quality First", "Pioneering", "Patient Care"],
+        founded: "1958",
+        contactEmail: "careers@squaregroup.com.bd",
+        contactPhone: "+8801755667788",
+        logoUrl:
+          "https://images.unsplash.com/photo-1584017911766-d451b3d0e843?q=80&w=128&h=128&auto=format&fit=crop",
+        coverUrl:
+          "https://images.unsplash.com/photo-1576086213369-97a306d36557?q=80&w=1000&h=400&auto=format&fit=crop",
+      },
+      {
+        name: "CyberShield Dhaka",
+        slug: "cybershield-dhaka",
+        description:
+          "CyberShield Dhaka provides specialized cybersecurity operations, pen-testing services, digital firewalls, and network security compliance auditing to financial institutions and technology firms throughout South Asia.",
+        websiteUrl: "https://cybershield.com.bd",
+        location: "Dhaka, Bangladesh",
+        size: "100-500 employees",
+        ownerEmail: "employer.cyber@company.com",
+        industrySlug: "software-it",
+        planName: "emp_starter",
+        mission:
+          "To safeguard digital architectures, databases, and company communications from modern security vectors.",
+        values: ["Zero Trust", "Confidentiality", "Vigilance"],
+        founded: "2020",
+        contactEmail: "secops@cybershield.com.bd",
+        contactPhone: "+8801766778899",
+        logoUrl:
+          "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=128&h=128&auto=format&fit=crop",
+        coverUrl:
+          "https://images.unsplash.com/photo-1563986768609-322da13575f3?q=80&w=1000&h=400&auto=format&fit=crop",
+      },
+      {
+        name: "CloudNexus Solutions",
+        slug: "cloudnexus-solutions",
+        description:
+          "CloudNexus Solutions specializes in AWS/Azure cloud migration architectures, devops workflow pipelines, Kubernetes load scaling, and hybrid database migrations for modern SaaS startups.",
+        websiteUrl: "https://cloudnexus.io",
+        location: "Dhaka, Bangladesh",
+        size: "50-200 employees",
+        ownerEmail: "employer.cloud@company.com",
+        industrySlug: "software-it",
+        planName: "emp_starter",
+        mission:
+          "To build highly scaling and secure serverless operations that accelerate software startup cycles.",
+        values: ["Automation", "Speed", "Availability"],
+        founded: "2021",
+        contactEmail: "cloudops@cloudnexus.io",
+        contactPhone: "+8801777889900",
+        logoUrl:
+          "https://images.unsplash.com/photo-1544383835-bda2bc66a55d?q=80&w=128&h=128&auto=format&fit=crop",
+        coverUrl:
+          "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1000&h=400&auto=format&fit=crop",
+      },
     ];
 
     const companies: Record<string, any> = {};
@@ -1295,23 +1460,18 @@ const seedDatabase = async () => {
           location: c.location,
           size: c.size,
           logoUrl:
+            c.logoUrl ||
             "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=128&h=128&auto=format&fit=crop",
-          coverUrl: natureCovers[idx % natureCovers.length],
-          logoUrl: c.logoUrl,
-          coverUrl: c.coverUrl,
-          mission: c.mission,
-          values: c.values,
-          founded: c.founded,
-          contactEmail: c.contactEmail,
-          contactPhone: c.contactPhone,
+          coverUrl: c.coverUrl || natureCovers[idx % natureCovers.length],
+          mission: c.mission || `Empowering ${c.name} to achieve global excellence and innovation.`,
+          values: c.values || ["Innovation", "Collaboration", "Integrity", "Excellence"],
+          founded: c.founded || String(2010 + (idx % 15)),
+          contactEmail: c.contactEmail || c.ownerEmail,
+          contactPhone:
+            c.contactPhone || `+88017${Math.floor(10000000 + Math.random() * 90000000)}`,
           isVerified: true,
           industryId: industry.id,
           employees: { connect: { id: owner.id } },
-          mission: `Empowering ${c.name} to achieve global excellence and innovation.`,
-          values: ["Innovation", "Collaboration", "Integrity", "Excellence"],
-          contactEmail: c.ownerEmail,
-          contactPhone: `+88017${Math.floor(10000000 + Math.random() * 90000000)}`,
-          founded: String(2010 + (idx % 15)),
         },
       });
 
@@ -2643,9 +2803,9 @@ const seedDatabase = async () => {
       },
       {
         title: "Chemical Lab Researcher",
-        discipline: "Healthcare",
         slug: "chemical-researcher",
         company: "beximco-pharma",
+        discipline: "Healthcare" as const,
         jobType: "FULL_TIME" as const,
         isRemote: false,
         experienceLevel: "Mid-Senior Level",
@@ -2689,6 +2849,217 @@ const seedDatabase = async () => {
             description: "Comprehensive lab risk life insurance and high-grade hazard coverage.",
             category: "Healthcare",
             icon: "Shield",
+          },
+        ],
+      },
+      {
+        title: "Electrical Grid Engineer",
+        discipline: "Engineering" as const,
+        slug: "grid-engineer",
+        company: "beximco-energy",
+        jobType: "FULL_TIME" as const,
+        isRemote: false,
+        experienceLevel: "Senior Level",
+        salaryMin: 95000,
+        salaryMax: 150000,
+        currency: "BDT",
+        contactEmail: "info@beximcoenergy.com",
+        description:
+          "We are seeking an Electrical Grid Engineer to design and optimize utility-scale solar and wind grid connections, manage load balancing architectures, and ensure top energy efficiency.",
+        requirements: [
+          "Bachelor's degree in Electrical Engineering or related technical field.",
+          "4+ years of utility grid or high-voltage power engineering experience.",
+          "Proficiency in grid simulation and distribution planning systems.",
+        ],
+        skills: [
+          {
+            skillName: "Power Engineering",
+            experienceYears: 4.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Grid Design",
+            experienceYears: 3.5,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+        ],
+        benefitsData: [
+          {
+            title: "Health Care",
+            description: "Full medical coverage for employee and immediate family members.",
+            category: "Healthcare",
+            icon: "Heart",
+          },
+        ],
+      },
+      {
+        title: "Organic Supply Coordinator",
+        discipline: "Logistics" as const,
+        slug: "supply-coordinator",
+        company: "greenagro-bd",
+        jobType: "FULL_TIME" as const,
+        isRemote: false,
+        experienceLevel: "Mid Level",
+        salaryMin: 55000,
+        salaryMax: 85000,
+        currency: "BDT",
+        contactEmail: "contact@greenagro.com.bd",
+        description:
+          "Coordinate the regional collection of organic harvest materials, optimize transportation timelines, and audit supply chain sustainability standards.",
+        requirements: [
+          "3+ years of experience in supply chain, logistics, or agrotech operations.",
+          "Exceptional planning, route organization, and driver management skills.",
+          "Degree in Agriculture, Supply Chain, or Business Administration.",
+        ],
+        skills: [
+          {
+            skillName: "Supply Chain",
+            experienceYears: 3.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Logistics",
+            experienceYears: 3.0,
+            isRequired: true,
+            priority: "MEDIUM" as const,
+          },
+        ],
+        benefitsData: [
+          {
+            title: "Fuel Allowance",
+            description: "Monthly fuel allowance or company transport options.",
+            category: "Perks",
+            icon: "Coins",
+          },
+        ],
+      },
+      {
+        title: "Quality Assurance Pharmacist",
+        discipline: "Healthcare" as const,
+        slug: "qa-pharmacist",
+        company: "square-pharma",
+        jobType: "FULL_TIME" as const,
+        isRemote: false,
+        experienceLevel: "Mid-Senior Level",
+        salaryMin: 80000,
+        salaryMax: 125000,
+        currency: "BDT",
+        contactEmail: "careers@squaregroup.com.bd",
+        description:
+          "Supervise batch production audits, ensure absolute raw material sterility, and coordinate chemical compliance tests under international GMP guidelines.",
+        requirements: [
+          "Bachelor or Master of Pharmacy (M.Pharm) degree.",
+          "3+ years of experience in pharmaceutical QA/QC factory settings.",
+          "Solid knowledge of drug formulation standards and FDA regulations.",
+        ],
+        skills: [
+          {
+            skillName: "GMP Compliance",
+            experienceYears: 3.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Pharmaceutical Analysis",
+            experienceYears: 3.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+        ],
+        benefitsData: [
+          {
+            title: "Provident Fund",
+            description:
+              "Excellent retirement savings program with matching company contributions.",
+            category: "Finance",
+            icon: "Banknote",
+          },
+        ],
+      },
+      {
+        title: "Cyber Security Analyst",
+        discipline: "Engineering" as const,
+        slug: "security-analyst",
+        company: "cybershield-dhaka",
+        jobType: "FULL_TIME" as const,
+        isRemote: true,
+        experienceLevel: "Senior Level",
+        salaryMin: 120000,
+        salaryMax: 180000,
+        currency: "BDT",
+        contactEmail: "secops@cybershield.com.bd",
+        description:
+          "Perform vulnerability assessments, build server threat detection pipelines, and run pen-testing on critical network architectures to prevent security vectors.",
+        requirements: [
+          "4+ years of professional information security or pen-testing experience.",
+          "Familiarity with network protocols, firewalls, and Linux server hardening.",
+          "Industry standard certifications (CEH, CISSP, or CompTIA Security+) preferred.",
+        ],
+        skills: [
+          {
+            skillName: "Penetration Testing",
+            experienceYears: 3.5,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Network Security",
+            experienceYears: 4.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+        ],
+        benefitsData: [
+          {
+            title: "Home Office Budget",
+            description: "Subsidized desk, ergonomics chair, and high-speed home internet costs.",
+            category: "Laptop",
+            icon: "Laptop",
+          },
+        ],
+      },
+      {
+        title: "DevOps Cloud Engineer",
+        discipline: "Engineering" as const,
+        slug: "devops-cloud-engineer",
+        company: "cloudnexus-solutions",
+        jobType: "FULL_TIME" as const,
+        isRemote: true,
+        experienceLevel: "Mid-Senior Level",
+        salaryMin: 110000,
+        salaryMax: 170000,
+        currency: "BDT",
+        contactEmail: "cloudops@cloudnexus.io",
+        description:
+          "Build Jenkins/GitHub Actions CI/CD pipelines, configure Terraform infrastructure states, and manage automatic Kubernetes scaling limits on AWS.",
+        requirements: [
+          "3+ years of DevOps engineering experience with AWS or Azure cloud structures.",
+          "Proficiency in Docker containerization, Kubernetes helm charts, and Terraform IAC scripts.",
+          "Strong background with scripting in Bash, Python, or Go.",
+        ],
+        skills: [
+          {
+            skillName: "Docker & Kubernetes",
+            experienceYears: 3.0,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+          {
+            skillName: "Terraform",
+            experienceYears: 2.5,
+            isRequired: true,
+            priority: "HIGH" as const,
+          },
+        ],
+        benefitsData: [
+          {
+            title: "Hardware Allowance",
+            description: "High-end development laptop provided with dual-monitor office setup.",
+            category: "Laptop",
+            icon: "Laptop",
           },
         ],
       },
@@ -2860,32 +3231,24 @@ const seedDatabase = async () => {
           title: jConf.title,
           slug: `${jConf.slug}-${comp.slug}`,
           discipline: jConf.discipline,
-          description: details.description,
-          requirements: details.requirements,
-          jobType: idx % 4 === 0 ? "CONTRACT" : idx % 5 === 0 ? "PART_TIME" : "FULL_TIME",
+          description: jConf.description || details.description,
+          requirements: jConf.requirements || details.requirements,
+          jobType: (jConf.jobType ||
+            (idx % 4 === 0 ? "CONTRACT" : idx % 5 === 0 ? "PART_TIME" : "FULL_TIME")) as any,
           location: idx % 3 === 0 ? "Chittagong, Bangladesh" : "Dhaka, Bangladesh",
           experienceLevel:
-            idx % 3 === 0 ? "Senior Level" : idx % 2 === 0 ? "Mid Level" : "Entry Level",
-          isRemote: idx % 3 === 0,
-          salaryMin: 45000 + idx * 5000,
-          salaryMax: 80000 + idx * 7000,
-          currency: "BDT",
-          description: jConf.description,
-          requirements: jConf.requirements,
-          jobType: jConf.jobType,
-          location: "Dhaka, Bangladesh",
-          experienceLevel: jConf.experienceLevel,
-          isRemote: jConf.isRemote,
-          salaryMin: jConf.salaryMin,
-          salaryMax: jConf.salaryMax,
-          currency: jConf.currency,
-          contactEmail: jConf.contactEmail,
+            jConf.experienceLevel ||
+            (idx % 3 === 0 ? "Senior Level" : idx % 2 === 0 ? "Mid Level" : "Entry Level"),
+          isRemote: jConf.isRemote ?? idx % 3 === 0,
+          salaryMin: jConf.salaryMin || 45000 + idx * 5000,
+          salaryMax: jConf.salaryMax || 80000 + idx * 7000,
+          currency: jConf.currency || "BDT",
           status: "ACTIVE",
           isFeatured: idx % 2 === 0,
           companyId: comp.id,
           postedById: poster.id,
           industryId: comp.industryId,
-          contactEmail: poster.email,
+          contactEmail: jConf.contactEmail || poster.email,
           applicationDeadline: new Date(Date.now() + 75 * 24 * 60 * 60 * 1000), // 2.5 months in future (at least 2 months)
           expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 3 months in future (at least 2 months)
           maxApplications: 100,
