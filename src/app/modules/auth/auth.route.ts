@@ -25,7 +25,10 @@ router
   .post("/reset-password", authLimiter, authController.resetPassword)
   .post("/verify-email", requestValidator(authValidation.verifyEmail), authController.verifyEmail)
   .post("/change-password", authValidator(), authController.changePassword)
-  .get("/me", authValidator(), authController.getCurrentUser);
+  .get("/me", authValidator(), authController.getCurrentUser)
+  // Allows new Google OAuth users to confirm their chosen role.
+  // Protected: requires valid JWT + rate-limited.
+  .patch("/confirm-google-role", authLimiter, authValidator(), authController.confirmGoogleRole);
 
 // Google OAuth routes - check if strategy is configured
 const googleAuthMiddleware = (

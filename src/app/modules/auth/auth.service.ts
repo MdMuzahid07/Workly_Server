@@ -584,7 +584,11 @@ const googleOAuth = async (
     throw new AppError(httpStatus.UNAUTHORIZED, "User is inactive");
   }
 
+  // Track whether this is a new account so the controller can signal the client
+  let isNewUser = false;
+
   if (!user) {
+    isNewUser = true;
     const randomPassword = generateVerificationToken();
     const passwordHash = await bcrypt.hash(randomPassword, Number(config.bcrypt_salt_rounds));
 
@@ -654,6 +658,7 @@ const googleOAuth = async (
     safeUser,
     accessToken,
     refreshToken,
+    isNewUser,
   };
 };
 
