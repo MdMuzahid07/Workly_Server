@@ -445,10 +445,27 @@ model Industry {
   //* ==== relations ======>
   companies     Company[]
   jobs          Job[]
+  taxonomySkills TaxonomySkill[]
 
   @@index([slug])
   @@index([active])
   @@map("industries")
+}
+
+model TaxonomySkill {
+  id         String   @id @default(uuid())
+  name       String
+  active     Boolean  @default(true)
+  industryId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  //* ==== relations ======>
+  industry   Industry @relation(fields: [industryId], references: [id], onDelete: Cascade)
+
+  @@unique([name, industryId])
+  @@index([industryId])
+  @@map("taxonomy_skills")
 }
 
 model Job {

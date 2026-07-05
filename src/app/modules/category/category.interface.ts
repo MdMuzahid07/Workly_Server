@@ -6,6 +6,7 @@ interface CategoryWithStats {
   description: string;
   icon: string;
   subcategories: string[];
+  taxonomySkills?: { id: string; name: string; active: boolean }[];
   createdAt: Date;
   updatedAt: Date;
   totalJobs: number;
@@ -41,6 +42,7 @@ type CategoryPayload = {
   description: string;
   icon: string;
   subcategories: string[];
+  skills?: string[];
 };
 
 export type {

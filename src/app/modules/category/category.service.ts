@@ -20,8 +20,15 @@ const normalizeSubcategories = (subs?: string[] | null) => {
   return Array.from(new Set(normalized));
 };
 
+const normalizeSkills = (skills?: string[] | null) => {
+  if (!skills || skills.length === 0) return [];
+  const normalized = skills.map((item) => item.trim()).filter(Boolean);
+  return Array.from(new Set(normalized));
+};
+
 const createCategory = async (payload: CategoryPayload) => {
   const normalizedSubs = normalizeSubcategories(payload.subcategories);
+  const normalizedSkills = normalizeSkills(payload.skills);
 
   const categoryClient = (prisma as any).industry;
 
@@ -40,14 +47,28 @@ const createCategory = async (payload: CategoryPayload) => {
 
   const slug = await generateUniqueSlug(payload.slug || payload.name, "industry");
 
-  const result = await categoryClient.create({
-    data: {
-      name: payload.name,
-      icon: payload.icon,
-      slug,
-      description: payload.description,
-      subcategories: normalizedSubs,
-    },
+  const result = await prisma.$transaction(async (tx) => {
+    const category = await tx.industry.create({
+      data: {
+        name: payload.name,
+        icon: payload.icon,
+        slug,
+        description: payload.description,
+        subcategories: normalizedSubs,
+      },
+    });
+
+    if (normalizedSkills.length > 0) {
+      await tx.taxonomySkill.createMany({
+        data: normalizedSkills.map((skillName) => ({
+          name: skillName,
+          industryId: category.id,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    return category;
   });
 
   return result;
@@ -79,6 +100,13 @@ const getCategories = async (query: Record<string, unknown>) => {
   const result = await categoryClient.findMany({
     where,
     include: {
+      taxonomySkills: {
+        select: {
+          id: true,
+          name: true,
+          active: true,
+        },
+      },
       _count: {
         select: {
           jobs: {
@@ -104,6 +132,15 @@ const getCategoryBySlug = async (slug: string) => {
 
   const category = await categoryClient.findFirst({
     where: { slug, isDeleted: false },
+    include: {
+      taxonomySkills: {
+        select: {
+          id: true,
+          name: true,
+          active: true,
+        },
+      },
+    },
   });
 
   if (!category) {
@@ -144,18 +181,54 @@ const updateCategory = async (categoryId: string, payload: Partial<CategoryPaylo
       ? await generateUniqueSlug(payload.slug || payload.name || existing.name, "industry")
       : existing.slug;
 
-  const updated = await categoryClient.update({
-    where: { id: categoryId, isDeleted: false },
-    data: {
-      name: payload.name ?? existing.name,
-      slug: nextSlug,
-      icon: payload.icon ?? existing.icon,
-      description: payload.description ?? existing.description,
-      subcategories:
-        payload.subcategories !== undefined
-          ? normalizeSubcategories(payload.subcategories)
-          : existing.subcategories,
-    },
+  const updated = await prisma.$transaction(async (tx) => {
+    const category = await tx.industry.update({
+      where: { id: categoryId, isDeleted: false },
+      data: {
+        name: payload.name ?? existing.name,
+        slug: nextSlug,
+        icon: payload.icon ?? existing.icon,
+        description: payload.description ?? existing.description,
+        subcategories:
+          payload.subcategories !== undefined
+            ? normalizeSubcategories(payload.subcategories)
+            : existing.subcategories,
+      },
+    });
+
+    if (payload.skills !== undefined) {
+      const normalizedSkills = normalizeSkills(payload.skills);
+
+      // Fetch existing taxonomy skills
+      const existingSkills = await tx.taxonomySkill.findMany({
+        where: { industryId: categoryId },
+        select: { name: true },
+      });
+      const existingNames = existingSkills.map((s) => s.name);
+
+      const toAdd = normalizedSkills.filter((name) => !existingNames.includes(name));
+      const toRemove = existingNames.filter((name) => !normalizedSkills.includes(name));
+
+      if (toRemove.length > 0) {
+        await tx.taxonomySkill.deleteMany({
+          where: {
+            industryId: categoryId,
+            name: { in: toRemove },
+          },
+        });
+      }
+
+      if (toAdd.length > 0) {
+        await tx.taxonomySkill.createMany({
+          data: toAdd.map((name) => ({
+            name,
+            industryId: categoryId,
+          })),
+        });
+      }
+    }
+
+    return category;
   });
 
   return updated;
@@ -235,6 +308,13 @@ export const getCategoryStatistics = async (
       subcategories: true,
       createdAt: true,
       updatedAt: true,
+      taxonomySkills: {
+        select: {
+          id: true,
+          name: true,
+          active: true,
+        },
+      },
       jobs: {
         where: {
           deletedAt: null,
@@ -273,6 +353,7 @@ export const getCategoryStatistics = async (
       description: cat.description,
       icon: cat.icon,
       subcategories: cat.subcategories,
+      taxonomySkills: cat.taxonomySkills,
       createdAt: cat.createdAt,
       updatedAt: cat.updatedAt,
       totalJobs,
