@@ -259,8 +259,57 @@ const adminAssignPlan = async (targetUserId: string, planId: string): Promise<vo
   EntitlementService.invalidateCache(targetUserId);
 };
 
+const reactivateSubscription = async (userId: string): Promise<void> => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true, companyId: true },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  if (user.role === "EMPLOYER") {
+    if (!user.companyId) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Company profile not found");
+    }
+    const sub = await prisma.subscription.findUnique({
+      where: { companyId: user.companyId },
+    });
+    if (!sub || sub.status !== "ACTIVE") {
+      throw new AppError(httpStatus.BAD_REQUEST, "No active subscription to reactivate");
+    }
+    if (!sub.cancelAtPeriodEnd) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Subscription is not scheduled for cancellation");
+    }
+    await prisma.subscription.update({
+      where: { companyId: user.companyId },
+      data: { cancelAtPeriodEnd: false },
+    });
+  } else if (user.role === "JOB_SEEKER") {
+    const sub = await prisma.userSubscription.findUnique({
+      where: { userId },
+    });
+    if (!sub || sub.status !== "ACTIVE") {
+      throw new AppError(httpStatus.BAD_REQUEST, "No active subscription to reactivate");
+    }
+    if (!sub.cancelAtPeriodEnd) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Subscription is not scheduled for cancellation");
+    }
+    await prisma.userSubscription.update({
+      where: { userId },
+      data: { cancelAtPeriodEnd: false },
+    });
+  } else {
+    throw new AppError(httpStatus.BAD_REQUEST, "This role cannot have a subscription");
+  }
+
+  EntitlementService.invalidateCache(userId);
+};
+
 export default {
   getMySubscription,
   cancelSubscription,
+  reactivateSubscription,
   adminAssignPlan,
 };

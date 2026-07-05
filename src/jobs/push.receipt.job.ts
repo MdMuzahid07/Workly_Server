@@ -1,13 +1,13 @@
-import cron from "node-cron";
+import cron, { type ScheduledTask } from "node-cron";
 import { Expo } from "expo-server-sdk";
 import prisma from "../utils/prismaClient.js";
 import { pushService } from "../services/push.service.js";
 
 const expo = new Expo();
 
-export function startPushReceiptJob(): void {
+export function startPushReceiptJob(): ScheduledTask {
   // Every 20 minutes — Expo receipts are usually available ~15 min after sending
-  cron.schedule("*/20 * * * *", async () => {
+  const task = cron.schedule("*/20 * * * *", async () => {
     try {
       await checkPushReceipts();
     } catch (err) {
@@ -16,6 +16,8 @@ export function startPushReceiptJob(): void {
   });
 
   console.log("[CRON] Push receipt checker job registered (every 20 min)");
+
+  return task;
 }
 
 async function checkPushReceipts(): Promise<void> {

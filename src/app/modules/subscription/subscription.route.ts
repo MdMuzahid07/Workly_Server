@@ -18,6 +18,12 @@ router.post(
 );
 
 router.post(
+  "/reactivate",
+  authValidator(UserRole.EMPLOYER, UserRole.JOB_SEEKER),
+  subscriptionController.reactivateSubscription,
+);
+
+router.post(
   "/admin/assign",
   authValidator(UserRole.ADMIN, UserRole.SUPER_ADMIN),
   subscriptionController.adminAssignPlan,

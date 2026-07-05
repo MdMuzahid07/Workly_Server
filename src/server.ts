@@ -6,6 +6,8 @@ import { initSocket } from "./socket/index.js";
 import prisma from "./utils/prismaClient.js";
 import bcrypt from "bcrypt";
 import { startPushReceiptJob } from "./jobs/push.receipt.job.js";
+import { startSubscriptionReminderJob } from "./jobs/subscription.reminder.job.js";
+import { startSubscriptionExpiryJob } from "./jobs/subscription.expiry.job.js";
 
 const port = env.PORT;
 
@@ -109,8 +111,38 @@ async function main() {
     await seedDevUsers();
   }
 
-  // Start push receipt check cron job
-  startPushReceiptJob();
+  // ── Background jobs ──────────────────────────────────────────────────────
+  // Push receipt checker (every 20 min)
+  const pushReceiptJob = startPushReceiptJob();
+
+  // Subscription renewal reminder (daily at 08:00)
+  const subscriptionReminderJob = startSubscriptionReminderJob();
+
+  // Subscription expiry sweeper (daily at 02:00)
+  const subscriptionExpiryJob = startSubscriptionExpiryJob();
+
+  // ── Graceful shutdown ─────────────────────────────────────────────────────
+  // Stop cron tasks before the process exits so no job fires mid-drain.
+  const shutdown = async (signal: string) => {
+    console.log(`[Server] ${signal} received — shutting down gracefully…`);
+    pushReceiptJob.stop();
+    subscriptionReminderJob.stop();
+    subscriptionExpiryJob.stop();
+    server.close(async () => {
+      await prisma.$disconnect();
+      console.log("[Server] Shutdown complete.");
+      process.exit(0);
+    });
+
+    // Force-exit after 10 s if graceful drain takes too long.
+    setTimeout(() => {
+      console.error("[Server] Graceful shutdown timed out — forcing exit.");
+      process.exit(1);
+    }, 10_000).unref();
+  };
+
+  process.once("SIGTERM", () => shutdown("SIGTERM"));
+  process.once("SIGINT", () => shutdown("SIGINT"));
 
   server.listen(Number(port), "0.0.0.0", () => {
     console.log(`Server running 🚀🚀 on => port  ${port}`);

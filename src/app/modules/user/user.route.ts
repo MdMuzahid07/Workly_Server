@@ -29,4 +29,10 @@ router.patch(
   userController.updateNotificationPreferences,
 );
 
+router.delete(
+  "/me",
+  authValidator(UserRole.JOB_SEEKER, UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  userController.deleteMe,
+);
+
 export default router;

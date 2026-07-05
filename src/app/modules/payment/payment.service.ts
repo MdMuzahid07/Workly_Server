@@ -67,46 +67,13 @@ const initiatePayment = async (
     },
   });
 
-  // ── Production-grade safety check: Prevent double purchasing currently active plan ──
+  // ── Production-grade safety check: Validate target plan purchase eligibility ──
   if (payload.category === PaymentCategory.EMPLOYER_PLAN) {
     if (!companyId) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
         "Company identification is required to purchase subscriptions.",
       );
-    }
-    if (dbPlan) {
-      const activeSub = await prisma.subscription.findFirst({
-        where: {
-          companyId,
-          planId: dbPlan.id,
-          status: SubscriptionStatus.ACTIVE,
-          endDate: { gte: new Date() },
-        },
-      });
-      if (activeSub) {
-        throw new AppError(
-          httpStatus.BAD_REQUEST,
-          `You already have an active subscription to the ${dbPlan.name} plan.`,
-        );
-      }
-    }
-  } else if (payload.category === PaymentCategory.SEEKER_PREMIUM) {
-    if (dbPlan) {
-      const activeUserSub = await prisma.userSubscription.findFirst({
-        where: {
-          userId,
-          planId: dbPlan.id,
-          status: SubscriptionStatus.ACTIVE,
-          endDate: { gte: new Date() },
-        },
-      });
-      if (activeUserSub) {
-        throw new AppError(
-          httpStatus.BAD_REQUEST,
-          `You already have an active subscription to the ${dbPlan.name} package.`,
-        );
-      }
     }
   }
 
@@ -169,7 +136,7 @@ const initiatePayment = async (
   const ipnUrl = `${redirectBackendUrl}/api/v1/payments/ipn`;
 
   // SSLCommerz payment data structure
-  const paymentData = {
+  const basePaymentData = {
     total_amount: finalAmount,
     currency: payload.currency || "BDT",
     tran_id: tranId,
@@ -193,6 +160,21 @@ const initiatePayment = async (
     cus_country: payload.cusCountry || "Bangladesh",
   };
 
+  // Map frontend selected channel to SSLCommerz card parameters for direct landing bypass
+  let sslCardName: string | undefined = undefined;
+  if (payload.paymentChannel) {
+    const ch = payload.paymentChannel.toLowerCase();
+    if (ch === "bkash") sslCardName = "bkash";
+    else if (ch === "nagad") sslCardName = "nagad";
+    else if (ch === "rocket") sslCardName = "dbblrocket";
+    else if (ch === "cards") sslCardName = "visa,mastercard,dbblnexus,amex";
+  }
+
+  const paymentData = {
+    ...basePaymentData,
+    ...(sslCardName ? { multi_card_name: sslCardName } : {}),
+  };
+
   try {
     const apiResponse = await sslcz.init(paymentData);
 
@@ -203,8 +185,32 @@ const initiatePayment = async (
         data: { sessionKey: apiResponse.sessionkey },
       });
 
+      // ── Resolve Direct Gateway URL ──
+      let finalGatewayUrl = apiResponse.GatewayPageURL;
+
+      if (sslCardName) {
+        // 1. Try to find the exact direct URL in the 'desc' array
+        if (Array.isArray(apiResponse.desc)) {
+          const matchedGw = apiResponse.desc.find(
+            (item: any) => item.gw?.toLowerCase() === sslCardName?.toLowerCase(),
+          );
+          if (matchedGw?.redirectGatewayURL) {
+            finalGatewayUrl = matchedGw.redirectGatewayURL;
+          }
+        }
+
+        // 2. Fallback: Construct it by appending the gateway key to the base redirectGatewayURL
+        if (finalGatewayUrl === apiResponse.GatewayPageURL && apiResponse.redirectGatewayURL) {
+          finalGatewayUrl = apiResponse.redirectGatewayURL + sslCardName;
+        }
+      }
+
+      console.info(
+        `[Payment] Initiated payment session: channel: ${payload.paymentChannel || "DEFAULT"} | directUrl: ${finalGatewayUrl}`,
+      );
+
       return {
-        gatewayUrl: apiResponse.GatewayPageURL,
+        gatewayUrl: finalGatewayUrl,
         tranId,
       };
     } else {
@@ -402,26 +408,53 @@ const validatePayment = async (tranId: string, valId: string, payload: any) => {
         throw new AppError(httpStatus.NOT_FOUND, `Plan '${mappedPlanName}' not found in database.`);
       }
 
+      // 1. Check for existing subscription to determine if we should stack the validity
+      const existingSub = await tx.subscription.findUnique({
+        where: { companyId: transaction.companyId },
+      });
+
       const subscriptionStart = new Date();
       const subscriptionEnd = new Date();
       subscriptionEnd.setDate(subscriptionEnd.getDate() + 30); // 30-day billing cycle
+
+      let finalStart = subscriptionStart;
+      let finalEnd = subscriptionEnd;
+
+      if (
+        existingSub &&
+        existingSub.status === SubscriptionStatus.ACTIVE &&
+        existingSub.planId === dbPlan.id &&
+        existingSub.endDate &&
+        existingSub.endDate > new Date()
+      ) {
+        // Same plan is active and not yet expired: STACK / EXTEND validity!
+        finalStart = existingSub.startDate;
+        const newEnd = new Date(existingSub.endDate);
+        newEnd.setDate(newEnd.getDate() + 30);
+        finalEnd = newEnd;
+        console.log(
+          `[Payment] Stacking subscription for company ${transaction.companyId}. Extending endDate from ${existingSub.endDate.toISOString()} to ${finalEnd.toISOString()}`,
+        );
+      }
 
       const subscription = await tx.subscription.upsert({
         where: { companyId: transaction.companyId },
         update: {
           planId: dbPlan.id,
           status: SubscriptionStatus.ACTIVE,
-          startDate: subscriptionStart,
-          endDate: subscriptionEnd,
+          startDate: finalStart,
+          endDate: finalEnd,
           cancelAtPeriodEnd: false,
+          renewalReminderSentAt: null, // Reset reminder flag for the new period
         },
         create: {
           companyId: transaction.companyId,
           planId: dbPlan.id,
           status: SubscriptionStatus.ACTIVE,
-          startDate: subscriptionStart,
-          endDate: subscriptionEnd,
+          startDate: finalStart,
+          endDate: finalEnd,
           cancelAtPeriodEnd: false,
+          renewalReminderSentAt: null,
         },
       });
 
@@ -474,26 +507,53 @@ const validatePayment = async (tranId: string, valId: string, payload: any) => {
           ? planFeatures.durationMonths
           : 1;
 
+      // 1. Check for existing subscription to determine if we should stack the validity
+      const existingUserSub = await tx.userSubscription.findUnique({
+        where: { userId: transaction.userId },
+      });
+
       const subscriptionStart = new Date();
       const subscriptionEnd = new Date();
       subscriptionEnd.setMonth(subscriptionEnd.getMonth() + durationMonths);
+
+      let finalStart = subscriptionStart;
+      let finalEnd = subscriptionEnd;
+
+      if (
+        existingUserSub &&
+        existingUserSub.status === SubscriptionStatus.ACTIVE &&
+        existingUserSub.planId === dbPlan.id &&
+        existingUserSub.endDate &&
+        existingUserSub.endDate > new Date()
+      ) {
+        // Same plan is active and not yet expired: STACK / EXTEND validity!
+        finalStart = existingUserSub.startDate;
+        const newEnd = new Date(existingUserSub.endDate);
+        newEnd.setMonth(newEnd.getMonth() + durationMonths);
+        finalEnd = newEnd;
+        console.log(
+          `[Payment] Stacking subscription for user ${transaction.userId}. Extending endDate from ${existingUserSub.endDate.toISOString()} to ${finalEnd.toISOString()}`,
+        );
+      }
 
       const userSub = await tx.userSubscription.upsert({
         where: { userId: transaction.userId },
         update: {
           planId: dbPlan.id,
           status: SubscriptionStatus.ACTIVE,
-          startDate: subscriptionStart,
-          endDate: subscriptionEnd,
+          startDate: finalStart,
+          endDate: finalEnd,
           cancelAtPeriodEnd: false,
+          renewalReminderSentAt: null, // Reset reminder flag for the new period
         },
         create: {
           userId: transaction.userId,
           planId: dbPlan.id,
           status: SubscriptionStatus.ACTIVE,
-          startDate: subscriptionStart,
-          endDate: subscriptionEnd,
+          startDate: finalStart,
+          endDate: finalEnd,
           cancelAtPeriodEnd: false,
+          renewalReminderSentAt: null,
         },
       });
 

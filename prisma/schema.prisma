@@ -797,6 +797,9 @@ model Subscription {
   cancelAtPeriodEnd    Boolean            @default(false)
   stripeSubscriptionId String?            @unique
   paymentMethod        Json?
+  /// Timestamp set when a 3-day renewal reminder email was dispatched.
+  /// Used as an idempotency guard so the daily cron never double-sends.
+  renewalReminderSentAt DateTime?
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
 
@@ -1169,6 +1172,9 @@ model UserSubscription {
   endDate           DateTime?
   autoRenew         Boolean            @default(true)
   cancelAtPeriodEnd Boolean            @default(false)
+  /// Timestamp set when a 3-day renewal reminder email was dispatched.
+  /// Used as an idempotency guard so the daily cron never double-sends.
+  renewalReminderSentAt DateTime?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 

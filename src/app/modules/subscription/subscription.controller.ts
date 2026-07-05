@@ -37,8 +37,20 @@ const adminAssignPlan = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 
+const reactivateSubscription = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req.user as any).userId;
+  await subscriptionService.reactivateSubscription(userId);
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Subscription reactivated successfully",
+    data: null,
+  });
+});
+
 export default {
   getMySubscription,
   cancelSubscription,
+  reactivateSubscription,
   adminAssignPlan,
 };
