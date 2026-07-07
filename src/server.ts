@@ -2,8 +2,8 @@ import http, { type Server } from "http";
 import app from "./app.js";
 import { env } from "./config/index.js";
 import { initRateLimiters } from "./lib/rateLimiters.js";
-import { initSocket } from "./socket/index.js";
-import prisma from "./utils/prismaClient.js";
+import { initSocket, getIO } from "./socket/index.js";
+import prisma, { disconnectDb } from "./utils/prismaClient.js";
 import bcrypt from "bcrypt";
 import { startPushReceiptJob } from "./jobs/push.receipt.job.js";
 import { startSubscriptionReminderJob } from "./jobs/subscription.reminder.job.js";
@@ -128,17 +128,30 @@ async function main() {
     pushReceiptJob.stop();
     subscriptionReminderJob.stop();
     subscriptionExpiryJob.stop();
-    server.close(async () => {
-      await prisma.$disconnect();
+
+    try {
+      const io = getIO();
+      if (io) {
+        io.close();
+        console.log("[Server] Socket.io server closed.");
+      }
+    } catch (err) {
+      console.error("[Server] Error closing Socket.io:", err);
+    }
+
+    await disconnectDb();
+
+    server.close(() => {
+      console.log("[Server] HTTP server closed.");
       console.log("[Server] Shutdown complete.");
       process.exit(0);
     });
 
-    // Force-exit after 10 s if graceful drain takes too long.
+    // Force-exit after 5 s if graceful drain takes too long.
     setTimeout(() => {
       console.error("[Server] Graceful shutdown timed out — forcing exit.");
       process.exit(1);
-    }, 10_000).unref();
+    }, 5_000).unref();
   };
 
   process.once("SIGTERM", () => shutdown("SIGTERM"));
