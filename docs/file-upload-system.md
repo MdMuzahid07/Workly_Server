@@ -95,3 +95,15 @@ We expose separate endpoints in `src/app/modules/upload/upload.route.ts`:
      }
    }
    ```
+
+---
+
+## 5. Generic / Chat Attachment Upload Flow
+
+For chatbox attachments, resumes, and other documents that must remain raw (uncompressed and unmodified), the system routes uploads through the generic `/upload/single` and `/upload/multiple` endpoints.
+
+### Key Configurations:
+
+- **Middleware (`upload`)**: Configured with standard `multer.memoryStorage()` and a generic mime-type filter (allowing images, PDFs, and videos).
+- **Direct Uploading**: The raw file buffer is streamed directly to Cloudinary folder `workly-job/uploads` using `cloudinary.uploader.upload_stream` without any upload-time image transformations.
+- **Visual/File Fidelity**: Since no transformations are applied, all PDFs, video recordings, high-resolution chat image attachments, and office files are saved on the Cloudinary CDN in their original state.
