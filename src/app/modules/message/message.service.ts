@@ -5,7 +5,14 @@ import AppError from "../../error/AppError.js";
 const checkPremiumStatus = async (userId: string) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { isPremium: true, role: true, companyId: true },
+    select: {
+      isPremium: true,
+      role: true,
+      companyId: true,
+      userSubscription: {
+        select: { status: true, endDate: true },
+      },
+    },
   });
 
   if (!user) {
@@ -15,10 +22,19 @@ const checkPremiumStatus = async (userId: string) => {
   let isPremium = user.isPremium;
 
   if (!isPremium && user.role === "EMPLOYER" && user.companyId) {
+    // Employer premium is derived from their company's subscription
     const activeSub = await prisma.subscription.findUnique({
       where: { companyId: user.companyId },
     });
     if (activeSub && activeSub.status === "ACTIVE") {
+      isPremium = true;
+    }
+  }
+
+  if (!isPremium && user.role === "JOB_SEEKER") {
+    // Job Seeker premium is derived from their personal userSubscription
+    const sub = user.userSubscription;
+    if (sub && sub.status === "ACTIVE" && (!sub.endDate || new Date() < new Date(sub.endDate))) {
       isPremium = true;
     }
   }
@@ -120,14 +136,11 @@ const sendMessage = async (
     fileSize?: number;
   },
 ) => {
-  await checkPremiumStatus(senderId);
-  const participant = await prisma.conversationParticipant.findFirst({
-    where: {
-      conversationId,
-      userId: senderId,
-    },
+  const participants = await prisma.conversationParticipant.findMany({
+    where: { conversationId },
   });
 
+  const participant = participants.find((p) => p.userId === senderId);
   if (!participant) {
     throw new AppError(httpStatus.FORBIDDEN, "You are not a participant of this conversation");
   }
@@ -136,16 +149,30 @@ const sendMessage = async (
     throw new AppError(httpStatus.FORBIDDEN, "You cannot send messages to a blocked conversation");
   }
 
-  // Check if the other person has blocked you
-  const otherParticipant = await prisma.conversationParticipant.findFirst({
-    where: {
-      conversationId,
-      userId: { not: senderId },
-    },
-  });
-
+  const otherParticipant = participants.find((p) => p.userId !== senderId);
   if (otherParticipant?.isBlocked) {
     throw new AppError(httpStatus.FORBIDDEN, "The other participant has blocked you");
+  }
+
+  // Check premium status of BOTH participants
+  try {
+    await checkPremiumStatus(senderId);
+  } catch (error) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "Your premium subscription has expired. Please upgrade to continue messaging.",
+    );
+  }
+
+  if (otherParticipant) {
+    try {
+      await checkPremiumStatus(otherParticipant.userId);
+    } catch (error) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        "This conversation is locked because the other participant does not have an active premium subscription.",
+      );
+    }
   }
 
   const result = await prisma.$transaction(async (tx) => {
@@ -195,8 +222,24 @@ const createConversation = async (participantIds: string[], applicationId?: stri
     throw new AppError(httpStatus.BAD_REQUEST, "Currently only support 1-on-1 conversations");
   }
 
-  // Check if the initiator (first participant) is premium
-  await checkPremiumStatus(participantIds[0] as string);
+  // Check if both participants are premium
+  try {
+    await checkPremiumStatus(participantIds[0] as string);
+  } catch (error) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "You must be a premium user to start a conversation. Please upgrade your plan to continue.",
+    );
+  }
+
+  try {
+    await checkPremiumStatus(participantIds[1] as string);
+  } catch (error) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "To start a conversation, the recipient must also be a premium user.",
+    );
+  }
 
   const existing = await prisma.conversation.findFirst({
     where: {
@@ -320,6 +363,34 @@ const deleteMessage = async (messageId: string, userId: string) => {
   return result;
 };
 
+const getMessageFile = async (messageId: string, userId: string) => {
+  const message = await prisma.message.findUnique({
+    where: { id: messageId },
+  });
+
+  if (!message) {
+    throw new AppError(httpStatus.NOT_FOUND, "Message not found");
+  }
+
+  // Verify that the user is a participant of the conversation
+  const participant = await prisma.conversationParticipant.findFirst({
+    where: {
+      conversationId: message.conversationId,
+      userId,
+    },
+  });
+
+  if (!participant) {
+    throw new AppError(httpStatus.FORBIDDEN, "You do not have access to this file");
+  }
+
+  if (!message.fileUrl) {
+    throw new AppError(httpStatus.NOT_FOUND, "This message has no file attachment");
+  }
+
+  return message;
+};
+
 const messageService = {
   getConversations,
   getMessages,
@@ -329,6 +400,7 @@ const messageService = {
   blockUser,
   deleteConversation,
   deleteMessage,
+  getMessageFile,
 };
 
 export default messageService;

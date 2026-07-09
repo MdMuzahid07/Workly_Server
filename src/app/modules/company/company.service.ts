@@ -305,9 +305,12 @@ const updateCompanyById = async (
       data: companyData,
     });
 
-    if (payload.socialLinks !== undefined && payload.socialLinks.length > 0) {
+    const isUUID = (val: string) =>
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
+    if (payload.socialLinks !== undefined) {
       const currentLinkIds = payload.socialLinks
-        .filter((link): link is SocialLink & { id: string } => !!link.id)
+        .filter((link): link is SocialLink & { id: string } => !!link.id && isUUID(link.id))
         .map((link: SocialLink) => link.id);
 
       await transactor.socialLink.deleteMany({
@@ -322,7 +325,7 @@ const updateCompanyById = async (
       });
 
       for (const link of payload.socialLinks) {
-        if (link.id) {
+        if (link.id && isUUID(link.id)) {
           await transactor.socialLink.upsert({
             where: {
               id: link.id,
@@ -349,9 +352,11 @@ const updateCompanyById = async (
       }
     }
 
-    if (payload.benefits !== undefined && payload.benefits.length > 0) {
+    if (payload.benefits !== undefined) {
       const currentBenefitIds = payload.benefits
-        .filter((benefit): benefit is Benefits & { id: string } => !!benefit.id)
+        .filter(
+          (benefit): benefit is Benefits & { id: string } => !!benefit.id && isUUID(benefit.id),
+        )
         .map((benefit: Benefits) => benefit.id);
 
       await transactor.benefits.deleteMany({
@@ -366,7 +371,7 @@ const updateCompanyById = async (
       });
 
       for (const benefit of payload.benefits) {
-        if (benefit.id) {
+        if (benefit.id && isUUID(benefit.id)) {
           await transactor.benefits.upsert({
             where: {
               id: benefit.id,

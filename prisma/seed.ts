@@ -3939,9 +3939,10 @@ const seedDatabase = async () => {
 
     console.log(`✅ Seeded ${saveCandCount} saved candidates, ${followCount} follows.`);
 
-    // ======= 14. Seed 20 Conversations, 40 Participants & 60 Messages =======
-    console.log("💬 Seeding 20 Conversations & 60 Messages...");
+    // ======= 14. Seed 20 Conversations, 40 Participants & 60+ Messages =======
+    console.log("💬 Seeding 20 Conversations & Messages...");
     const applications = await prisma.application.findMany({ take: 20 });
+    const riyadUser = await prisma.user.findFirst({ where: { email: "seeker.riyad@gmail.com" } });
     let messageCount = 0;
 
     for (let idx = 0; idx < applications.length; idx++) {
@@ -3952,7 +3953,7 @@ const seedDatabase = async () => {
           data: { applicationId: app.id },
         });
 
-        // Add participants (40 total)
+        // Add participants
         await prisma.conversationParticipant.create({
           data: { conversationId: conversation.id, userId: app.applicantId },
         });
@@ -3960,35 +3961,123 @@ const seedDatabase = async () => {
           data: { conversationId: conversation.id, userId: job.postedById },
         });
 
-        // Add 3 messages per conversation (60 total)
-        const msg1 = await prisma.message.create({
-          data: {
-            conversationId: conversation.id,
-            senderId: app.applicantId,
-            content: "Hello! I am following up on my application.",
-          },
-        });
-        const msg2 = await prisma.message.create({
-          data: {
-            conversationId: conversation.id,
-            senderId: job.postedById,
-            content: "Thank you for reaching out. We are currently reviewing resumes.",
-          },
-        });
-        const msg3 = await prisma.message.create({
-          data: {
-            conversationId: conversation.id,
-            senderId: app.applicantId,
-            content: "Great, I look forward to hearing from you.",
-          },
-        });
+        let lastMsgId = "";
+
+        if (riyadUser && app.applicantId === riyadUser.id) {
+          // Seed fully loaded rich conversation for Riyad Hasan
+          const richMessages = [
+            {
+              senderId: app.applicantId,
+              content:
+                "Hello! I am following up on my application for the Backend Team Lead (Node.js) position.",
+              messageType: "TEXT" as const,
+            },
+            {
+              senderId: job.postedById,
+              content:
+                "Hello Riyad! Thanks for reaching out. Your profile looks impressive. Could you share some of your previous work or architecture portfolio?",
+              messageType: "TEXT" as const,
+            },
+            {
+              senderId: app.applicantId,
+              content:
+                "Sure! Here is a screenshot of the main architecture of a high-throughput payment service I designed recently.",
+              messageType: "TEXT" as const,
+            },
+            {
+              senderId: app.applicantId,
+              content: "Payment Architecture Diagram",
+              messageType: "IMAGE" as const,
+              fileUrl:
+                "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=600&auto=format&fit=crop",
+              fileName: "payment-architecture.png",
+              fileSize: 245600,
+            },
+            {
+              senderId: job.postedById,
+              content:
+                "Wow, this architecture is very clean and well-structured. Do you have a detailed technical specification or documentation for this?",
+              messageType: "TEXT" as const,
+            },
+            {
+              senderId: app.applicantId,
+              content: "Technical Specs Document",
+              messageType: "FILE" as const,
+              fileUrl: "https://pdfobject.com/pdf/sample.pdf",
+              fileName: "payment-service-specs.pdf",
+              fileSize: 1048576,
+            },
+            {
+              senderId: job.postedById,
+              content:
+                "Excellent, I will review the spec document. Do you have the open-source repository or project codebase available on GitHub?",
+              messageType: "TEXT" as const,
+            },
+            {
+              senderId: app.applicantId,
+              content: "https://github.com/riyadhasan/high-throughput-payment-service",
+              messageType: "LINK" as const,
+              fileUrl: "https://github.com/riyadhasan/high-throughput-payment-service",
+              fileName: "GitHub Repository",
+            },
+            {
+              senderId: job.postedById,
+              content:
+                "Perfect! This is exactly what we were looking for. Let's schedule a technical interview for this Thursday at 3:00 PM. Does that work for you?",
+              messageType: "TEXT" as const,
+            },
+            {
+              senderId: app.applicantId,
+              content:
+                "Yes, Thursday at 3:00 PM works perfectly for me. Thank you, I look forward to it!",
+              messageType: "TEXT" as const,
+            },
+          ];
+
+          for (const msgData of richMessages) {
+            const msg = await prisma.message.create({
+              data: {
+                conversationId: conversation.id,
+                ...msgData,
+              },
+            });
+            lastMsgId = msg.id;
+            messageCount++;
+          }
+        } else {
+          // Standard 3 messages
+          const msg1 = await prisma.message.create({
+            data: {
+              conversationId: conversation.id,
+              senderId: app.applicantId,
+              content: "Hello! I am following up on my application.",
+              messageType: "TEXT" as const,
+            },
+          });
+          const msg2 = await prisma.message.create({
+            data: {
+              conversationId: conversation.id,
+              senderId: job.postedById,
+              content: "Thank you for reaching out. We are currently reviewing resumes.",
+              messageType: "TEXT" as const,
+            },
+          });
+          const msg3 = await prisma.message.create({
+            data: {
+              conversationId: conversation.id,
+              senderId: app.applicantId,
+              content: "Great, I look forward to hearing from you.",
+              messageType: "TEXT" as const,
+            },
+          });
+          lastMsgId = msg3.id;
+          messageCount += 3;
+        }
 
         await prisma.conversation.update({
           where: { id: conversation.id },
-          data: { lastMessageId: msg3.id },
+          data: { lastMessageId: lastMsgId },
         });
-
-        messageCount += 3;
       }
     }
     console.log(`✅ Seeded ${applications.length} conversations and ${messageCount} messages.`);

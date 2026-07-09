@@ -4,6 +4,7 @@ import asyncHandler from "../../../utils/asyncHandler.js";
 import sendApiResponse from "../../../utils/sendApiResponse.js";
 import AppError from "../../error/AppError.js";
 import messageService from "./message.service.js";
+import { streamFileToClient } from "../../../services/file/fileStream.service.js";
 
 const getConversations = asyncHandler(async (req, res) => {
   const userId = (req as any).user?.userId;
@@ -186,6 +187,23 @@ const deleteMessage = asyncHandler(async (req, res) => {
   });
 });
 
+const streamMessageFile = asyncHandler(async (req, res) => {
+  const userId = (req as any).user?.userId;
+  const { messageId } = req.params as { messageId: string };
+
+  if (!userId) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated");
+  }
+
+  const message = await messageService.getMessageFile(messageId, userId);
+
+  await streamFileToClient({
+    res,
+    fileUrl: message.fileUrl!,
+    filename: message.fileName || "file",
+  });
+});
+
 const messageController = {
   getConversations,
   getMessages,
@@ -195,6 +213,7 @@ const messageController = {
   blockUser,
   deleteConversation,
   deleteMessage,
+  streamMessageFile,
 };
 
 export default messageController;

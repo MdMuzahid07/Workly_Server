@@ -1,11 +1,18 @@
 import { z } from "zod";
 
 const benefitsSchema = z.object({
+  id: z.string().optional().nullable(),
   title: z.string().min(1, "Title is required").max(255),
   description: z.string().optional().nullable(),
   category: z.string().max(100).optional().nullable(),
   icon: z.string().max(100).optional().nullable(),
   isActive: z.boolean().default(true),
+});
+
+const socialLinksSchema = z.object({
+  id: z.string().optional().nullable(),
+  platform: z.string().min(1, "Platform is required").max(50),
+  url: z.string().min(1, "URL is required").max(500),
 });
 
 const createCompany = z.object({
@@ -67,6 +74,7 @@ const createCompany = z.object({
   mission: z.string().max(1000, "Mission cannot exceed 1000 characters").optional().nullable(),
   values: z.array(z.string()).optional().nullable(),
   benefits: z.array(benefitsSchema).optional().nullable(),
+  socialLinks: z.array(socialLinksSchema).optional().nullable(),
 });
 
 const updateCompany = createCompany.partial();

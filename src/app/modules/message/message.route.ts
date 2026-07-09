@@ -18,5 +18,6 @@ router.post("/block/:conversationId", authValidator(), messageController.blockUs
 
 router.delete("/delete/:conversationId", authValidator(), messageController.deleteConversation);
 router.delete("/message/:messageId", authValidator(), messageController.deleteMessage);
+router.get("/file/:messageId", authValidator(), messageController.streamMessageFile);
 
 export const messageRoutes = router;
