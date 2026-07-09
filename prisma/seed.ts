@@ -100,6 +100,12 @@ const seedDatabase = async () => {
           canViewProfileAnalytics: false,
           isFeaturedProfile: false,
           canMessageEmployer: false,
+          durationMonths: 0,
+          displayFeatures: [
+            "1 active job listing",
+            "1 user account",
+            "Standard applicant tracking",
+          ],
         },
         maxActiveJobs: 1,
         maxUsers: 1,
@@ -122,6 +128,13 @@ const seedDatabase = async () => {
           canViewProfileAnalytics: false,
           isFeaturedProfile: false,
           canMessageEmployer: false,
+          durationMonths: 1,
+          displayFeatures: [
+            "10 active job listings",
+            "4 user accounts",
+            "Direct candidate messaging",
+            "Basic analytics dashboard",
+          ],
         },
         maxActiveJobs: 10,
         maxUsers: 4,
@@ -144,6 +157,14 @@ const seedDatabase = async () => {
           canViewProfileAnalytics: false,
           isFeaturedProfile: false,
           canMessageEmployer: false,
+          durationMonths: 1,
+          displayFeatures: [
+            "Unlimited active jobs",
+            "Unlimited user accounts",
+            "Direct candidate messaging",
+            "Advanced analytics dashboard",
+            "Priority customer support",
+          ],
         },
         maxActiveJobs: 9999,
         maxUsers: 9999,
@@ -153,7 +174,7 @@ const seedDatabase = async () => {
       {
         name: "Free",
         planType: "JOB_SEEKER" as const,
-        description: "Basic job search and profile builder for seekers.",
+        description: "Start your job search with essential tools at no cost.",
         price: 0.0,
         currency: "BDT",
         interval: "month",
@@ -167,6 +188,47 @@ const seedDatabase = async () => {
           canViewProfileAnalytics: false,
           isFeaturedProfile: false,
           canMessageEmployer: false,
+          durationMonths: 0,
+          displayFeatures: [
+            "40 job applications per month",
+            "1 active CV upload",
+            "Standard algorithmic ranking",
+            "7-day view history",
+            "Standard in-app alerts",
+            "Basic application status",
+          ],
+        },
+        maxActiveJobs: 0,
+        maxUsers: 0,
+        isActive: true,
+      },
+      {
+        name: "Starter",
+        planType: "JOB_SEEKER" as const,
+        description: "1-month premium access. Great entry point for active job seekers.",
+        price: 90.0,
+        currency: "BDT",
+        interval: "month",
+        features: {
+          maxActiveJobs: 0,
+          maxUsers: 0,
+          maxMonthlyApplications: 200,
+          maxResumes: 5,
+          canMessage: false,
+          canViewAnalytics: false,
+          canViewProfileAnalytics: true,
+          isFeaturedProfile: false,
+          canMessageEmployer: true,
+          durationMonths: 1,
+          firstTimeDiscountPercent: 45,
+          displayFeatures: [
+            "200 job applications per month",
+            "5 active CV uploads",
+            "Direct messaging to HR",
+            "30-day view history",
+            "Priority real-time alerts",
+            "Detailed stage tracking",
+          ],
         },
         maxActiveJobs: 0,
         maxUsers: 0,
@@ -175,20 +237,31 @@ const seedDatabase = async () => {
       {
         name: "Pro",
         planType: "JOB_SEEKER" as const,
-        description: "Accelerate your career search with higher limits and messaging.",
-        price: 399.0,
+        description: "2-month premium access. Better value for sustained job searching.",
+        price: 160.0,
         currency: "BDT",
         interval: "month",
         features: {
           maxActiveJobs: 0,
           maxUsers: 0,
-          maxMonthlyApplications: 120,
-          maxResumes: 5,
+          maxMonthlyApplications: 300,
+          maxResumes: 10,
           canMessage: false,
           canViewAnalytics: false,
           canViewProfileAnalytics: true,
           isFeaturedProfile: false,
           canMessageEmployer: true,
+          durationMonths: 2,
+          firstTimeDiscountPercent: 35,
+          displayFeatures: [
+            "300 job applications per month",
+            "10 active CV uploads",
+            "Direct messaging to HR",
+            "30-day view history",
+            "Priority real-time alerts",
+            "Detailed stage tracking",
+            "Advanced search optimization",
+          ],
         },
         maxActiveJobs: 0,
         maxUsers: 0,
@@ -197,8 +270,8 @@ const seedDatabase = async () => {
       {
         name: "Premium",
         planType: "JOB_SEEKER" as const,
-        description: "The ultimate package with maximum visibility and unlimited features.",
-        price: 999.0,
+        description: "3-month premium access. Maximum visibility with Featured Candidate status.",
+        price: 225.0,
         currency: "BDT",
         interval: "month",
         features: {
@@ -211,6 +284,17 @@ const seedDatabase = async () => {
           canViewProfileAnalytics: true,
           isFeaturedProfile: true,
           canMessageEmployer: true,
+          durationMonths: 3,
+          firstTimeDiscountPercent: 25,
+          displayFeatures: [
+            "Unlimited job applications",
+            "Unlimited CV uploads",
+            "Direct messaging to HR",
+            "Full view history (90 days)",
+            "Priority real-time alerts",
+            "Detailed stage tracking",
+            "Featured candidate profile",
+          ],
         },
         maxActiveJobs: 0,
         maxUsers: 0,
@@ -225,35 +309,452 @@ const seedDatabase = async () => {
     console.log(`✅ Seeded ${Object.keys(plans).length} plans successfully.`);
 
     // ======= 3. Seed Industries (20 Industries) =======
-    console.log("🏢 Seeding 20 industries...");
+    console.log("🏢 Seeding 20 industries with taxonomy skills...");
     const industriesData = [
-      { name: "Software & IT", slug: "software-it", icon: "code" },
-      { name: "Financial Services", slug: "financial-services", icon: "banknote" },
-      { name: "Healthcare & Biotech", slug: "healthcare-biotech", icon: "activity" },
-      { name: "Education & E-Learning", slug: "education-elearning", icon: "graduation-cap" },
-      { name: "Logistics & Supply Chain", slug: "logistics-supply-chain", icon: "truck" },
-      { name: "Digital Marketing & Agency", slug: "digital-marketing-agency", icon: "megaphone" },
-      { name: "Creative Arts & Design", slug: "creative-arts-design", icon: "palette" },
-      { name: "Telecommunications", slug: "telecommunications", icon: "phone" },
-      { name: "E-Commerce & Retail", slug: "ecommerce-retail", icon: "shopping-bag" },
-      { name: "Construction & Real Estate", slug: "construction-real-estate", icon: "building" },
-      { name: "Hospitality & Tourism", slug: "hospitality-tourism", icon: "plane" },
-      { name: "Energy & Utilities", slug: "energy-utilities", icon: "zap" },
-      { name: "Automotive", slug: "automotive", icon: "car" },
-      { name: "Media & Entertainment", slug: "media-entertainment", icon: "tv" },
-      { name: "Agriculture & Farming", slug: "agriculture-farming", icon: "leaf" },
-      { name: "Manufacturing & Production", slug: "manufacturing-production", icon: "wrench" },
-      { name: "Aerospace & Defense", slug: "aerospace-defense", icon: "plane-takeoff" },
-      { name: "Non-Profit & NGO", slug: "non-profit-ngo", icon: "heart" },
-      { name: "Legal Services", slug: "legal-services", icon: "scale" },
-      { name: "Human Resources & Staffing", slug: "human-resources-staffing", icon: "users" },
+      {
+        name: "Software & IT",
+        slug: "software-it",
+        icon: "code",
+        subcategories: [
+          "Frontend Development",
+          "Backend Development",
+          "Mobile App Development",
+          "DevOps & Cloud",
+          "Data Science & AI",
+          "Cybersecurity",
+        ],
+        skills: [
+          "React.js",
+          "Node.js",
+          "TypeScript",
+          "Python",
+          "SQL",
+          "Docker",
+          "AWS",
+          "Next.js",
+          "Go",
+          "Java",
+          "Kubernetes",
+          "Git",
+        ],
+      },
+      {
+        name: "Financial Services",
+        slug: "financial-services",
+        icon: "banknote",
+        subcategories: [
+          "Investment Banking",
+          "Corporate Finance",
+          "Wealth Management",
+          "Risk Management",
+          "Accounting & Audit",
+          "Fintech",
+        ],
+        skills: [
+          "Financial Modeling",
+          "Portfolio Management",
+          "Risk Analysis",
+          "Excel",
+          "Accounting",
+          "Bloomberg Terminal",
+          "Taxation",
+          "Valuation",
+        ],
+      },
+      {
+        name: "Healthcare & Biotech",
+        slug: "healthcare-biotech",
+        icon: "activity",
+        subcategories: [
+          "Clinical Medicine",
+          "Nursing",
+          "Pharmaceuticals",
+          "Biotechnology",
+          "Medical Research",
+          "Healthcare Admin",
+        ],
+        skills: [
+          "Clinical Research",
+          "Bioinformatics",
+          "Data Analysis",
+          "Laboratory Safety",
+          "PCR",
+          "EMR/EHR Systems",
+          "Medical Devices",
+          "Genomics",
+        ],
+      },
+      {
+        name: "Education & E-Learning",
+        slug: "education-elearning",
+        icon: "graduation-cap",
+        subcategories: [
+          "K-12 Education",
+          "Higher Education",
+          "Online Tutoring",
+          "Corporate Training",
+          "Special Education",
+          "EdTech",
+        ],
+        skills: [
+          "Curriculum Design",
+          "Instructional Design",
+          "LMS (Moodle)",
+          "Public Speaking",
+          "Classroom Management",
+          "E-Learning Content Creation",
+        ],
+      },
+      {
+        name: "Logistics & Supply Chain",
+        slug: "logistics-supply-chain",
+        icon: "truck",
+        subcategories: [
+          "Warehousing & Storage",
+          "Freight Forwarding",
+          "Procurement & Sourcing",
+          "Fleet Management",
+          "Supply Chain Planning",
+        ],
+        skills: [
+          "Inventory Management",
+          "Supply Chain Optimization",
+          "Procurement",
+          "Warehouse Management",
+          "SAP ERP",
+          "Logistics Planning",
+        ],
+      },
+      {
+        name: "Digital Marketing & Agency",
+        slug: "digital-marketing-agency",
+        icon: "megaphone",
+        subcategories: [
+          "SEO & SEM",
+          "Social Media Management",
+          "Content Marketing",
+          "Email Marketing",
+          "Brand Strategy",
+          "Affiliate Marketing",
+        ],
+        skills: [
+          "SEO",
+          "Google Analytics",
+          "Content Writing",
+          "Social Media Marketing",
+          "Copywriting",
+          "Email Marketing",
+          "PPC Advertising",
+        ],
+      },
+      {
+        name: "Creative Arts & Design",
+        slug: "creative-arts-design",
+        icon: "palette",
+        subcategories: [
+          "Graphic Design",
+          "UI/UX Design",
+          "Motion Graphics",
+          "3D Animation",
+          "Fashion Design",
+          "Interior Design",
+        ],
+        skills: [
+          "UI/UX Design",
+          "Figma",
+          "Adobe Photoshop",
+          "Adobe Illustrator",
+          "Graphic Design",
+          "3D Modeling",
+          "Video Editing",
+          "Motion Graphics",
+        ],
+      },
+      {
+        name: "Telecommunications",
+        slug: "telecommunications",
+        icon: "phone",
+        subcategories: [
+          "Network Engineering",
+          "Wireless Communications",
+          "VoIP Services",
+          "Fiber Optics Infrastructure",
+          "Telecom Admin",
+        ],
+        skills: [
+          "Network Protocols",
+          "5G Technology",
+          "VoIP",
+          "Wireless Systems",
+          "Fibre Optics",
+          "Cisco Routers",
+          "Telecommunication Engineering",
+        ],
+      },
+      {
+        name: "E-Commerce & Retail",
+        slug: "ecommerce-retail",
+        icon: "shopping-bag",
+        subcategories: [
+          "Online Store Management",
+          "Retail Sales",
+          "Inventory Control",
+          "Customer Experience",
+          "Product Merchandising",
+        ],
+        skills: [
+          "Shopify",
+          "Inventory Control",
+          "Customer Relationship Management (CRM)",
+          "E-Commerce Strategy",
+          "Sales Analytics",
+          "Customer Support",
+        ],
+      },
+      {
+        name: "Construction & Real Estate",
+        slug: "construction-real-estate",
+        icon: "building",
+        subcategories: [
+          "Civil Engineering",
+          "Project Management",
+          "Architecture",
+          "Property Management",
+          "Real Estate Brokerage",
+          "Quantity Surveying",
+        ],
+        skills: [
+          "AutoCAD",
+          "Project Management",
+          "Construction Safety",
+          "Estimation",
+          "Site Supervision",
+          "Real Estate Valuation",
+          "BIM",
+        ],
+      },
+      {
+        name: "Hospitality & Tourism",
+        slug: "hospitality-tourism",
+        icon: "plane",
+        subcategories: [
+          "Hotel Operations",
+          "Food & Beverage",
+          "Event Management",
+          "Travel Agency Services",
+          "Tour Guiding",
+        ],
+        skills: [
+          "Event Planning",
+          "Hotel Management",
+          "Customer Service",
+          "Catering Operations",
+          "Travel Planning",
+          "Front Office Operations",
+        ],
+      },
+      {
+        name: "Energy & Utilities",
+        slug: "energy-utilities",
+        icon: "zap",
+        subcategories: [
+          "Renewable Energy",
+          "Oil & Gas",
+          "Power Plant Operations",
+          "Electrical Grid Maintenance",
+          "Water Utilities",
+        ],
+        skills: [
+          "Renewable Energy",
+          "Smart Grids",
+          "Utility Operations",
+          "Power Distribution",
+          "Energy Auditing",
+          "Environmental Safety",
+        ],
+      },
+      {
+        name: "Automotive",
+        slug: "automotive",
+        icon: "car",
+        subcategories: [
+          "Vehicle Diagnostics",
+          "Mechanical Repair",
+          "Auto Parts Retail",
+          "Automotive Design",
+          "Electric Vehicles",
+        ],
+        skills: [
+          "Automotive Diagnostics",
+          "CAD Design",
+          "Engine Tuning",
+          "Vehicle Maintenance",
+          "Embedded Systems",
+          "Robotic Assembly",
+        ],
+      },
+      {
+        name: "Media & Entertainment",
+        slug: "media-entertainment",
+        icon: "tv",
+        subcategories: [
+          "Video Production",
+          "Broadcasting",
+          "Journalism",
+          "Audio Production",
+          "Public Relations",
+          "Photography",
+        ],
+        skills: [
+          "Script Writing",
+          "Video Production",
+          "Broadcasting",
+          "Journalism",
+          "Audio Engineering",
+          "Social Media Strategy",
+          "Photography",
+        ],
+      },
+      {
+        name: "Agriculture & Farming",
+        slug: "agriculture-farming",
+        icon: "leaf",
+        subcategories: [
+          "Crop Farming",
+          "Livestock Management",
+          "Horticulture",
+          "Aquaculture",
+          "Agricultural Tech",
+          "Agribusiness",
+        ],
+        skills: [
+          "Soil Science",
+          "Crop Protection",
+          "Hydroponics",
+          "Farming Equipment Operations",
+          "Irrigation Systems",
+          "Agribusiness Management",
+        ],
+      },
+      {
+        name: "Manufacturing & Production",
+        slug: "manufacturing-production",
+        icon: "wrench",
+        subcategories: [
+          "Assembly Line Operations",
+          "Quality Assurance",
+          "Industrial Engineering",
+          "Machining & CNC",
+          "Operations Management",
+        ],
+        skills: [
+          "Quality Control",
+          "Lean Manufacturing",
+          "Assembly Line Operations",
+          "CNC Programming",
+          "Six Sigma",
+          "Supply Planning",
+        ],
+      },
+      {
+        name: "Aerospace & Defense",
+        slug: "aerospace-defense",
+        icon: "plane-takeoff",
+        subcategories: [
+          "Aeronautical Engineering",
+          "Avionics Maintenance",
+          "Defense Consulting",
+          "Space Exploration Tech",
+          "Systems Security",
+        ],
+        skills: [
+          "Aerodynamics",
+          "Avionics",
+          "Defense Systems Analysis",
+          "Propulsion Systems",
+          "CAD Modeling",
+          "Systems Engineering",
+        ],
+      },
+      {
+        name: "Non-Profit & NGO",
+        slug: "non-profit-ngo",
+        icon: "heart",
+        subcategories: [
+          "Fundraising",
+          "Grant Management",
+          "Community Outreach",
+          "Social Work",
+          "Policy & Advocacy",
+        ],
+        skills: [
+          "Grant Writing",
+          "Fundraising",
+          "Community Organizing",
+          "Program Management",
+          "Advocacy",
+          "Volunteer Coordination",
+        ],
+      },
+      {
+        name: "Legal Services",
+        slug: "legal-services",
+        icon: "scale",
+        subcategories: [
+          "Corporate Law",
+          "Criminal Defense",
+          "Intellectual Property",
+          "Family Law",
+          "Legal Operations",
+          "Contract Law",
+        ],
+        skills: [
+          "Legal Research",
+          "Contract Drafting",
+          "Litigation Support",
+          "Corporate Law",
+          "Intellectual Property",
+          "Client Mediation",
+        ],
+      },
+      {
+        name: "Human Resources & Staffing",
+        slug: "human-resources-staffing",
+        icon: "users",
+        subcategories: [
+          "Recruitment & Staffing",
+          "Employee Relations",
+          "Compensation & Benefits",
+          "Talent Management",
+          "HR Operations",
+        ],
+        skills: [
+          "Talent Acquisition",
+          "Employee Relations",
+          "HRIS Systems",
+          "Performance Management",
+          "Conflict Resolution",
+          "Onboarding",
+        ],
+      },
     ];
 
     const industries: Record<string, any> = {};
     for (const ind of industriesData) {
-      industries[ind.slug] = await prisma.industry.create({ data: ind });
+      const { skills, ...industryData } = ind;
+      const createdIndustry = await prisma.industry.create({ data: industryData });
+      industries[ind.slug] = createdIndustry;
+
+      if (skills && skills.length > 0) {
+        await prisma.taxonomySkill.createMany({
+          data: skills.map((skillName) => ({
+            name: skillName,
+            industryId: createdIndustry.id,
+          })),
+        });
+      }
     }
-    console.log(`✅ Seeded ${Object.keys(industries).length} industries.`);
+    console.log(`✅ Seeded ${Object.keys(industries).length} industries with taxonomy skills.`);
 
     // ======= 4. Seed Legal Documents (20 Documents) & System Settings (20 rows) & Rate Limits (20 rows) =======
     console.log("📄 Seeding 20 legal documents, 20 system settings, 20 rate limits...");
@@ -1562,29 +2063,68 @@ const seedDatabase = async () => {
       });
     }
 
-    // ======= 8. Seed 20 PaymentTransactions =======
-    console.log("💳 Seeding 20 Payment Transactions...");
+    // ======= 8. Seed 20 PaymentTransactions (10 Employer, 10 Candidate) =======
+    console.log("💳 Seeding 20 Payment Transactions (10 Employer, 10 Candidate)...");
+    const seekersForTx = Object.values(users).filter((u) => u.role === "JOB_SEEKER");
+
     for (let idx = 0; idx < 20; idx++) {
-      const company = companyList[idx % companyList.length];
-      const employer = await prisma.user.findFirst({ where: { companyId: company.id } });
-      if (employer) {
-        await prisma.paymentTransaction.create({
-          data: {
-            tranId: `TRAN-ID-ONYX-${1000 + idx}`,
-            valId: `VAL-ID-${1000 + idx}`,
-            sessionKey: `SESSION-KEY-ONYX-${1000 + idx}`,
-            userId: employer.id,
-            companyId: company.id,
-            amount: 4999.0,
-            currency: "BDT",
-            status: "VALIDATED",
-            category: "EMPLOYER_PLAN",
-            planId: plans["EMPLOYER_Growth"].id,
-            bankTranId: `BANK-TX-${2000 + idx}`,
-            cardType: "VISA",
-            storeAmount: 4999.0,
-          },
-        });
+      if (idx % 2 === 0) {
+        // Employer Plan
+        const company = companyList[Math.floor(idx / 2) % companyList.length];
+        const employer = await prisma.user.findFirst({ where: { companyId: company.id } });
+        if (employer) {
+          const planKey = idx % 4 === 0 ? "EMPLOYER_Growth" : "EMPLOYER_Enterprise";
+          const dbPlan = plans[planKey];
+          await prisma.paymentTransaction.create({
+            data: {
+              tranId: `TRAN-ID-ONYX-${1000 + idx}`,
+              valId: `VAL-ID-${1000 + idx}`,
+              sessionKey: `SESSION-KEY-ONYX-${1000 + idx}`,
+              userId: employer.id,
+              companyId: company.id,
+              amount: dbPlan.price,
+              currency: "BDT",
+              status: "VALIDATED",
+              category: "EMPLOYER_PLAN",
+              planId: dbPlan.name,
+              bankTranId: `BANK-TX-${2000 + idx}`,
+              cardType: "VISA",
+              storeAmount: dbPlan.price,
+            },
+          });
+        }
+      } else {
+        // Seeker Premium Plan
+        const seeker = seekersForTx[Math.floor(idx / 2) % seekersForTx.length];
+        if (seeker) {
+          const seekerPlanKeys = ["JOB_SEEKER_Starter", "JOB_SEEKER_Pro", "JOB_SEEKER_Premium"];
+          const planKey = seekerPlanKeys[Math.floor(idx / 2) % seekerPlanKeys.length];
+          const dbPlan = plans[planKey];
+
+          // Calculate correct dynamic discounted amount for seeded transaction
+          const planFeatures = dbPlan.features as any;
+          const discountPercent = Number(planFeatures?.firstTimeDiscountPercent || 0);
+          const discountAmount = dbPlan.price * (discountPercent / 100);
+          const finalAmount = Math.floor(dbPlan.price - discountAmount);
+
+          await prisma.paymentTransaction.create({
+            data: {
+              tranId: `TRAN-ID-ONYX-${1000 + idx}`,
+              valId: `VAL-ID-${1000 + idx}`,
+              sessionKey: `SESSION-KEY-ONYX-${1000 + idx}`,
+              userId: seeker.id,
+              companyId: null,
+              amount: finalAmount,
+              currency: "BDT",
+              status: "VALIDATED",
+              category: "SEEKER_PREMIUM",
+              planId: dbPlan.name,
+              bankTranId: `BANK-TX-${2000 + idx}`,
+              cardType: "BKASH",
+              storeAmount: finalAmount,
+            },
+          });
+        }
       }
     }
 
@@ -3399,9 +3939,10 @@ const seedDatabase = async () => {
 
     console.log(`✅ Seeded ${saveCandCount} saved candidates, ${followCount} follows.`);
 
-    // ======= 14. Seed 20 Conversations, 40 Participants & 60 Messages =======
-    console.log("💬 Seeding 20 Conversations & 60 Messages...");
+    // ======= 14. Seed 20 Conversations, 40 Participants & 60+ Messages =======
+    console.log("💬 Seeding 20 Conversations & Messages...");
     const applications = await prisma.application.findMany({ take: 20 });
+    const riyadUser = await prisma.user.findFirst({ where: { email: "seeker.riyad@gmail.com" } });
     let messageCount = 0;
 
     for (let idx = 0; idx < applications.length; idx++) {
@@ -3412,7 +3953,7 @@ const seedDatabase = async () => {
           data: { applicationId: app.id },
         });
 
-        // Add participants (40 total)
+        // Add participants
         await prisma.conversationParticipant.create({
           data: { conversationId: conversation.id, userId: app.applicantId },
         });
@@ -3420,35 +3961,123 @@ const seedDatabase = async () => {
           data: { conversationId: conversation.id, userId: job.postedById },
         });
 
-        // Add 3 messages per conversation (60 total)
-        const msg1 = await prisma.message.create({
-          data: {
-            conversationId: conversation.id,
-            senderId: app.applicantId,
-            content: "Hello! I am following up on my application.",
-          },
-        });
-        const msg2 = await prisma.message.create({
-          data: {
-            conversationId: conversation.id,
-            senderId: job.postedById,
-            content: "Thank you for reaching out. We are currently reviewing resumes.",
-          },
-        });
-        const msg3 = await prisma.message.create({
-          data: {
-            conversationId: conversation.id,
-            senderId: app.applicantId,
-            content: "Great, I look forward to hearing from you.",
-          },
-        });
+        let lastMsgId = "";
+
+        if (riyadUser && app.applicantId === riyadUser.id) {
+          // Seed fully loaded rich conversation for Riyad Hasan
+          const richMessages = [
+            {
+              senderId: app.applicantId,
+              content:
+                "Hello! I am following up on my application for the Backend Team Lead (Node.js) position.",
+              messageType: "TEXT" as const,
+            },
+            {
+              senderId: job.postedById,
+              content:
+                "Hello Riyad! Thanks for reaching out. Your profile looks impressive. Could you share some of your previous work or architecture portfolio?",
+              messageType: "TEXT" as const,
+            },
+            {
+              senderId: app.applicantId,
+              content:
+                "Sure! Here is a screenshot of the main architecture of a high-throughput payment service I designed recently.",
+              messageType: "TEXT" as const,
+            },
+            {
+              senderId: app.applicantId,
+              content: "Payment Architecture Diagram",
+              messageType: "IMAGE" as const,
+              fileUrl:
+                "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=600&auto=format&fit=crop",
+              fileName: "payment-architecture.png",
+              fileSize: 245600,
+            },
+            {
+              senderId: job.postedById,
+              content:
+                "Wow, this architecture is very clean and well-structured. Do you have a detailed technical specification or documentation for this?",
+              messageType: "TEXT" as const,
+            },
+            {
+              senderId: app.applicantId,
+              content: "Technical Specs Document",
+              messageType: "FILE" as const,
+              fileUrl: "https://pdfobject.com/pdf/sample.pdf",
+              fileName: "payment-service-specs.pdf",
+              fileSize: 1048576,
+            },
+            {
+              senderId: job.postedById,
+              content:
+                "Excellent, I will review the spec document. Do you have the open-source repository or project codebase available on GitHub?",
+              messageType: "TEXT" as const,
+            },
+            {
+              senderId: app.applicantId,
+              content: "https://github.com/riyadhasan/high-throughput-payment-service",
+              messageType: "LINK" as const,
+              fileUrl: "https://github.com/riyadhasan/high-throughput-payment-service",
+              fileName: "GitHub Repository",
+            },
+            {
+              senderId: job.postedById,
+              content:
+                "Perfect! This is exactly what we were looking for. Let's schedule a technical interview for this Thursday at 3:00 PM. Does that work for you?",
+              messageType: "TEXT" as const,
+            },
+            {
+              senderId: app.applicantId,
+              content:
+                "Yes, Thursday at 3:00 PM works perfectly for me. Thank you, I look forward to it!",
+              messageType: "TEXT" as const,
+            },
+          ];
+
+          for (const msgData of richMessages) {
+            const msg = await prisma.message.create({
+              data: {
+                conversationId: conversation.id,
+                ...msgData,
+              },
+            });
+            lastMsgId = msg.id;
+            messageCount++;
+          }
+        } else {
+          // Standard 3 messages
+          const msg1 = await prisma.message.create({
+            data: {
+              conversationId: conversation.id,
+              senderId: app.applicantId,
+              content: "Hello! I am following up on my application.",
+              messageType: "TEXT" as const,
+            },
+          });
+          const msg2 = await prisma.message.create({
+            data: {
+              conversationId: conversation.id,
+              senderId: job.postedById,
+              content: "Thank you for reaching out. We are currently reviewing resumes.",
+              messageType: "TEXT" as const,
+            },
+          });
+          const msg3 = await prisma.message.create({
+            data: {
+              conversationId: conversation.id,
+              senderId: app.applicantId,
+              content: "Great, I look forward to hearing from you.",
+              messageType: "TEXT" as const,
+            },
+          });
+          lastMsgId = msg3.id;
+          messageCount += 3;
+        }
 
         await prisma.conversation.update({
           where: { id: conversation.id },
-          data: { lastMessageId: msg3.id },
+          data: { lastMessageId: lastMsgId },
         });
-
-        messageCount += 3;
       }
     }
     console.log(`✅ Seeded ${applications.length} conversations and ${messageCount} messages.`);

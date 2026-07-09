@@ -39,7 +39,7 @@ sequenceDiagram
 
 ## 2. Strict Security Auditing Controls
 
-To prevent request-forgery, transaction hijacking, or price tampering, the system implements **four levels of defensive multi-point checks**:
+To prevent request-forgery, transaction hijacking, price tampering, or race conditions, the system implements **six levels of defensive multi-point checks**:
 
 ### A. Alphabetic Signature HMAC Verification
 
@@ -71,6 +71,23 @@ Ensures the transaction wasn't intercepted and tampered with:
 
 - Filters transactions containing `risk_level === 1` (flagged by SSLCommerz as suspicious).
 - Holds the automatic upgrade benefits and marks the transaction as `PENDING_REVIEW` for manual administrative oversight.
+
+### E. Active Subscription Double-Purchase Guard (SaaS Rule)
+
+Before creating a checkout session or accepting a payment, the backend checks if the Seeker or Employer Company holds an active, unexpired subscription to the targeted plan tier. If a live subscription exists, the checkout is blocked and throws a `400 Bad Request` validation payload.
+
+### F. Concurrency Barrier & Idempotency Lock
+
+To prevent race conditions where a customer's success page redirect and the background IPN webhook arrive at the server simultaneously, validation runs inside a database transaction lock. The very first action inside `prisma.$transaction` re-fetches the transaction state:
+
+```typescript
+const currentTx = await tx.paymentTransaction.findUnique({
+  where: { id: transaction.id },
+});
+if (currentTx.status === PaymentStatus.VALIDATED) {
+  return currentTx; // Blocks secondary concurrent processes from double-upgrades
+}
+```
 
 ---
 
@@ -183,3 +200,32 @@ SSLCOMMERZ_IS_LIVE=false # true for production, false for sandbox
 BACKEND_URL=http://localhost:5000
 FRONTEND_URL=http://localhost:3000
 ```
+
+### Zod Boolean Coercion Gotcha Fix
+
+When parsing environment variables with Zod schemas, using `z.coerce.boolean()` translates any non-empty string value (including `"false"`) into a boolean `true`. Because of this, setting `SSLCOMMERZ_IS_LIVE=false` in `.env` would traditionally get parsed as `true`, causing the server to communicate with the live gateway rather than the sandbox environment.
+
+The system resolves this by utilizing `z.preprocess()` to ensure `"false"` and `"0"` correctly resolve as boolean `false`:
+
+```typescript
+SSLCOMMERZ_IS_LIVE: z.preprocess(
+  (val) => val === "true" || val === "1" || val === true,
+  z.boolean(),
+).default(false);
+```
+
+### CORS Configuration & Redirect Handling
+
+To prevent CORS errors when SSLCommerz redirects clients back to the backend success endpoints, the backend's allowed origins are automatically merged:
+
+```typescript
+const allowedOrigins = [
+  ...env.ALLOWED_ORIGINS.split(",").map((o) => o.trim()),
+  env.BACKEND_URL,
+  env.FRONTEND_URL,
+  "http://localhost:3000",
+  "http://localhost:5000",
+].filter(Boolean);
+```
+
+This guarantees local environments and sandbox validation redirects operate seamlessly.

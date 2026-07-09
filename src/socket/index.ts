@@ -4,6 +4,7 @@ import { Server } from "socket.io";
 import { z } from "zod";
 import { env } from "../config/index.js";
 import prisma from "../utils/prismaClient.js";
+import messageService from "../app/modules/message/message.service.js";
 
 type SocketAuthPayload = JwtPayload & {
   userId: string;
@@ -41,6 +42,16 @@ const typingPayloadSchema = z.object({
   conversationId: z.string().uuid(),
   userId: z.string().uuid(),
   isTyping: z.boolean(),
+});
+
+const sendMessagePayloadSchema = z.object({
+  conversationId: z.string().uuid({ message: "conversationId must be a valid UUID" }),
+  content: z.string().min(1, { message: "Message content cannot be empty" }),
+  messageType: z.enum(["TEXT", "IMAGE", "FILE", "LINK"]).optional(),
+  fileUrl: z.string().url().optional().or(z.string().length(0)).or(z.null()),
+  fileName: z.string().optional().or(z.null()),
+  fileSize: z.number().int().optional().or(z.null()),
+  recipientId: z.string().uuid().optional().or(z.null()),
 });
 
 export const initSocket = (server: HttpServer) => {
@@ -128,6 +139,55 @@ export const initSocket = (server: HttpServer) => {
         console.log(`Socket ${socket.id} left conversation: ${conversationId}`);
       } catch {
         socket.emit("error", { message: "Invalid conversationId" });
+      }
+    });
+
+    // Handle sending a message in real-time with database saving, validation and acknowledgement
+    socket.on("send_message", async (rawData: unknown, callback: unknown) => {
+      try {
+        if (!userId) {
+          if (typeof callback === "function") {
+            callback({ success: false, error: "Unauthorized" });
+          } else {
+            socket.emit("error", { message: "Unauthorized" });
+          }
+          return;
+        }
+
+        const data = sendMessagePayloadSchema.parse(rawData);
+
+        // Call the service layer to validate and persist the message
+        const result = await messageService.sendMessage(data.conversationId, userId, {
+          content: data.content,
+          messageType: data.messageType as any,
+          fileUrl: data.fileUrl || undefined,
+          fileName: data.fileName || undefined,
+          fileSize: data.fileSize || undefined,
+        });
+
+        // 1. Broadcast new message to the conversation room (includes all participants)
+        io?.to(`conversation:${data.conversationId}`).emit("new_message", result);
+
+        // 2. Notify recipient's personal room for real-time sidebar/badge updates
+        if (data.recipientId) {
+          io?.to(`user:${data.recipientId}`).emit("new_conversation_message", {
+            conversationId: data.conversationId,
+            message: result,
+          });
+        }
+
+        // 3. Send success acknowledgement to the sender socket
+        if (typeof callback === "function") {
+          callback({ success: true, data: result });
+        }
+      } catch (err: any) {
+        console.error("Socket send_message error:", err);
+        const errMsg = err.message || "Failed to send message";
+        if (typeof callback === "function") {
+          callback({ success: false, error: errMsg });
+        } else {
+          socket.emit("error", { message: errMsg });
+        }
       }
     });
 

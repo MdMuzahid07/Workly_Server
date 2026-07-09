@@ -54,6 +54,7 @@ const initiatePayment = asyncHandler(async (req: Request, res: Response) => {
     cusCity,
     cusPostcode,
     cusCountry,
+    paymentChannel,
   } = req.body;
 
   let companyId: string | undefined;
@@ -107,6 +108,7 @@ const initiatePayment = asyncHandler(async (req: Request, res: Response) => {
       cusCountry,
       frontendUrl,
       backendUrl,
+      paymentChannel,
     },
     userId,
     companyId,

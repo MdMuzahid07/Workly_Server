@@ -6,8 +6,8 @@ const uploadResume = z.object({
 });
 
 // For setDefault and delete, no body validation needed, but you can add param validation if your middleware supports it
-const setDefaultResume = z.object({});
-const deleteResume = z.object({});
+const setDefaultResume = z.any();
+const deleteResume = z.any();
 
 export default {
   uploadResume,

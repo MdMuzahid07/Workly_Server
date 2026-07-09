@@ -79,11 +79,28 @@ const updateNotificationPreferences = asyncHandler(async (req, res) => {
   });
 });
 
+const deleteMe = asyncHandler(async (req, res) => {
+  //@ts-ignore
+  const userId = req.user.userId;
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { isActive: false, deletedAt: new Date() },
+  });
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Account deleted successfully",
+  });
+});
+
 const userController = {
   registerPushToken,
   deregisterPushToken,
   getNotificationPreferences,
   updateNotificationPreferences,
+  deleteMe,
 };
 
 export default userController;

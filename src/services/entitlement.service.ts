@@ -106,7 +106,11 @@ export class EntitlementService {
   ): Promise<{ jobsPosted: number; applicationsSubmitted: number; resumesUploaded: number }> {
     const period = new Date().toISOString().slice(0, 7); // "YYYY-MM"
 
-    const [usage, resumeCount] = await Promise.all([
+    const [user, usage, resumeCount] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true, companyId: true },
+      }),
       prisma.usageCounter.findUnique({
         where: {
           userId_period: {
@@ -123,9 +127,34 @@ export class EntitlementService {
       }),
     ]);
 
+    let activeJobsCount = usage?.jobsPosted ?? 0;
+    if (user?.role === "EMPLOYER" && user.companyId) {
+      activeJobsCount = await prisma.job.count({
+        where: {
+          companyId: user.companyId,
+          status: "ACTIVE",
+          deletedAt: null,
+        },
+      });
+    }
+
+    let appsCount = usage?.applicationsSubmitted ?? 0;
+    if (user?.role === "JOB_SEEKER") {
+      const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+      appsCount = await prisma.application.count({
+        where: {
+          applicantId: userId,
+          deletedAt: null,
+          createdAt: {
+            gte: monthStart,
+          },
+        },
+      });
+    }
+
     return {
-      jobsPosted: usage?.jobsPosted ?? 0,
-      applicationsSubmitted: usage?.applicationsSubmitted ?? 0,
+      jobsPosted: activeJobsCount,
+      applicationsSubmitted: appsCount,
       resumesUploaded: resumeCount,
     };
   }

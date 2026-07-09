@@ -44,4 +44,14 @@ const prisma = new PrismaClient({
   },
 });
 
+export const disconnectDb = async () => {
+  try {
+    await prisma.$disconnect();
+    await pool.end();
+    console.log("[Database] Disconnected connection pool cleanly.");
+  } catch (error) {
+    console.error("[Database] Error disconnecting pool:", error);
+  }
+};
+
 export default prisma;

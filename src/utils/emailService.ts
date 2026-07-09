@@ -3,6 +3,7 @@ import { env } from "../config/index.js";
 import { getPasswordResetEmailTemplate } from "../templates/getPasswordResetEmailTemplate.js";
 import { getResendVerificationEmailTemplate } from "../templates/getResendVerificationEmailTemplate.js";
 import { getVerificationEmailTemplate } from "../templates/getVerificationEmailTemplate.js";
+import { getSubscriptionRenewalEmailTemplate } from "../templates/getSubscriptionRenewalEmailTemplate.js";
 import {
   getNewApplicationEmailTemplate,
   getApplicationStatusUpdateEmailTemplate,
@@ -193,4 +194,30 @@ export {
   sendNewApplicationEmail,
   sendApplicationStatusUpdateEmail,
   sendInterviewScheduledEmail,
+  sendSubscriptionRenewalEmail,
 };
+
+// ---------------------------------------------------------------------------
+// Subscription renewal reminder
+// ---------------------------------------------------------------------------
+
+async function sendSubscriptionRenewalEmail(params: {
+  toEmail: string;
+  userName: string;
+  planName: string;
+  expiryDate: string;
+  renewalPrice: string;
+  renewalUrl: string;
+  daysLeft: number;
+}): Promise<{ success: true; messageId: string }> {
+  const transporter = await createTransporter();
+
+  const info = await transporter.sendMail({
+    from: `"Workly.Job" <${env.SMTP_USER}>`,
+    to: params.toEmail,
+    subject: `⏳ Your ${params.planName} plan expires in ${params.daysLeft} day${params.daysLeft !== 1 ? "s" : ""} – Renew Now`,
+    html: getSubscriptionRenewalEmailTemplate(params),
+  });
+
+  return { success: true, messageId: info.messageId };
+}

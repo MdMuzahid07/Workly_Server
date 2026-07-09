@@ -445,10 +445,27 @@ model Industry {
   //* ==== relations ======>
   companies     Company[]
   jobs          Job[]
+  taxonomySkills TaxonomySkill[]
 
   @@index([slug])
   @@index([active])
   @@map("industries")
+}
+
+model TaxonomySkill {
+  id         String   @id @default(uuid())
+  name       String
+  active     Boolean  @default(true)
+  industryId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  //* ==== relations ======>
+  industry   Industry @relation(fields: [industryId], references: [id], onDelete: Cascade)
+
+  @@unique([name, industryId])
+  @@index([industryId])
+  @@map("taxonomy_skills")
 }
 
 model Job {
@@ -780,6 +797,9 @@ model Subscription {
   cancelAtPeriodEnd    Boolean            @default(false)
   stripeSubscriptionId String?            @unique
   paymentMethod        Json?
+  /// Timestamp set when a 3-day renewal reminder email was dispatched.
+  /// Used as an idempotency guard so the daily cron never double-sends.
+  renewalReminderSentAt DateTime?
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
 
@@ -1152,6 +1172,9 @@ model UserSubscription {
   endDate           DateTime?
   autoRenew         Boolean            @default(true)
   cancelAtPeriodEnd Boolean            @default(false)
+  /// Timestamp set when a 3-day renewal reminder email was dispatched.
+  /// Used as an idempotency guard so the daily cron never double-sends.
+  renewalReminderSentAt DateTime?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 

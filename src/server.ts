@@ -2,10 +2,12 @@ import http, { type Server } from "http";
 import app from "./app.js";
 import { env } from "./config/index.js";
 import { initRateLimiters } from "./lib/rateLimiters.js";
-import { initSocket } from "./socket/index.js";
-import prisma from "./utils/prismaClient.js";
+import { initSocket, getIO } from "./socket/index.js";
+import prisma, { disconnectDb } from "./utils/prismaClient.js";
 import bcrypt from "bcrypt";
 import { startPushReceiptJob } from "./jobs/push.receipt.job.js";
+import { startSubscriptionReminderJob } from "./jobs/subscription.reminder.job.js";
+import { startSubscriptionExpiryJob } from "./jobs/subscription.expiry.job.js";
 
 const port = env.PORT;
 
@@ -109,8 +111,51 @@ async function main() {
     await seedDevUsers();
   }
 
-  // Start push receipt check cron job
-  startPushReceiptJob();
+  // ── Background jobs ──────────────────────────────────────────────────────
+  // Push receipt checker (every 20 min)
+  const pushReceiptJob = startPushReceiptJob();
+
+  // Subscription renewal reminder (daily at 08:00)
+  const subscriptionReminderJob = startSubscriptionReminderJob();
+
+  // Subscription expiry sweeper (daily at 02:00)
+  const subscriptionExpiryJob = startSubscriptionExpiryJob();
+
+  // ── Graceful shutdown ─────────────────────────────────────────────────────
+  // Stop cron tasks before the process exits so no job fires mid-drain.
+  const shutdown = async (signal: string) => {
+    console.log(`[Server] ${signal} received — shutting down gracefully…`);
+    pushReceiptJob.stop();
+    subscriptionReminderJob.stop();
+    subscriptionExpiryJob.stop();
+
+    try {
+      const io = getIO();
+      if (io) {
+        io.close();
+        console.log("[Server] Socket.io server closed.");
+      }
+    } catch (err) {
+      console.error("[Server] Error closing Socket.io:", err);
+    }
+
+    await disconnectDb();
+
+    server.close(() => {
+      console.log("[Server] HTTP server closed.");
+      console.log("[Server] Shutdown complete.");
+      process.exit(0);
+    });
+
+    // Force-exit after 5 s if graceful drain takes too long.
+    setTimeout(() => {
+      console.error("[Server] Graceful shutdown timed out — forcing exit.");
+      process.exit(1);
+    }, 5_000).unref();
+  };
+
+  process.once("SIGTERM", () => shutdown("SIGTERM"));
+  process.once("SIGINT", () => shutdown("SIGINT"));
 
   server.listen(Number(port), "0.0.0.0", () => {
     console.log(`Server running 🚀🚀 on => port  ${port}`);

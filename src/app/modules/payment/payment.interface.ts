@@ -14,4 +14,5 @@ export interface InitiatePaymentPayload {
   cusCountry?: string;
   frontendUrl?: string;
   backendUrl?: string;
+  paymentChannel?: string;
 }

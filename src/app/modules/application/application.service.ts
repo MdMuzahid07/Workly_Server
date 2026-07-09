@@ -470,7 +470,29 @@ const getApplicationById = async (requesterId: string, applicationId: string) =>
     where: { id: applicationId },
     include: {
       job: { select: { id: true, title: true, companyId: true, company: true } },
-      applicant: { select: { id: true, fullName: true, email: true, phone: true } },
+      applicant: {
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          phone: true,
+          profile: {
+            select: {
+              id: true,
+              bio: true,
+              location: true,
+              avatarUrl: true,
+              coverUrl: true,
+              resumeUrl: true,
+              headline: true,
+              totalExperienceYears: true,
+              education: true,
+              workExperiences: true,
+              skills: true,
+            },
+          },
+        },
+      },
     },
   });
   if (!app) {
@@ -876,7 +898,7 @@ const getApplicationStats = async (userId: string, period: string = "7days") => 
   // Raw query for aggregation
   // For Postgres: DATE_TRUNC(interval, "createdAt")
   const stats = await prisma.$queryRaw`
-    SELECT 
+    SELECT
       DATE_TRUNC(${interval}, "createdAt") as date,
       COUNT(*)::int as count
     FROM "applications"

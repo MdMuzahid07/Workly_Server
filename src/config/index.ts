@@ -37,7 +37,9 @@ const envSchema = z.object({
   // SSLCommerz
   SSLCOMMERZ_STORE_ID: z.string().min(1).default("testbox"),
   SSLCOMMERZ_STORE_PASSWD: z.string().min(1).default("qwerty"),
-  SSLCOMMERZ_IS_LIVE: z.coerce.boolean().default(false),
+  SSLCOMMERZ_IS_LIVE: z
+    .preprocess((val) => val === "true" || val === "1" || val === true, z.boolean())
+    .default(false),
 
   // Redis (optional now — P1's in-memory fallback is used until REDIS_URL is set)
   REDIS_URL: z.string().url().optional(),

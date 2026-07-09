@@ -228,8 +228,79 @@ const googleOAuth = asyncHandler(async (req, res) => {
   const redirectUrl = new URL(`${env.FRONTEND_URL}/auth/google/callback`);
   redirectUrl.searchParams.set("accessToken", result.accessToken);
   redirectUrl.searchParams.set("user", JSON.stringify(result.safeUser));
+  // Signal to the callback page that this is a brand-new account needing role confirmation
+  if (result.isNewUser) {
+    redirectUrl.searchParams.set("isNewUser", "true");
+  }
 
   return res.redirect(redirectUrl.toString());
+});
+
+/**
+ * PATCH /auth/confirm-google-role
+ * Production-grade role confirmation for new Google OAuth users.
+ *
+ * Security constraints enforced:
+ *  - Requires a valid JWT (authValidator middleware)
+ *  - Only allows role update if user has zero completed jobs/applications (truly new account)
+ *  - Role can only be set to EMPLOYER or JOB_SEEKER — no privilege escalation possible
+ *  - Rate-limited by the authLimiter on the route level
+ */
+const confirmGoogleRole: RequestHandler = asyncHandler(async (req, res) => {
+  const tokenUser = req.user as any;
+
+  if (!tokenUser?.userId) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Unauthorized");
+  }
+
+  const { role } = req.body as { role: string };
+
+  if (!role || !(["EMPLOYER", "JOB_SEEKER"] as const).includes(role as any)) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Role must be EMPLOYER or JOB_SEEKER");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: tokenUser.userId },
+    include: {
+      _count: {
+        select: {
+          applications: true,
+          jobsPosted: true,
+        },
+      },
+    },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  // Security: only allow role change if the account was just created
+  // (no applications or posted jobs yet, and account was created within the last 10 minutes)
+  const accountAgeMins = (Date.now() - new Date(user.createdAt).getTime()) / 60_000;
+  const isNewAccount =
+    accountAgeMins < 10 && user._count.applications === 0 && user._count.jobsPosted === 0;
+
+  if (!isNewAccount) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "Role can only be set immediately after account creation.",
+    );
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: { id: user.id },
+    data: { role: role as "EMPLOYER" | "JOB_SEEKER" },
+  });
+
+  const { passwordHash: _, ...safeUser } = updatedUser as any;
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Role confirmed successfully.",
+    data: safeUser,
+  });
 });
 
 const changePassword: RequestHandler = asyncHandler(async (req, res) => {
@@ -256,6 +327,7 @@ const authController = {
   resendVerificationEmail,
   getCurrentUser,
   googleOAuth,
+  confirmGoogleRole,
   changePassword,
 };
 
