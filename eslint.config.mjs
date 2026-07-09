@@ -2,16 +2,28 @@ import js from "@eslint/js";
 import tsEslint from "@typescript-eslint/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
 import globals from "globals";
+import eslintConfigPrettier from "eslint-config-prettier";
+
+const isFastLint = process.env.FAST_LINT === "true";
 
 export default [
+  {
+    ignores: [
+      "node_modules/**",
+      "dist/**",
+      "src/generated/**",
+      "coverage/**",
+      "*.d.ts",
+    ],
+  },
   js.configs.recommended,
   {
-    files: ["**/*.{ts}"],
+    files: ["**/*.ts"],
     ignores: ["dist/**", "node_modules/**"],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
-        project: "./tsconfig.json",
+        project: isFastLint ? undefined : "./tsconfig.json",
         ecmaVersion: "latest",
         sourceType: "module",
       },
@@ -44,4 +56,5 @@ export default [
       "no-console": ["warn", { allow: ["warn", "error", "log"] }],
     },
   },
+  eslintConfigPrettier,
 ];
