@@ -22,7 +22,7 @@
     "vercel-build": "prisma generate && tsc",
     "db:seed": "tsx prisma/seed.ts"
   },
-  "packageManager": "yarn@1.22.22",
+  "packageManager": "pnpm@11.11.0+sha512.4463f65fd80ed80d69bc1d4bf163ee94f605c7380fc318bb5b2ebe15f8cd12d49c51a4d59e951b401e764d3b6ca751cbf51bc50ed7001a6bcb4935e684c34882",
   "devDependencies": {
     "@types/bcrypt": "^6",
     "@types/cookie-parser": "^1.4.9",
@@ -37,6 +37,8 @@
     "@types/pg": "^8.15.6",
     "@typescript-eslint/eslint-plugin": "^8.40.0",
     "@typescript-eslint/parser": "^8.40.0",
+    "@eslint/js": "^9.33.0",
+    "globals": "^15.14.0",
     "concurrently": "^9.2.1",
     "eslint": "^9.33.0",
     "eslint-config-prettier": "^10.0.1",

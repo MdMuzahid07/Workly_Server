@@ -12,7 +12,7 @@ try {
   console.log();
 
   process.env.FAST_LINT = 'true';
-  execSync('yarn lint-staged', { stdio: 'inherit' });
+  execSync('pnpm exec lint-staged', { stdio: 'inherit' });
 
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
   console.log(

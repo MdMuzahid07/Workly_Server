@@ -11,7 +11,7 @@ try {
   console.log(chalk.dim('   Running tsc --noEmit...'));
   console.log();
 
-  execSync('yarn type-check', { stdio: 'inherit' });
+  execSync('pnpm type-check', { stdio: 'inherit' });
 
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
   console.log(

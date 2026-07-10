@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 
 const seedDatabase = async () => {
   // P0.1 / B3 — Production guard for prisma/seed.ts
-  // This file runs standalone via `yarn db:seed` / `prisma db seed` and can
+  // This file runs standalone via `pnpm db:seed` / `prisma db seed` and can
   // target ANY database that DATABASE_URL points to. Without this guard,
   // running the seed against a production database would:
   //   1. DELETE ALL ROWS in every table (the clean-reset block below), and
