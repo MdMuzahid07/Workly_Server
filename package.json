@@ -10,7 +10,7 @@
     "start": "node dist/server.js",
     "build": "tsc",
     "type-check": "tsc --noEmit",
-    "lint": "eslint . --ext .ts,.js",
+    "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,js,json,md,yaml,yml}\" --ignore-path .gitignore",
     "format-check": "prettier --check \"**/*.{ts,js,json,md,yaml,yml}\" --ignore-path .gitignore",
     "prisma-generate": "prisma generate",
@@ -18,11 +18,11 @@
     "prisma-deploy": "prisma migrate deploy",
     "prisma-push": "prisma db push",
     "prisma-pull": "prisma db pull",
-    "prepare": "husky install",
+    "prepare": "husky",
     "vercel-build": "prisma generate && tsc",
     "db:seed": "tsx prisma/seed.ts"
   },
-  "packageManager": "yarn@1.22.22",
+  "packageManager": "pnpm@11.11.0+sha512.4463f65fd80ed80d69bc1d4bf163ee94f605c7380fc318bb5b2ebe15f8cd12d49c51a4d59e951b401e764d3b6ca751cbf51bc50ed7001a6bcb4935e684c34882",
   "devDependencies": {
     "@types/bcrypt": "^6",
     "@types/cookie-parser": "^1.4.9",
@@ -37,10 +37,12 @@
     "@types/pg": "^8.15.6",
     "@typescript-eslint/eslint-plugin": "^8.40.0",
     "@typescript-eslint/parser": "^8.40.0",
+    "@eslint/js": "^9.33.0",
+    "globals": "^15.14.0",
     "concurrently": "^9.2.1",
     "eslint": "^9.33.0",
+    "eslint-config-prettier": "^10.0.1",
     "lint-staged": "^16.1.5",
-    "npm": "^11.6.3",
     "prettier": "^3.6.2",
     "prisma": "^7.8.0",
     "tsx": "^4.20.4",
@@ -78,11 +80,15 @@
     "zod": "^4.0.17"
   },
   "lint-staged": {
-    "*.{ts,js}": [
-      "eslint --fix",
+    "src/**/*.{ts,js}": [
+      "eslint --fix --max-warnings=0",
       "prettier --write"
     ],
-    "*.{json,md,yaml,yml}": [
+    "scripts/**/*.mjs": [
+      "eslint --fix --max-warnings=0",
+      "prettier --write"
+    ],
+    "**/*.{json,md,yaml,yml}": [
       "prettier --write"
     ]
   },
