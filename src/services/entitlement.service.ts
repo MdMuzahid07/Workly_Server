@@ -1,6 +1,7 @@
-import prisma from "../utils/prismaClient.js";
-import { entitlementCache } from "../utils/entitlement.cache.js";
-import { PlanFeatureFlags } from "../types/subscription.types.js";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import prisma from '../utils/prismaClient.js';
+import { entitlementCache } from '../utils/entitlement.cache.js';
+import { PlanFeatureFlags } from '../types/subscription.types.js';
 
 export const ADMIN_FLAGS: PlanFeatureFlags = {
   maxActiveJobs: 9999,
@@ -40,7 +41,7 @@ export const FREE_SEEKER_FLAGS: PlanFeatureFlags = {
 
 const isSubscriptionActive = (sub: { status: string; endDate: Date | null } | null) => {
   if (!sub) return false;
-  if (sub.status !== "ACTIVE") return false;
+  if (sub.status !== 'ACTIVE') return false;
   if (sub.endDate && new Date() > new Date(sub.endDate)) return false;
   return true;
 };
@@ -52,53 +53,61 @@ export class EntitlementService {
       return cached;
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        company: {
-          include: {
-            subscription: {
-              include: {
-                plan: true,
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          company: {
+            include: {
+              subscription: {
+                include: {
+                  plan: true,
+                },
               },
             },
           },
-        },
-        userSubscription: {
-          include: {
-            plan: true,
+          userSubscription: {
+            include: {
+              plan: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    if (!user) {
+      if (!user) {
+        return FREE_SEEKER_FLAGS;
+      }
+
+      let entitlements: PlanFeatureFlags;
+
+      if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
+        entitlements = ADMIN_FLAGS;
+      } else if (user.role === 'EMPLOYER') {
+        const sub = user.company?.subscription;
+        if (sub && isSubscriptionActive(sub)) {
+          entitlements = sub.plan.features as unknown as PlanFeatureFlags;
+        } else {
+          entitlements = FREE_EMPLOYER_FLAGS;
+        }
+      } else {
+        // JOB_SEEKER / Candidate
+        const sub = user.userSubscription;
+        if (sub && isSubscriptionActive(sub)) {
+          entitlements = sub.plan.features as unknown as PlanFeatureFlags;
+        } else {
+          entitlements = FREE_SEEKER_FLAGS;
+        }
+      }
+
+      entitlementCache.set(userId, entitlements);
+      return entitlements;
+    } catch (error: any) {
+      console.error(
+        `[ALERT] [EntitlementService] Database outage while checking entitlements for user ${userId}. ` +
+          `Falling back to default FREE flags. Error: ${error.message || error}`,
+      );
       return FREE_SEEKER_FLAGS;
     }
-
-    let entitlements: PlanFeatureFlags;
-
-    if (user.role === "ADMIN" || user.role === "SUPER_ADMIN") {
-      entitlements = ADMIN_FLAGS;
-    } else if (user.role === "EMPLOYER") {
-      const sub = user.company?.subscription;
-      if (sub && isSubscriptionActive(sub)) {
-        entitlements = sub.plan.features as unknown as PlanFeatureFlags;
-      } else {
-        entitlements = FREE_EMPLOYER_FLAGS;
-      }
-    } else {
-      // JOB_SEEKER / Candidate
-      const sub = user.userSubscription;
-      if (sub && isSubscriptionActive(sub)) {
-        entitlements = sub.plan.features as unknown as PlanFeatureFlags;
-      } else {
-        entitlements = FREE_SEEKER_FLAGS;
-      }
-    }
-
-    entitlementCache.set(userId, entitlements);
-    return entitlements;
   }
 
   static async getCurrentUsage(
@@ -128,18 +137,18 @@ export class EntitlementService {
     ]);
 
     let activeJobsCount = usage?.jobsPosted ?? 0;
-    if (user?.role === "EMPLOYER" && user.companyId) {
+    if (user?.role === 'EMPLOYER' && user.companyId) {
       activeJobsCount = await prisma.job.count({
         where: {
           companyId: user.companyId,
-          status: "ACTIVE",
+          status: 'ACTIVE',
           deletedAt: null,
         },
       });
     }
 
     let appsCount = usage?.applicationsSubmitted ?? 0;
-    if (user?.role === "JOB_SEEKER") {
+    if (user?.role === 'JOB_SEEKER') {
       const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
       appsCount = await prisma.application.count({
         where: {
@@ -161,7 +170,7 @@ export class EntitlementService {
 
   static async incrementUsage(
     userId: string,
-    field: "jobsPosted" | "applicationsSubmitted",
+    field: 'jobsPosted' | 'applicationsSubmitted',
   ): Promise<void> {
     const user = await prisma.user.findUnique({
       where: { id: userId },

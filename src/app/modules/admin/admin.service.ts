@@ -1,21 +1,22 @@
-import type { Response } from "express";
-import httpStatus from "http-status";
-import { Prisma } from "../../../generated/prisma/index.js";
-import { streamPdfToClient } from "../../../services/file/fileStream.service.js";
-import AppError from "../../error/AppError.js";
-import prisma from "../../../utils/prismaClient.js";
-import { maintenanceCache } from "../../../lib/maintenanceCache.js";
-import { getIO } from "../../../socket/index.js";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { Response } from 'express';
+import httpStatus from 'http-status';
+import { Prisma } from '../../../generated/prisma/index.js';
+import { streamPdfToClient } from '../../../services/file/fileStream.service.js';
+import AppError from '../../error/AppError.js';
+import prisma from '../../../utils/prismaClient.js';
+import { maintenanceCache } from '../../../lib/maintenanceCache.js';
+import { getIO } from '../../../socket/index.js';
 
-type EmployerStatus = "Verified" | "Pending" | "Suspended";
-type JobSeekerStatus = "Hired" | "Looking" | "Active" | "Suspended";
+type EmployerStatus = 'Verified' | 'Pending' | 'Suspended';
+type JobSeekerStatus = 'Hired' | 'Looking' | 'Active' | 'Suspended';
 
 const RECENT_APPLICATION_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
 const recentApplicationCutoff = () => new Date(Date.now() - RECENT_APPLICATION_WINDOW_MS);
 
 const acceptedApplicationWhere = {
-  status: "ACCEPTED" as const,
+  status: 'ACCEPTED' as const,
   deletedAt: null,
 };
 
@@ -28,14 +29,14 @@ const buildJobSeekerStatusWhere = (status: JobSeekerStatus): Prisma.UserWhereInp
   const since = recentApplicationCutoff();
 
   switch (status) {
-    case "Suspended":
+    case 'Suspended':
       return { isActive: false };
-    case "Hired":
+    case 'Hired':
       return {
         isActive: true,
         applications: { some: acceptedApplicationWhere },
       };
-    case "Looking":
+    case 'Looking':
       return {
         isActive: true,
         AND: [
@@ -43,7 +44,7 @@ const buildJobSeekerStatusWhere = (status: JobSeekerStatus): Prisma.UserWhereInp
           { applications: { some: recentApplicationWhere(since) } },
         ],
       };
-    case "Active":
+    case 'Active':
       return {
         isActive: true,
         AND: [
@@ -59,7 +60,7 @@ const buildJobSeekerListWhere = (query: {
   status?: JobSeekerStatus;
 }): Prisma.UserWhereInput => {
   const baseWhere: Prisma.UserWhereInput = {
-    role: "JOB_SEEKER",
+    role: 'JOB_SEEKER',
     deletedAt: null,
   };
 
@@ -68,8 +69,8 @@ const buildJobSeekerListWhere = (query: {
   if (query.q) {
     filters.push({
       OR: [
-        { fullName: { contains: query.q, mode: "insensitive" } },
-        { email: { contains: query.q, mode: "insensitive" } },
+        { fullName: { contains: query.q, mode: 'insensitive' } },
+        { email: { contains: query.q, mode: 'insensitive' } },
       ],
     });
   }
@@ -86,33 +87,23 @@ const deriveJobSeekerStatus = (
   acceptedByApplicant: Map<string, number>,
   recentByApplicant: Map<string, number>,
 ): JobSeekerStatus => {
-  if (!user.isActive) return "Suspended";
-  if ((acceptedByApplicant.get(user.id) ?? 0) > 0) return "Hired";
-  if ((recentByApplicant.get(user.id) ?? 0) > 0) return "Looking";
-  return "Active";
+  if (!user.isActive) return 'Suspended';
+  if ((acceptedByApplicant.get(user.id) ?? 0) > 0) return 'Hired';
+  if ((recentByApplicant.get(user.id) ?? 0) > 0) return 'Looking';
+  return 'Active';
 };
 
 const companyStatusFrom = (company: { isVerified: boolean }, owner: { isActive: boolean }) => {
-  if (!owner.isActive) return "Suspended" as const;
-  return company.isVerified ? ("Verified" as const) : ("Pending" as const);
+  if (!owner.isActive) return 'Suspended' as const;
+  return company.isVerified ? ('Verified' as const) : ('Pending' as const);
 };
-
-async function findCompanyOwner(companyId: string) {
-  // There is no explicit owner field in schema. Use the earliest EMPLOYER user in this company.
-  const owner = await prisma.user.findFirst({
-    where: { companyId, role: "EMPLOYER", deletedAt: null },
-    orderBy: { createdAt: "asc" },
-    select: { id: true, fullName: true, email: true, isActive: true, createdAt: true },
-  });
-  return owner;
-}
 
 const getEmployerStats = async () => {
   const [totalEmployers, verifiedCompanies, pendingVerification, activeJobs] = await Promise.all([
     prisma.company.count({ where: { deletedAt: null } }),
     prisma.company.count({ where: { deletedAt: null, isVerified: true } }),
     prisma.company.count({ where: { deletedAt: null, isVerified: false } }),
-    prisma.job.count({ where: { deletedAt: null, status: "ACTIVE" } }),
+    prisma.job.count({ where: { deletedAt: null, status: 'ACTIVE' } }),
   ]);
 
   return {
@@ -138,15 +129,15 @@ const getEmployersList = async (query: {
   const companyWhere: any = { deletedAt: null };
   if (q) {
     companyWhere.OR = [
-      { name: { contains: q, mode: "insensitive" } },
-      { contactEmail: { contains: q, mode: "insensitive" } },
+      { name: { contains: q, mode: 'insensitive' } },
+      { contactEmail: { contains: q, mode: 'insensitive' } },
     ];
   }
 
   const [companies, total] = await Promise.all([
     prisma.company.findMany({
       where: companyWhere,
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
       skip,
       take: limit,
       select: {
@@ -157,50 +148,70 @@ const getEmployersList = async (query: {
         createdAt: true,
         isVerified: true,
         industry: { select: { name: true } },
+        employees: {
+          where: { role: 'EMPLOYER', deletedAt: null },
+          orderBy: { createdAt: 'asc' },
+          take: 1,
+          select: { id: true, fullName: true, email: true, isActive: true, createdAt: true },
+        },
       },
     }),
     prisma.company.count({ where: companyWhere }),
   ]);
 
-  const rows = await Promise.all(
-    companies.map(async (c) => {
-      const owner = await findCompanyOwner(c.id);
-      const activeJobs = await prisma.job.count({
-        where: { companyId: c.id, deletedAt: null, status: "ACTIVE" },
-      });
+  const companyIds = companies.map((c) => c.id);
+  const activeJobCounts =
+    companyIds.length > 0
+      ? await prisma.job.groupBy({
+          by: ['companyId'],
+          where: {
+            companyId: { in: companyIds },
+            deletedAt: null,
+            status: 'ACTIVE',
+          },
+          _count: {
+            id: true,
+          },
+        })
+      : [];
 
-      const safeOwner =
-        owner ??
-        ({
-          id: null,
-          fullName: "—",
-          email: "—",
-          isActive: true,
-          createdAt: c.createdAt,
-        } as any);
+  const jobCountMap = new Map(activeJobCounts.map((item) => [item.companyId, item._count.id]));
 
-      const status = companyStatusFrom(
-        { isVerified: c.isVerified },
-        { isActive: safeOwner.isActive },
-      );
+  const rows = companies.map((c) => {
+    const owner = c.employees[0] || null;
+    const activeJobs = jobCountMap.get(c.id) ?? 0;
 
-      return {
-        id: c.id,
-        companyName: c.name,
-        slug: c.slug,
-        logo: c.logoUrl ?? "",
-        industry: c.industry?.name ?? "—",
-        ownerId: safeOwner.id,
-        ownerName: safeOwner.fullName,
-        ownerEmail: safeOwner.email,
-        status,
-        activeJobs,
-        joinedDate: c.createdAt,
-        isCompanyVerified: c.isVerified,
-        isOwnerActive: safeOwner.isActive,
-      };
-    }),
-  );
+    const safeOwner =
+      owner ??
+      ({
+        id: null,
+        fullName: '—',
+        email: '—',
+        isActive: true,
+        createdAt: c.createdAt,
+      } as any);
+
+    const status = companyStatusFrom(
+      { isVerified: c.isVerified },
+      { isActive: safeOwner.isActive },
+    );
+
+    return {
+      id: c.id,
+      companyName: c.name,
+      slug: c.slug,
+      logo: c.logoUrl ?? '',
+      industry: c.industry?.name ?? '—',
+      ownerId: safeOwner.id,
+      ownerName: safeOwner.fullName,
+      ownerEmail: safeOwner.email,
+      status,
+      activeJobs,
+      joinedDate: c.createdAt,
+      isCompanyVerified: c.isVerified,
+      isOwnerActive: safeOwner.isActive,
+    };
+  });
 
   const filtered = query.status == null ? rows : rows.filter((r) => r.status === query.status);
 
@@ -221,7 +232,7 @@ const getEmployersList = async (query: {
 const verifyCompany = async (companyId: string) => {
   const company = await prisma.company.findUnique({ where: { id: companyId } });
   if (!company || company.deletedAt) {
-    throw new AppError(httpStatus.NOT_FOUND, "Company not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'Company not found');
   }
 
   const updated = await prisma.company.update({
@@ -235,11 +246,11 @@ const verifyCompany = async (companyId: string) => {
 const setEmployerActive = async (userId: string, isActive: boolean) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user || user.deletedAt) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
 
-  if (user.role !== "EMPLOYER") {
-    throw new AppError(httpStatus.BAD_REQUEST, "User is not an employer");
+  if (user.role !== 'EMPLOYER') {
+    throw new AppError(httpStatus.BAD_REQUEST, 'User is not an employer');
   }
 
   const updated = await prisma.user.update({
@@ -253,11 +264,11 @@ const setEmployerActive = async (userId: string, isActive: boolean) => {
 const deleteEmployer = async (userId: string) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user || user.deletedAt) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
 
-  if (user.role !== "EMPLOYER") {
-    throw new AppError(httpStatus.BAD_REQUEST, "User is not an employer");
+  if (user.role !== 'EMPLOYER') {
+    throw new AppError(httpStatus.BAD_REQUEST, 'User is not an employer');
   }
 
   const updated = await prisma.user.update({
@@ -278,7 +289,7 @@ const adminService = {
     const [totalJobSeekers, activeResumes, portfoliosShared, totalWithPreference] =
       await Promise.all([
         prisma.user.count({
-          where: { role: "JOB_SEEKER", deletedAt: null },
+          where: { role: 'JOB_SEEKER', deletedAt: null },
         }),
         prisma.resume.count({ where: { deletedAt: null } }),
         prisma.profile.count({
@@ -319,7 +330,7 @@ const adminService = {
     const [users, total] = await Promise.all([
       prisma.user.findMany({
         where,
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
         select: {
@@ -340,7 +351,7 @@ const adminService = {
               skills: {
                 select: { skillName: true },
                 take: 1,
-                orderBy: { experienceYears: "desc" },
+                orderBy: { experienceYears: 'desc' },
               },
               preference: { select: { workExperience: true } },
             },
@@ -356,12 +367,12 @@ const adminService = {
 
     const [acceptedAgg, recentAgg, resumeRows] = await Promise.all([
       prisma.application.groupBy({
-        by: ["applicantId"],
-        where: { applicantId: { in: userIds }, status: "ACCEPTED", deletedAt: null },
+        by: ['applicantId'],
+        where: { applicantId: { in: userIds }, status: 'ACCEPTED', deletedAt: null },
         _count: { id: true },
       }),
       prisma.application.groupBy({
-        by: ["applicantId"],
+        by: ['applicantId'],
         where: {
           applicantId: { in: userIds },
           deletedAt: null,
@@ -371,7 +382,7 @@ const adminService = {
       }),
       userIds.length
         ? prisma.resume.groupBy({
-            by: ["userId"],
+            by: ['userId'],
             where: { userId: { in: userIds }, deletedAt: null },
           })
         : Promise.resolve([]),
@@ -384,16 +395,16 @@ const adminService = {
 
     const data = users.map((u) => {
       const p = u.profile;
-      const primarySkill = p?.skills?.[0]?.skillName ?? "—";
-      const experience = p?.preference?.workExperience || p?.headline || "—";
-      const location = p?.location || "Remote";
+      const primarySkill = p?.skills?.[0]?.skillName ?? '—';
+      const experience = p?.preference?.workExperience || p?.headline || '—';
+      const location = p?.location || 'Remote';
       const status = deriveJobSeekerStatus(u, acceptedByApplicant, recentByApplicant);
       const hasResume = usersWithResume.has(u.id) || Boolean(p?.resumeUrl);
 
       return {
         id: u.id,
         name: u.fullName,
-        avatar: p?.avatarUrl ?? "",
+        avatar: p?.avatarUrl ?? '',
         email: u.email,
         location,
         status,
@@ -422,25 +433,25 @@ const adminService = {
 
   suspendJobSeeker: async (userId: string) => {
     const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user || user.deletedAt) throw new AppError(httpStatus.NOT_FOUND, "User not found");
-    if (user.role !== "JOB_SEEKER")
-      throw new AppError(httpStatus.BAD_REQUEST, "User is not a job seeker");
+    if (!user || user.deletedAt) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+    if (user.role !== 'JOB_SEEKER')
+      throw new AppError(httpStatus.BAD_REQUEST, 'User is not a job seeker');
     return prisma.user.update({ where: { id: userId }, data: { isActive: false } });
   },
 
   reactivateJobSeeker: async (userId: string) => {
     const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user || user.deletedAt) throw new AppError(httpStatus.NOT_FOUND, "User not found");
-    if (user.role !== "JOB_SEEKER")
-      throw new AppError(httpStatus.BAD_REQUEST, "User is not a job seeker");
+    if (!user || user.deletedAt) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+    if (user.role !== 'JOB_SEEKER')
+      throw new AppError(httpStatus.BAD_REQUEST, 'User is not a job seeker');
     return prisma.user.update({ where: { id: userId }, data: { isActive: true } });
   },
 
   deleteJobSeeker: async (userId: string) => {
     const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user || user.deletedAt) throw new AppError(httpStatus.NOT_FOUND, "User not found");
-    if (user.role !== "JOB_SEEKER")
-      throw new AppError(httpStatus.BAD_REQUEST, "User is not a job seeker");
+    if (!user || user.deletedAt) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+    if (user.role !== 'JOB_SEEKER')
+      throw new AppError(httpStatus.BAD_REQUEST, 'User is not a job seeker');
     return prisma.user.update({
       where: { id: userId },
       data: { isActive: false, deletedAt: new Date() },
@@ -459,15 +470,15 @@ const adminService = {
     });
 
     if (!user || user.deletedAt) {
-      throw new AppError(httpStatus.NOT_FOUND, "Job seeker not found");
+      throw new AppError(httpStatus.NOT_FOUND, 'Job seeker not found');
     }
-    if (user.role !== "JOB_SEEKER") {
-      throw new AppError(httpStatus.BAD_REQUEST, "User is not a job seeker");
+    if (user.role !== 'JOB_SEEKER') {
+      throw new AppError(httpStatus.BAD_REQUEST, 'User is not a job seeker');
     }
 
     const resume = await prisma.resume.findFirst({
       where: { userId, deletedAt: null },
-      orderBy: [{ isDefault: "desc" }, { uploadDate: "desc" }],
+      orderBy: [{ isDefault: 'desc' }, { uploadDate: 'desc' }],
     });
 
     if (resume) {
@@ -483,12 +494,12 @@ const adminService = {
       await streamPdfToClient({
         res,
         fileUrl: user.profile.resumeUrl,
-        filename: `${user.fullName.replace(/\s+/g, "-")}-resume.pdf`,
+        filename: `${user.fullName.replace(/\s+/g, '-')}-resume.pdf`,
       });
       return;
     }
 
-    throw new AppError(httpStatus.NOT_FOUND, "No resume found for this candidate");
+    throw new AppError(httpStatus.NOT_FOUND, 'No resume found for this candidate');
   },
 
   getActiveJobsStats: async () => {
@@ -497,11 +508,11 @@ const adminService = {
 
     const [totalActiveJobs, newToday, totalApplications, expiringSoon] = await Promise.all([
       prisma.job.count({
-        where: { status: "ACTIVE", deletedAt: null },
+        where: { status: 'ACTIVE', deletedAt: null },
       }),
       prisma.job.count({
         where: {
-          status: "ACTIVE",
+          status: 'ACTIVE',
           deletedAt: null,
           createdAt: { gte: today },
         },
@@ -511,7 +522,7 @@ const adminService = {
       }),
       prisma.job.count({
         where: {
-          status: "ACTIVE",
+          status: 'ACTIVE',
           deletedAt: null,
           expiresAt: {
             gt: new Date(),
@@ -542,14 +553,14 @@ const adminService = {
     const q = query.q?.trim();
 
     const where: any = {
-      status: query.status || "ACTIVE",
+      status: query.status || 'ACTIVE',
       deletedAt: null,
     };
 
     if (q) {
       where.OR = [
-        { title: { contains: q, mode: "insensitive" } },
-        { company: { name: { contains: q, mode: "insensitive" } } },
+        { title: { contains: q, mode: 'insensitive' } },
+        { company: { name: { contains: q, mode: 'insensitive' } } },
       ];
     }
 
@@ -560,7 +571,7 @@ const adminService = {
     const [jobs, total] = await Promise.all([
       prisma.job.findMany({
         where,
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
         include: {
@@ -592,39 +603,39 @@ const adminService = {
       description: string;
       postedBy?: { email: string } | null;
     }) => {
-      const title = (j.title || "").toLowerCase();
-      const description = (j.description || "").toLowerCase();
-      const recruiterEmail = (j.postedBy?.email || "").toLowerCase();
+      const title = (j.title || '').toLowerCase();
+      const description = (j.description || '').toLowerCase();
+      const recruiterEmail = (j.postedBy?.email || '').toLowerCase();
 
       const rules: string[] = [];
       let score = 0;
 
       if (/bkash|nagad|rocket|fee|charge|payment|deposit|pay/i.test(description)) {
-        rules.push("Mobile Financial Service (MFS) or deposit/payment keywords detected");
+        rules.push('Mobile Financial Service (MFS) or deposit/payment keywords detected');
         score += 45;
       }
       if (/@gmail\.com|@yahoo\.com|@outlook\.com|@hotmail\.com/i.test(recruiterEmail)) {
-        rules.push("Recruiter registered using a public personal email domain (@gmail.com/etc.)");
+        rules.push('Recruiter registered using a public personal email domain (@gmail.com/etc.)');
         score += 25;
       }
       if (/telegram|whatsapp|\+880/i.test(description)) {
-        rules.push("Direct external chat redirection (Telegram/WhatsApp/Mobile) detected");
+        rules.push('Direct external chat redirection (Telegram/WhatsApp/Mobile) detected');
         score += 30;
       }
       if (/data entry|typing|form filling|work from home/i.test(title)) {
-        rules.push("High-risk category (Data Entry/Typing) keyword detected");
+        rules.push('High-risk category (Data Entry/Typing) keyword detected');
         score += 20;
       }
 
       if (rules.length === 0) {
-        rules.push("Algorithmic filter flagged for manual metadata check");
+        rules.push('Algorithmic filter flagged for manual metadata check');
         score = 15;
       }
 
       return {
         riskScore: Math.min(score, 100),
         triggeredRules: rules,
-        priority: score >= 60 ? "Emergency" : score >= 40 ? "Medium" : "Normal",
+        priority: score >= 60 ? 'Emergency' : score >= 40 ? 'Medium' : 'Normal',
       };
     };
 
@@ -638,8 +649,8 @@ const adminService = {
       return {
         id: job.id,
         title: job.title,
-        company: job.company?.name || "Unknown Company",
-        logo: job.company?.logoUrl ?? "",
+        company: job.company?.name || 'Unknown Company',
+        logo: job.company?.logoUrl ?? '',
         location: job.location,
         type: job.jobType,
         category: job.discipline,
@@ -676,11 +687,11 @@ const adminService = {
   getStaffStats: async () => {
     const [totalAdmins, activeNow, totalAuditLogs, riskItems] = await Promise.all([
       prisma.user.count({
-        where: { role: { in: ["ADMIN", "SUPER_ADMIN"] }, deletedAt: null },
+        where: { role: { in: ['ADMIN', 'SUPER_ADMIN'] }, deletedAt: null },
       }),
       prisma.user.count({
         where: {
-          role: { in: ["ADMIN", "SUPER_ADMIN"] },
+          role: { in: ['ADMIN', 'SUPER_ADMIN'] },
           deletedAt: null,
           isActive: true,
           lastLogin: { gte: new Date(Date.now() - 30 * 60 * 1000) }, // Active in last 30 mins
@@ -689,7 +700,7 @@ const adminService = {
       prisma.auditLog.count(),
       prisma.user.count({
         where: {
-          role: { in: ["ADMIN", "SUPER_ADMIN"] },
+          role: { in: ['ADMIN', 'SUPER_ADMIN'] },
           deletedAt: null,
           isActive: false,
         },
@@ -708,7 +719,7 @@ const adminService = {
     page: number;
     limit: number;
     q?: string;
-    role?: "ADMIN" | "SUPER_ADMIN";
+    role?: 'ADMIN' | 'SUPER_ADMIN';
   }) => {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
@@ -716,14 +727,14 @@ const adminService = {
     const q = query.q?.trim() || undefined;
 
     const where: Prisma.UserWhereInput = {
-      role: { in: ["ADMIN", "SUPER_ADMIN"] },
+      role: { in: ['ADMIN', 'SUPER_ADMIN'] },
       deletedAt: null,
     };
 
     if (q) {
       where.OR = [
-        { fullName: { contains: q, mode: "insensitive" } },
-        { email: { contains: q, mode: "insensitive" } },
+        { fullName: { contains: q, mode: 'insensitive' } },
+        { email: { contains: q, mode: 'insensitive' } },
       ];
     }
 
@@ -734,7 +745,7 @@ const adminService = {
     const [users, total] = await Promise.all([
       prisma.user.findMany({
         where,
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
         select: {
@@ -755,7 +766,7 @@ const adminService = {
       name: u.fullName,
       email: u.email,
       role: u.role,
-      status: u.isActive ? "Active" : "Inactive",
+      status: u.isActive ? 'Active' : 'Inactive',
       lastLogin: u.lastLogin,
     }));
 
@@ -772,18 +783,18 @@ const adminService = {
 
   createStaff: async (payload: any, actor: { id: string; role: string }) => {
     // Role logic: only super admin can create super admin, or admin. admin can only create admin.
-    if (actor.role === "ADMIN" && payload.role === "SUPER_ADMIN") {
-      throw new AppError(httpStatus.FORBIDDEN, "Admins can only create other Admins");
+    if (actor.role === 'ADMIN' && payload.role === 'SUPER_ADMIN') {
+      throw new AppError(httpStatus.FORBIDDEN, 'Admins can only create other Admins');
     }
 
     const isExists = await prisma.user.findUnique({ where: { email: payload.email } });
     if (isExists) {
-      throw new AppError(httpStatus.BAD_REQUEST, "User already exists with this email");
+      throw new AppError(httpStatus.BAD_REQUEST, 'User already exists with this email');
     }
 
     // Hash a placeholder password since they will use magic link
-    const placeholderPassword = "TemporaryPassword123!";
-    const passwordHash = await (await import("bcrypt")).hash(placeholderPassword, 12);
+    const placeholderPassword = 'TemporaryPassword123!';
+    const passwordHash = await (await import('bcrypt')).hash(placeholderPassword, 12);
 
     const user = await prisma.user.create({
       data: {
@@ -800,9 +811,9 @@ const adminService = {
     // Create Audit Log
     await prisma.auditLog.create({
       data: {
-        entityType: "Staff",
+        entityType: 'Staff',
         entityId: user.id,
-        action: "CREATE",
+        action: 'CREATE',
         newValues: { role: payload.role, email: payload.email },
         userId: actor.id,
       },
@@ -817,17 +828,17 @@ const adminService = {
     actor: { id: string; role: string },
   ) => {
     const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user || user.deletedAt) throw new AppError(httpStatus.NOT_FOUND, "User not found");
-    if (!["ADMIN", "SUPER_ADMIN"].includes(user.role)) {
-      throw new AppError(httpStatus.BAD_REQUEST, "User is not a staff member");
+    if (!user || user.deletedAt) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+    if (!['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'User is not a staff member');
     }
 
     // Role logic: Admins cannot deactivate/activate Super Admins
-    if (actor.role === "ADMIN" && user.role === "SUPER_ADMIN") {
-      throw new AppError(httpStatus.FORBIDDEN, "Admins cannot manage Super Administrators");
+    if (actor.role === 'ADMIN' && user.role === 'SUPER_ADMIN') {
+      throw new AppError(httpStatus.FORBIDDEN, 'Admins cannot manage Super Administrators');
     }
     if (userId === actor.id && !isActive) {
-      throw new AppError(httpStatus.BAD_REQUEST, "You cannot deactivate your own account");
+      throw new AppError(httpStatus.BAD_REQUEST, 'You cannot deactivate your own account');
     }
 
     const updated = await prisma.user.update({ where: { id: userId }, data: { isActive } });
@@ -835,9 +846,9 @@ const adminService = {
     // Create Audit Log
     await prisma.auditLog.create({
       data: {
-        entityType: "Staff",
+        entityType: 'Staff',
         entityId: userId,
-        action: isActive ? "ACTIVATE" : "DEACTIVATE",
+        action: isActive ? 'ACTIVATE' : 'DEACTIVATE',
         oldValues: { isActive: user.isActive },
         newValues: { isActive },
         userId: actor.id,
@@ -849,33 +860,33 @@ const adminService = {
 
   setStaffRole: async (
     userId: string,
-    role: "ADMIN" | "SUPER_ADMIN",
+    role: 'ADMIN' | 'SUPER_ADMIN',
     actor: { id: string; role: string },
   ) => {
-    if (actor.role !== "SUPER_ADMIN") {
-      throw new AppError(httpStatus.FORBIDDEN, "Only Super Administrators can change staff roles");
+    if (actor.role !== 'SUPER_ADMIN') {
+      throw new AppError(httpStatus.FORBIDDEN, 'Only Super Administrators can change staff roles');
     }
 
     if (userId === actor.id) {
-      throw new AppError(httpStatus.BAD_REQUEST, "You cannot change your own role");
+      throw new AppError(httpStatus.BAD_REQUEST, 'You cannot change your own role');
     }
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user || user.deletedAt) {
-      throw new AppError(httpStatus.NOT_FOUND, "User not found");
+      throw new AppError(httpStatus.NOT_FOUND, 'User not found');
     }
-    if (!["ADMIN", "SUPER_ADMIN"].includes(user.role)) {
-      throw new AppError(httpStatus.BAD_REQUEST, "User is not a staff member");
+    if (!['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'User is not a staff member');
     }
 
     if (user.role === role) {
       return user;
     }
 
-    if (user.role === "SUPER_ADMIN" && role === "ADMIN") {
+    if (user.role === 'SUPER_ADMIN' && role === 'ADMIN') {
       const activeSuperAdmins = await prisma.user.count({
         where: {
-          role: "SUPER_ADMIN",
+          role: 'SUPER_ADMIN',
           deletedAt: null,
           isActive: true,
         },
@@ -883,7 +894,7 @@ const adminService = {
       if (activeSuperAdmins <= 1) {
         throw new AppError(
           httpStatus.BAD_REQUEST,
-          "Cannot demote the last active Super Administrator",
+          'Cannot demote the last active Super Administrator',
         );
       }
     }
@@ -895,9 +906,9 @@ const adminService = {
 
     await prisma.auditLog.create({
       data: {
-        entityType: "Staff",
+        entityType: 'Staff',
         entityId: userId,
-        action: "ROLE_UPDATE",
+        action: 'ROLE_UPDATE',
         oldValues: { role: user.role },
         newValues: { role },
         userId: actor.id,
@@ -928,7 +939,7 @@ const adminService = {
     const [logs, total] = await Promise.all([
       prisma.auditLog.findMany({
         where,
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
         include: {
@@ -941,7 +952,7 @@ const adminService = {
     ]);
 
     const staffEntityIds = [
-      ...new Set(logs.filter((log) => log.entityType === "Staff").map((log) => log.entityId)),
+      ...new Set(logs.filter((log) => log.entityType === 'Staff').map((log) => log.entityId)),
     ];
 
     const staffTargets =
@@ -957,7 +968,7 @@ const adminService = {
     );
 
     const resolveTarget = (log: (typeof logs)[number]) => {
-      if (log.entityType === "Staff") {
+      if (log.entityType === 'Staff') {
         return staffTargetMap.get(log.entityId) ?? log.entityId;
       }
 
@@ -973,8 +984,8 @@ const adminService = {
       action: log.action,
       entityType: log.entityType,
       target: resolveTarget(log),
-      actor: log.user?.fullName || "System",
-      actorRole: log.user?.role || "SYSTEM",
+      actor: log.user?.fullName || 'System',
+      actorRole: log.user?.role || 'SYSTEM',
       createdAt: log.createdAt,
     }));
 
@@ -1008,21 +1019,21 @@ const adminService = {
       prisma.user
         .count({ where: { deletedAt: null, createdAt: { lt: lastMonth } } })
         .catch(() => 0),
-      prisma.job.count({ where: { status: "ACTIVE", deletedAt: null } }).catch(() => 0),
+      prisma.job.count({ where: { status: 'ACTIVE', deletedAt: null } }).catch(() => 0),
       prisma.job
-        .count({ where: { status: "ACTIVE", deletedAt: null, createdAt: { lt: lastMonth } } })
+        .count({ where: { status: 'ACTIVE', deletedAt: null, createdAt: { lt: lastMonth } } })
         .catch(() => 0),
-      prisma.job.count({ where: { status: "DRAFT", deletedAt: null } }).catch(() => 0),
+      prisma.job.count({ where: { status: 'DRAFT', deletedAt: null } }).catch(() => 0),
       prisma.company.count({ where: { isVerified: false, deletedAt: null } }).catch(() => 0),
       prisma.invoice
         .aggregate({
-          where: { status: "PAID" },
+          where: { status: 'PAID' },
           _sum: { amount: true },
         })
         .catch(() => ({ _sum: { amount: 0 } })),
       prisma.invoice
         .aggregate({
-          where: { status: "PAID", paidAt: { lt: lastMonth } },
+          where: { status: 'PAID', paidAt: { lt: lastMonth } },
           _sum: { amount: true },
         })
         .catch(() => ({ _sum: { amount: 0 } })),
@@ -1032,31 +1043,31 @@ const adminService = {
     const totalRevenueLastMonth = (totalRevenueLastMonthResult as any)?._sum?.amount || 0;
 
     const calculateChange = (current: number, previous: number) => {
-      if (previous === 0) return current > 0 ? "+100%" : "0%";
+      if (previous === 0) return current > 0 ? '+100%' : '0%';
       const change = ((current - previous) / previous) * 100;
-      return `${change >= 0 ? "+" : ""}${change.toFixed(1)}%`;
+      return `${change >= 0 ? '+' : ''}${change.toFixed(1)}%`;
     };
 
     return {
       totalUsers: {
         value: totalUsers,
         change: `${calculateChange(totalUsers, totalUsersLastMonth)} from last month`,
-        trend: totalUsers >= totalUsersLastMonth ? "up" : "down",
+        trend: totalUsers >= totalUsersLastMonth ? 'up' : 'down',
       },
       activeJobs: {
         value: activeJobs,
         change: `${calculateChange(activeJobs, activeJobsLastMonth)} from last month`,
-        trend: activeJobs >= activeJobsLastMonth ? "up" : "down",
+        trend: activeJobs >= activeJobsLastMonth ? 'up' : 'down',
       },
       pendingApprovals: {
         value: pendingApprovals + unverifiedCompanies,
-        change: "Awaiting review",
-        trend: "neutral",
+        change: 'Awaiting review',
+        trend: 'neutral',
       },
       globalRevenue: {
         value: totalRevenue,
         change: `${calculateChange(totalRevenue, totalRevenueLastMonth)} from last month`,
-        trend: totalRevenue >= totalRevenueLastMonth ? "up" : "down",
+        trend: totalRevenue >= totalRevenueLastMonth ? 'up' : 'down',
       },
     };
   },
@@ -1064,7 +1075,7 @@ const adminService = {
   getRecentUsers: async (limit = 5) => {
     const users = await prisma.user.findMany({
       where: { deletedAt: null },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
       take: limit,
       select: {
         id: true,
@@ -1082,15 +1093,15 @@ const adminService = {
       name: u.fullName,
       email: u.email,
       role: u.role,
-      status: u.isVerified ? "Verified" : "New",
+      status: u.isVerified ? 'Verified' : 'New',
       joinedAt: u.createdAt,
     }));
   },
 
   getModerationQueue: async (limit = 5) => {
     const jobs = await prisma.job.findMany({
-      where: { status: "DRAFT", deletedAt: null },
-      orderBy: { createdAt: "desc" },
+      where: { status: 'DRAFT', deletedAt: null },
+      orderBy: { createdAt: 'desc' },
       take: limit,
       include: {
         company: { select: { name: true } },
@@ -1100,7 +1111,7 @@ const adminService = {
     return jobs.map((j: any) => ({
       id: j.id,
       title: j.title,
-      company: j.company?.name || "Unknown",
+      company: j.company?.name || 'Unknown',
       status: j.status,
       createdAt: j.createdAt,
     }));
@@ -1108,16 +1119,16 @@ const adminService = {
 
   getSystemSettings: async () => {
     return prisma.systemSettings.upsert({
-      where: { id: "singleton" },
-      create: { id: "singleton" },
+      where: { id: 'singleton' },
+      create: { id: 'singleton' },
       update: {},
     });
   },
 
   getPublicSystemSettings: async () => {
     return prisma.systemSettings.upsert({
-      where: { id: "singleton" },
-      create: { id: "singleton" },
+      where: { id: 'singleton' },
+      create: { id: 'singleton' },
       update: {},
       select: {
         siteName: true,
@@ -1133,7 +1144,8 @@ const adminService = {
 
   updateSystemSettings: async (data: any) => {
     // Strip id if passed to prevent prisma errors trying to change primary key
-    const { id, maintenanceEstimatedEnd, ...updateData } = data;
+    const { maintenanceEstimatedEnd, ...updateData } = data;
+    delete (updateData as any).id;
 
     const formattedUpdateData: any = { ...updateData };
 
@@ -1148,9 +1160,9 @@ const adminService = {
     }
 
     const settings = await prisma.systemSettings.upsert({
-      where: { id: "singleton" },
+      where: { id: 'singleton' },
       create: {
-        id: "singleton",
+        id: 'singleton',
         ...formattedUpdateData,
       },
       update: formattedUpdateData,
@@ -1169,12 +1181,12 @@ const adminService = {
       const io = getIO();
       if (io) {
         if (settings.maintenanceMode) {
-          io.emit("maintenance:warning", {
+          io.emit('maintenance:warning', {
             gracePeriodMs: 10_000,
             message: settings.maintenanceMessage,
           });
           setTimeout(() => {
-            io.emit("maintenance:change", {
+            io.emit('maintenance:change', {
               enabled: true,
               message: settings.maintenanceMessage,
               setAt: settings.maintenanceSetAt,
@@ -1182,7 +1194,7 @@ const adminService = {
             });
           }, 10_000);
         } else {
-          io.emit("maintenance:change", {
+          io.emit('maintenance:change', {
             enabled: false,
             message: null,
             setAt: null,
@@ -1204,9 +1216,9 @@ const adminService = {
     if (severity) where.severity = severity;
     if (q) {
       where.OR = [
-        { job: { title: { contains: q, mode: "insensitive" } } },
-        { job: { company: { name: { contains: q, mode: "insensitive" } } } },
-        { reason: { contains: q, mode: "insensitive" } },
+        { job: { title: { contains: q, mode: 'insensitive' } } },
+        { job: { company: { name: { contains: q, mode: 'insensitive' } } } },
+        { reason: { contains: q, mode: 'insensitive' } },
       ];
     }
 
@@ -1215,7 +1227,7 @@ const adminService = {
         where,
         skip,
         take: Number(limit),
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: 'desc' },
         include: {
           job: {
             select: {
@@ -1261,15 +1273,15 @@ const adminService = {
     today.setHours(0, 0, 0, 0);
 
     const [open, pending, resolvedToday, critical] = await Promise.all([
-      prisma.jobReport.count({ where: { status: "OPEN" } }),
-      prisma.jobReport.count({ where: { status: "PENDING" } }),
+      prisma.jobReport.count({ where: { status: 'OPEN' } }),
+      prisma.jobReport.count({ where: { status: 'PENDING' } }),
       prisma.jobReport.count({
         where: {
-          status: "RESOLVED",
+          status: 'RESOLVED',
           updatedAt: { gte: today },
         },
       }),
-      prisma.jobReport.count({ where: { severity: "CRITICAL", status: "OPEN" } }),
+      prisma.jobReport.count({ where: { severity: 'CRITICAL', status: 'OPEN' } }),
     ]);
 
     return {
@@ -1290,14 +1302,14 @@ const adminService = {
   deactivateJob: async (jobId: string) => {
     return await prisma.job.update({
       where: { id: jobId },
-      data: { status: "CLOSED" },
+      data: { status: 'CLOSED' },
     });
   },
 
   approveJob: async (jobId: string) => {
     return await prisma.job.update({
       where: { id: jobId },
-      data: { status: "ACTIVE" },
+      data: { status: 'ACTIVE' },
     });
   },
 

@@ -1,22 +1,23 @@
-import type { Response } from "express";
-import httpStatus from "http-status";
-import { type Job } from "../../../generated/prisma/index.js";
-import { streamPdfToClient } from "../../../services/file/fileStream.service.js";
-import factoryFunctions from "../../../utils/FactoryFunctionsWithFilterEngine.js";
-import prisma from "../../../utils/prismaClient.js";
-import AppError from "../../error/AppError.js";
-import notificationService from "../notification/notification.service.js";
-import { EntitlementService } from "../../../services/entitlement.service.js";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { Response } from 'express';
+import httpStatus from 'http-status';
+import { type Job } from '../../../generated/prisma/index.js';
+import { streamPdfToClient } from '../../../services/file/fileStream.service.js';
+import factoryFunctions from '../../../utils/FactoryFunctionsWithFilterEngine.js';
+import prisma from '../../../utils/prismaClient.js';
+import AppError from '../../error/AppError.js';
+import notificationService from '../notification/notification.service.js';
+import { EntitlementService } from '../../../services/entitlement.service.js';
 
 const APPLICATION_STATUSES = [
-  "SUBMITTED",
-  "REVIEWING",
-  "SHORTLISTED",
-  "INTERVIEWED",
-  "REJECTED",
-  "OFFERED",
-  "ACCEPTED",
-  "WITHDRAWN",
+  'SUBMITTED',
+  'REVIEWING',
+  'SHORTLISTED',
+  'INTERVIEWED',
+  'REJECTED',
+  'OFFERED',
+  'ACCEPTED',
+  'WITHDRAWN',
 ] as const;
 
 const getApplicationDateRange = (dateFilter?: string) => {
@@ -24,13 +25,13 @@ const getApplicationDateRange = (dateFilter?: string) => {
   const start = new Date(now);
 
   switch (dateFilter) {
-    case "today":
+    case 'today':
       start.setHours(0, 0, 0, 0);
       return { start, end: now };
-    case "last_7_days":
+    case 'last_7_days':
       start.setDate(now.getDate() - 7);
       return { start, end: now };
-    case "this_month":
+    case 'this_month':
       start.setDate(1);
       start.setHours(0, 0, 0, 0);
       return { start, end: now };
@@ -40,17 +41,17 @@ const getApplicationDateRange = (dateFilter?: string) => {
 };
 
 const getApplicationClosedReason = (
-  job: Pick<Job, "status" | "deletedAt" | "applicationDeadline" | "expiresAt"> | null,
+  job: Pick<Job, 'status' | 'deletedAt' | 'applicationDeadline' | 'expiresAt'> | null,
 ) => {
   const now = new Date();
 
-  if (!job || job.deletedAt) return "Job not found";
-  if (job.status !== "ACTIVE") return "This job is not accepting applications";
+  if (!job || job.deletedAt) return 'Job not found';
+  if (job.status !== 'ACTIVE') return 'This job is not accepting applications';
   if (job.applicationDeadline && job.applicationDeadline <= now) {
-    return "The application deadline has passed";
+    return 'The application deadline has passed';
   }
   if (job.expiresAt && job.expiresAt <= now) {
-    return "This job posting has expired";
+    return 'This job posting has expired';
   }
 
   return null;
@@ -58,7 +59,7 @@ const getApplicationClosedReason = (
 
 const createApplication = async (userId: string, payload: any) => {
   if (!userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Not authorized');
   }
 
   const user = await prisma.user.findUnique({
@@ -66,7 +67,7 @@ const createApplication = async (userId: string, payload: any) => {
   });
 
   if (!user) {
-    throw new AppError(httpStatus.BAD_REQUEST, "User not found or inactive");
+    throw new AppError(httpStatus.BAD_REQUEST, 'User not found or inactive');
   }
 
   const job = await prisma.job.findUnique({
@@ -78,7 +79,7 @@ const createApplication = async (userId: string, payload: any) => {
   const closedReason = getApplicationClosedReason(job);
   if (closedReason) {
     throw new AppError(
-      closedReason === "Job not found" ? httpStatus.NOT_FOUND : httpStatus.BAD_REQUEST,
+      closedReason === 'Job not found' ? httpStatus.NOT_FOUND : httpStatus.BAD_REQUEST,
       closedReason,
     );
   }
@@ -93,7 +94,7 @@ const createApplication = async (userId: string, payload: any) => {
   });
 
   if (existingApplication) {
-    throw new AppError(httpStatus.CONFLICT, "You have already applied for this job");
+    throw new AppError(httpStatus.CONFLICT, 'You have already applied for this job');
   }
 
   if (job?.maxApplications) {
@@ -102,13 +103,13 @@ const createApplication = async (userId: string, payload: any) => {
         jobId: payload.jobId,
         deletedAt: null,
         status: {
-          not: "WITHDRAWN",
+          not: 'WITHDRAWN',
         },
       },
     });
 
     if (applicationCount >= job.maxApplications) {
-      throw new AppError(httpStatus.BAD_REQUEST, "This job has reached maximum applications");
+      throw new AppError(httpStatus.BAD_REQUEST, 'This job has reached maximum applications');
     }
   }
 
@@ -125,7 +126,7 @@ const createApplication = async (userId: string, payload: any) => {
         yearsOfExperience: payload.experience ? Number(payload.experience) : 0,
         agreedTerms: payload.agreeTerms ?? true,
         coverLetter: payload.coverLetter,
-        preferredContactMethod: (payload.preferredContactMethod?.toUpperCase() as any) || "EMAIL",
+        preferredContactMethod: (payload.preferredContactMethod?.toUpperCase() as any) || 'EMAIL',
         folderName: payload.folderName,
       },
       include: {
@@ -174,29 +175,29 @@ const createApplication = async (userId: string, payload: any) => {
     notificationService
       .createNotification({
         userId: result.job.postedById,
-        type: "APPLICATION_RECEIVED",
-        title: "New Application Received",
-        message: `${result.fullName || result.applicant?.fullName || "A candidate"} has applied for your job opening: "${result.job.title}".`,
+        type: 'APPLICATION_RECEIVED',
+        title: 'New Application Received',
+        message: `${result.fullName || result.applicant?.fullName || 'A candidate'} has applied for your job opening: "${result.job.title}".`,
         jobId: result.jobId,
         applicationId: result.id,
         metadata: {
-          candidateName: result.fullName || result.applicant?.fullName || "A candidate",
+          candidateName: result.fullName || result.applicant?.fullName || 'A candidate',
           jobTitle: result.job.title,
         },
       })
       .catch((err) => {
-        console.error("Failed to create application received notification:", err);
+        console.error('Failed to create application received notification:', err);
       });
   }
 
-  await EntitlementService.incrementUsage(userId, "applicationsSubmitted");
+  await EntitlementService.incrementUsage(userId, 'applicationsSubmitted');
 
   return result;
 };
 
 const getMyApplications = async (userId: string, query: any) => {
   if (!userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Not authorized');
   }
 
   const applicationFilter = factoryFunctions.createApplicationFilter(prisma);
@@ -204,8 +205,8 @@ const getMyApplications = async (userId: string, query: any) => {
     where: { applicantId: userId },
     page: Number(query.page) || 1,
     limit: Number(query.limit) || 10,
-    sortBy: query.sortBy || "createdAt",
-    sortOrder: (query.sortOrder as "asc" | "desc") || "desc",
+    sortBy: query.sortBy || 'createdAt',
+    sortOrder: (query.sortOrder as 'asc' | 'desc') || 'desc',
   };
 
   if (query.status) {
@@ -219,7 +220,7 @@ const getMyApplications = async (userId: string, query: any) => {
     };
   }
 
-  const searchTerm = typeof query.q === "string" ? query.q.trim() : "";
+  const searchTerm = typeof query.q === 'string' ? query.q.trim() : '';
   if (searchTerm) {
     filterOptions.customWhere = {
       OR: [
@@ -227,7 +228,7 @@ const getMyApplications = async (userId: string, query: any) => {
           job: {
             title: {
               contains: searchTerm,
-              mode: "insensitive",
+              mode: 'insensitive',
             },
           },
         },
@@ -236,7 +237,7 @@ const getMyApplications = async (userId: string, query: any) => {
             company: {
               name: {
                 contains: searchTerm,
-                mode: "insensitive",
+                mode: 'insensitive',
               },
             },
           },
@@ -278,11 +279,11 @@ const getMyApplications = async (userId: string, query: any) => {
 
 const getMyApplicationSummary = async (userId: string) => {
   if (!userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Not authorized');
   }
 
   const groupedStatusCounts = await prisma.application.groupBy({
-    by: ["status"],
+    by: ['status'],
     where: {
       applicantId: userId,
       deletedAt: null,
@@ -333,7 +334,7 @@ const assertEmployerOwnsJob = async (employerId: string, jobId: string) => {
     select: { companyId: true, role: true },
   });
   if (!employer || !employer.companyId) {
-    throw new AppError(httpStatus.FORBIDDEN, "Not authorized");
+    throw new AppError(httpStatus.FORBIDDEN, 'Not authorized');
   }
 
   const job = await prisma.job.findUnique({
@@ -341,7 +342,7 @@ const assertEmployerOwnsJob = async (employerId: string, jobId: string) => {
     select: { companyId: true },
   });
   if (!job || job.companyId !== employer.companyId) {
-    throw new AppError(httpStatus.FORBIDDEN, "Not authorized to access this job");
+    throw new AppError(httpStatus.FORBIDDEN, 'Not authorized to access this job');
   }
 };
 
@@ -352,7 +353,7 @@ const getEmployerCompanyId = async (employerId: string) => {
   });
 
   if (!employer || !employer.companyId) {
-    throw new AppError(httpStatus.FORBIDDEN, "Not authorized or no company associated");
+    throw new AppError(httpStatus.FORBIDDEN, 'Not authorized or no company associated');
   }
 
   return employer.companyId;
@@ -367,12 +368,12 @@ const getPaginationOptions = (query: any) => {
 };
 
 const getApplicationSortOptions = (query: any) => {
-  const allowedSortFields = new Set(["createdAt", "updatedAt", "statusChangedAt"]);
+  const allowedSortFields = new Set(['createdAt', 'updatedAt', 'statusChangedAt']);
   const sortBy =
-    typeof query.sortBy === "string" && allowedSortFields.has(query.sortBy)
+    typeof query.sortBy === 'string' && allowedSortFields.has(query.sortBy)
       ? query.sortBy
-      : "createdAt";
-  const sortOrder = query.sortOrder === "asc" ? "asc" : "desc";
+      : 'createdAt';
+  const sortOrder = query.sortOrder === 'asc' ? 'asc' : 'desc';
 
   return { sortBy, sortOrder };
 };
@@ -380,7 +381,7 @@ const getApplicationSortOptions = (query: any) => {
 const buildApplicationSearchWhere = (searchTerm: string) => {
   const contains = {
     contains: searchTerm,
-    mode: "insensitive" as const,
+    mode: 'insensitive' as const,
   };
 
   return [
@@ -396,7 +397,7 @@ const buildApplicationSearchWhere = (searchTerm: string) => {
 
 const getJobApplications = async (employerId: string, jobId: string, query: any) => {
   if (!employerId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Not authorized');
   }
 
   await assertEmployerOwnsJob(employerId, jobId);
@@ -409,7 +410,7 @@ const getJobApplications = async (employerId: string, jobId: string, query: any)
     where.status = query.status;
   }
 
-  const searchTerm = typeof query.q === "string" ? query.q.trim() : "";
+  const searchTerm = typeof query.q === 'string' ? query.q.trim() : '';
   if (searchTerm) {
     where.OR = buildApplicationSearchWhere(searchTerm);
   }
@@ -464,7 +465,7 @@ const getJobApplications = async (employerId: string, jobId: string, query: any)
 
 const getApplicationById = async (requesterId: string, applicationId: string) => {
   if (!requesterId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Not authorized');
   }
   const app = await prisma.application.findUnique({
     where: { id: applicationId },
@@ -496,7 +497,7 @@ const getApplicationById = async (requesterId: string, applicationId: string) =>
     },
   });
   if (!app) {
-    throw new AppError(httpStatus.NOT_FOUND, "Application not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'Application not found');
   }
 
   // Allow if requester is applicant
@@ -520,7 +521,7 @@ const streamApplicationResume = async (
   });
 
   if (!app) {
-    throw new AppError(httpStatus.NOT_FOUND, "Application not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'Application not found');
   }
 
   if (app.applicantId === requesterId) {
@@ -530,11 +531,11 @@ const streamApplicationResume = async (
   }
 
   if (!app.resumeUrl) {
-    throw new AppError(httpStatus.NOT_FOUND, "Resume not found for this application");
+    throw new AppError(httpStatus.NOT_FOUND, 'Resume not found for this application');
   }
 
-  const applicantName = app.fullName || app.applicant?.fullName || "applicant";
-  const filename = `${applicantName.replace(/\s+/g, "_")}_resume.pdf`;
+  const applicantName = app.fullName || app.applicant?.fullName || 'applicant';
+  const filename = `${applicantName.replace(/\s+/g, '_')}_resume.pdf`;
 
   await streamPdfToClient({
     res,
@@ -550,24 +551,24 @@ const updateStatus = async (
   rejectionReason?: string,
 ) => {
   if (!employerId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Not authorized');
   }
   const current = await prisma.application.findUnique({ where: { id: applicationId } });
   if (!current) {
-    throw new AppError(httpStatus.NOT_FOUND, "Application not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'Application not found');
   }
   await assertEmployerOwnsJob(employerId, current.jobId);
 
   const allowedStatuses = [
-    "REVIEWING",
-    "SHORTLISTED",
-    "INTERVIEWED",
-    "REJECTED",
-    "OFFERED",
-    "ACCEPTED",
+    'REVIEWING',
+    'SHORTLISTED',
+    'INTERVIEWED',
+    'REJECTED',
+    'OFFERED',
+    'ACCEPTED',
   ];
   if (!allowedStatuses.includes(status)) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Invalid status transition");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Invalid status transition');
   }
 
   const updated = await prisma.application.update({
@@ -576,7 +577,7 @@ const updateStatus = async (
       status: status as any,
       statusChangedBy: employerId,
       statusChangedAt: new Date(),
-      rejectionReason: status === "REJECTED" ? (rejectionReason ?? null) : null,
+      rejectionReason: status === 'REJECTED' ? (rejectionReason ?? null) : null,
     },
   });
 
@@ -591,23 +592,23 @@ const updateStatus = async (
         notificationService
           .createNotification({
             userId: current.applicantId,
-            type: "APPLICATION_STATUS_CHANGE",
-            title: "Application Status Update",
-            message: `Your application for "${job.title}" has been updated to ${status.replace(/_/g, " ").toLowerCase()}.`,
+            type: 'APPLICATION_STATUS_CHANGE',
+            title: 'Application Status Update',
+            message: `Your application for "${job.title}" has been updated to ${status.replace(/_/g, ' ').toLowerCase()}.`,
             jobId: current.jobId,
             applicationId: current.id,
             metadata: {
               status,
-              rejectionReason: status === "REJECTED" ? (rejectionReason ?? null) : null,
+              rejectionReason: status === 'REJECTED' ? (rejectionReason ?? null) : null,
             },
           })
           .catch((err) => {
-            console.error("Failed to create application status change notification:", err);
+            console.error('Failed to create application status change notification:', err);
           });
       }
     })
     .catch((err) => {
-      console.error("Failed to fetch job for status update notification:", err);
+      console.error('Failed to fetch job for status update notification:', err);
     });
 
   return updated;
@@ -615,24 +616,24 @@ const updateStatus = async (
 
 const withdraw = async (userId: string, applicationId: string) => {
   if (!userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Not authorized');
   }
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
   if (!app || app.applicantId !== userId) {
-    throw new AppError(httpStatus.FORBIDDEN, "Not authorized to withdraw this application");
+    throw new AppError(httpStatus.FORBIDDEN, 'Not authorized to withdraw this application');
   }
-  if (app.status === "WITHDRAWN") {
+  if (app.status === 'WITHDRAWN') {
     return app;
   }
-  if (app.status !== "SUBMITTED" && app.status !== "REVIEWING") {
+  if (app.status !== 'SUBMITTED' && app.status !== 'REVIEWING') {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "Cannot withdraw application once it has been shortlisted or processed by the employer",
+      'Cannot withdraw application once it has been shortlisted or processed by the employer',
     );
   }
   const updated = await prisma.application.update({
     where: { id: applicationId },
-    data: { status: "WITHDRAWN" as any, withdrawnAt: new Date() },
+    data: { status: 'WITHDRAWN' as any, withdrawnAt: new Date() },
   });
   return updated;
 };
@@ -644,10 +645,10 @@ const scheduleInterview = async (
   interviewNotes?: string,
 ) => {
   if (!employerId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Not authorized');
   }
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
-  if (!app) throw new AppError(httpStatus.NOT_FOUND, "Application not found");
+  if (!app) throw new AppError(httpStatus.NOT_FOUND, 'Application not found');
   await assertEmployerOwnsJob(employerId, app.jobId);
 
   const updated = await prisma.application.update({
@@ -655,7 +656,7 @@ const scheduleInterview = async (
     data: {
       interviewScheduledAt,
       interviewNotes: interviewNotes ?? null,
-      status: "INTERVIEWED" as any,
+      status: 'INTERVIEWED' as any,
       statusChangedBy: employerId,
       statusChangedAt: new Date(),
     },
@@ -672,8 +673,8 @@ const scheduleInterview = async (
         notificationService
           .createNotification({
             userId: app.applicantId,
-            type: "INTERVIEW_SCHEDULED",
-            title: "Interview Scheduled",
+            type: 'INTERVIEW_SCHEDULED',
+            title: 'Interview Scheduled',
             message: `An interview has been scheduled for your application for "${job.title}".`,
             jobId: app.jobId,
             applicationId: app.id,
@@ -683,12 +684,12 @@ const scheduleInterview = async (
             },
           })
           .catch((err) => {
-            console.error("Failed to create interview scheduled notification:", err);
+            console.error('Failed to create interview scheduled notification:', err);
           });
       }
     })
     .catch((err) => {
-      console.error("Failed to fetch job for interview scheduled notification:", err);
+      console.error('Failed to fetch job for interview scheduled notification:', err);
     });
 
   return updated;
@@ -696,10 +697,10 @@ const scheduleInterview = async (
 
 const updateNotes = async (employerId: string, applicationId: string, interviewNotes: string) => {
   if (!employerId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Not authorized');
   }
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
-  if (!app) throw new AppError(httpStatus.NOT_FOUND, "Application not found");
+  if (!app) throw new AppError(httpStatus.NOT_FOUND, 'Application not found');
   await assertEmployerOwnsJob(employerId, app.jobId);
 
   const updated = await prisma.application.update({
@@ -711,31 +712,46 @@ const updateNotes = async (employerId: string, applicationId: string, interviewN
 
 const getJobSummary = async (employerId: string, jobId: string) => {
   if (!employerId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Not authorized');
   }
   await assertEmployerOwnsJob(employerId, jobId);
 
   const statuses = [
-    "SUBMITTED",
-    "REVIEWING",
-    "SHORTLISTED",
-    "INTERVIEWED",
-    "REJECTED",
-    "OFFERED",
-    "ACCEPTED",
-    "WITHDRAWN",
+    'SUBMITTED',
+    'REVIEWING',
+    'SHORTLISTED',
+    'INTERVIEWED',
+    'REJECTED',
+    'OFFERED',
+    'ACCEPTED',
+    'WITHDRAWN',
   ];
-  const counts = await Promise.all(
-    statuses.map((s) => prisma.application.count({ where: { jobId, status: s as any } })),
-  );
-  const summary = Object.fromEntries(statuses.map((s, i) => [s, counts[i]]));
-  const total = await prisma.application.count({ where: { jobId } });
+
+  const [statusCounts, total] = await Promise.all([
+    prisma.application.groupBy({
+      by: ['status'],
+      where: { jobId },
+      _count: {
+        status: true,
+      },
+    }),
+    prisma.application.count({ where: { jobId } }),
+  ]);
+
+  const summary = Object.fromEntries(statuses.map((s) => [s, 0])) as Record<string, number>;
+
+  for (const item of statusCounts) {
+    if (item.status && item.status in summary) {
+      summary[item.status] = item._count.status;
+    }
+  }
+
   return { total, summary } as const;
 };
 
 const getMyCompanyApplications = async (employerId: string, query: any) => {
   if (!employerId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Not authorized');
   }
 
   const companyId = await getEmployerCompanyId(employerId);
@@ -754,7 +770,7 @@ const getMyCompanyApplications = async (employerId: string, query: any) => {
     where.jobId = query.jobId;
   }
 
-  const searchTerm = typeof query.q === "string" ? query.q.trim() : "";
+  const searchTerm = typeof query.q === 'string' ? query.q.trim() : '';
   if (searchTerm) {
     where.OR = buildApplicationSearchWhere(searchTerm);
   }
@@ -810,7 +826,7 @@ const getMyCompanyApplications = async (employerId: string, query: any) => {
 
 const getMyCompanyApplicationSummary = async (employerId: string) => {
   if (!employerId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Not authorized');
   }
 
   const companyId = await getEmployerCompanyId(employerId);
@@ -820,7 +836,7 @@ const getMyCompanyApplicationSummary = async (employerId: string) => {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const groupedStatusCounts = await prisma.application.groupBy({
-    by: ["status"],
+    by: ['status'],
     where: {
       job: { companyId },
       deletedAt: null,
@@ -851,7 +867,7 @@ const getMyCompanyApplicationSummary = async (employerId: string) => {
       where: {
         job: { companyId },
         deletedAt: null,
-        status: "REJECTED",
+        status: 'REJECTED',
         statusChangedAt: { gte: monthStart, lte: now },
       },
     }),
@@ -869,27 +885,27 @@ const getMyCompanyApplicationSummary = async (employerId: string) => {
   };
 };
 
-const getApplicationStats = async (userId: string, period: string = "7days") => {
+const getApplicationStats = async (userId: string, period: string = '7days') => {
   const now = new Date();
   const startDate = new Date();
 
-  let interval = "day";
+  let interval = 'day';
   switch (period) {
-    case "14days":
+    case '14days':
       startDate.setDate(now.getDate() - 14);
       break;
-    case "lastMonth":
+    case 'lastMonth':
       startDate.setMonth(now.getMonth() - 1);
       break;
-    case "3months":
+    case '3months':
       startDate.setMonth(now.getMonth() - 3);
-      interval = "week";
+      interval = 'week';
       break;
-    case "overall":
+    case 'overall':
       startDate.setFullYear(now.getFullYear() - 1); // last 1 year
-      interval = "month";
+      interval = 'month';
       break;
-    case "7days":
+    case '7days':
     default:
       startDate.setDate(now.getDate() - 7);
       break;
