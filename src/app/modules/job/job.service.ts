@@ -6,6 +6,27 @@ import prisma from '../../../utils/prismaClient.js';
 import AppError from '../../error/AppError.js';
 import { EntitlementService } from '../../../services/entitlement.service.js';
 import { env } from '../../../config/index.js';
+import { FilterOptions } from '../../../utils/FilterEngine.js';
+
+interface GetJobsQuery {
+  search?: string;
+  location?: string;
+  jobType?: string | string[];
+  experienceLevel?: string | string[];
+  skills?: string | string[];
+  industry?: string | string[];
+  isRemote?: string | boolean;
+  isFeatured?: string | boolean;
+  salaryMin?: string;
+  salaryMax?: string;
+  postedWithin?: string;
+  status?: string;
+  companyId?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  page?: string | number;
+  limit?: string | number;
+}
 
 //* ============ helper functions ============>
 
@@ -198,7 +219,7 @@ const createJob = async (userId: string, payload: Job & { skillsRequired: JobSki
 };
 
 const getJobs = async (
-  query: Record<string, unknown>,
+  query: GetJobsQuery,
   currentUserId?: string | null,
   options: { publicOnly?: boolean } = { publicOnly: true },
 ) => {
@@ -223,18 +244,14 @@ const getJobs = async (
   } = query;
 
   // build filter query ==========>
-  const filterQuery: Record<string, unknown> & {
+  const filterQuery: FilterOptions & {
     where: Record<string, unknown>;
-    whereIn: Record<string, unknown>;
-    sortBy: unknown;
-    sortOrder: unknown;
-    page: number;
-    limit: number;
+    whereIn: Record<string, unknown[]>;
   } = {
-    sortBy,
-    sortOrder,
-    page: page ? parseInt(page) : 1,
-    limit: limit ? parseInt(limit) : 10,
+    sortBy: sortBy as string,
+    sortOrder: sortOrder as 'asc' | 'desc',
+    page: page ? parseInt(String(page)) : 1,
+    limit: limit ? parseInt(String(limit)) : 10,
     where: {},
     whereIn: {},
   };
@@ -266,29 +283,29 @@ const getJobs = async (
     filterQuery.where.status = status;
   }
 
-  const remote = parseBool(isRemote);
+  const remote = parseBool(isRemote as string | boolean | undefined | null);
   if (remote !== undefined) filterQuery.where.isRemote = remote;
 
-  const featured = parseBool(isFeatured);
+  const featured = parseBool(isFeatured as string | boolean | undefined | null);
   if (featured !== undefined) filterQuery.where.isFeatured = featured;
 
   // array filters ===============>
-  const jobTypes = parseArray(jobType);
+  const jobTypes = parseArray(jobType as string | string[] | undefined | null);
   if (jobTypes?.length) filterQuery.whereIn.jobType = jobTypes;
 
-  const levels = parseArray(experienceLevel);
+  const levels = parseArray(experienceLevel as string | string[] | undefined | null);
   if (levels?.length) filterQuery.whereIn.experienceLevel = levels;
 
   // salary range ===============>
   if (salaryMin || salaryMax) {
     filterQuery.range = {};
-    if (salaryMin) filterQuery.range.salaryMin = { min: parseInt(salaryMin) };
-    if (salaryMax) filterQuery.range.salaryMax = { max: parseInt(salaryMax) };
+    if (salaryMin) filterQuery.range.salaryMin = { min: parseInt(String(salaryMin)) };
+    if (salaryMax) filterQuery.range.salaryMax = { max: parseInt(String(salaryMax)) };
   }
 
   // date range ========================>
   if (postedWithin) {
-    const startDate = getDateFromPeriod(postedWithin);
+    const startDate = getDateFromPeriod(postedWithin as string);
     if (startDate) {
       filterQuery.dateRange = {
         createdAt: { start: startDate, end: new Date() },
@@ -298,26 +315,28 @@ const getJobs = async (
 
   // execute filterEngine ================>
   const jobFilter = factoryFunctions.createJobFilter(prisma);
-  const { where, orderBy, skip, take, pagination } = await jobFilter.filter(filterQuery);
+  const { where, orderBy, skip, take, pagination } = await jobFilter.filter(
+    filterQuery as FilterOptions,
+  );
 
-  if (location && location.trim()) {
+  if (location && (location as string).trim()) {
     where.location = {
-      contains: location.trim(),
+      contains: (location as string).trim(),
       mode: 'insensitive',
     };
   }
 
-  const skillsList = parseArray(skills);
+  const skillsList = parseArray(skills as string | string[] | undefined | null);
   if (skillsList?.length) {
     where.JobSkill = {
       some: {
-        skillName: { in: skillsList, mode: 'insensitive' },
+        skillName: { in: skillsList, mode: 'insensitive' as Prisma.QueryMode },
       },
     };
   }
 
   // Industry filter (relation with company or direct on Job)
-  const industries = parseArray(industry);
+  const industries = parseArray(industry as string | string[] | undefined | null);
   if (industries?.length) {
     if (!where.AND) {
       where.AND = [];
@@ -375,7 +394,7 @@ const getJobs = async (
 
 // };
 
-const getMyJobs = async (userId: string, query: Record<string, unknown>) => {
+const getMyJobs = async (userId: string, query: GetJobsQuery) => {
   const user = await prisma.user.findUnique({
     where: { id: userId, isActive: true },
   });
@@ -640,8 +659,8 @@ const getRecommendedJobs = async (userId: string, query: Record<string, unknown>
     limit = 10,
     search,
   } = query as { page?: string | number; limit?: string | number; search?: string };
-  const skip = (parseInt(page) - 1) * parseInt(limit);
-  const take = parseInt(limit);
+  const skip = (parseInt(String(page)) - 1) * parseInt(String(limit));
+  const take = parseInt(String(limit));
 
   const user = await prisma.user.findUnique({
     where: { id: userId, isActive: true },
@@ -704,7 +723,7 @@ const getRecommendedJobs = async (userId: string, query: Record<string, unknown>
           ? 'Matchmaking disabled; displaying recent jobs.'
           : 'Relevant for your profile.',
       })),
-      meta: { page: parseInt(page), limit: take, total, pages: Math.ceil(total / take) },
+      meta: { page: parseInt(String(page)), limit: take, total, pages: Math.ceil(total / take) },
     };
   }
 
@@ -734,15 +753,15 @@ const getRecommendedJobs = async (userId: string, query: Record<string, unknown>
 
   if (search && search.trim()) {
     const trimmedSearch = search.trim();
-    const searchConditions = {
+    const searchConditions: Prisma.JobWhereInput = {
       OR: [
-        { title: { contains: trimmedSearch, mode: 'insensitive' } },
-        { description: { contains: trimmedSearch, mode: 'insensitive' } },
-        { company: { name: { contains: trimmedSearch, mode: 'insensitive' } } },
+        { title: { contains: trimmedSearch, mode: 'insensitive' as Prisma.QueryMode } },
+        { description: { contains: trimmedSearch, mode: 'insensitive' as Prisma.QueryMode } },
+        { company: { name: { contains: trimmedSearch, mode: 'insensitive' as Prisma.QueryMode } } },
         {
           JobSkill: {
             some: {
-              skillName: { contains: trimmedSearch, mode: 'insensitive' },
+              skillName: { contains: trimmedSearch, mode: 'insensitive' as Prisma.QueryMode },
             },
           },
         },
@@ -798,7 +817,7 @@ const getRecommendedJobs = async (userId: string, query: Record<string, unknown>
   return {
     data: paginatedData,
     meta: {
-      page: parseInt(page),
+      page: parseInt(String(page)),
       limit: take,
       total,
       pages: Math.ceil(total / take),

@@ -309,7 +309,7 @@ const adminController = {
     });
   }),
   updateJobReportStatus: asyncHandler(async (req, res) => {
-    const { reportId } = req.params;
+    const reportId = req.params.reportId as string;
     const { status } = req.body;
     const result = await adminService.updateJobReportStatus(reportId, status);
     sendApiResponse(res, {
@@ -320,7 +320,7 @@ const adminController = {
     });
   }),
   deactivateJob: asyncHandler(async (req, res) => {
-    const { jobId } = req.params;
+    const jobId = req.params.jobId as string;
     const result = await adminService.deactivateJob(jobId, req.user as AdminActor);
     sendApiResponse(res, {
       statusCode: httpStatus.OK,
@@ -330,7 +330,7 @@ const adminController = {
     });
   }),
   approveJob: asyncHandler(async (req, res) => {
-    const { jobId } = req.params;
+    const jobId = req.params.jobId as string;
     const result = await adminService.approveJob(jobId, req.user as AdminActor);
     sendApiResponse(res, {
       statusCode: httpStatus.OK,
@@ -340,7 +340,7 @@ const adminController = {
     });
   }),
   deleteJobListing: asyncHandler(async (req, res) => {
-    const { jobId } = req.params;
+    const jobId = req.params.jobId as string;
     const result = await adminService.deleteJobListing(jobId, req.user as AdminActor);
     sendApiResponse(res, {
       statusCode: httpStatus.OK,
@@ -377,7 +377,10 @@ const adminController = {
     });
   }),
   broadcastNotification: asyncHandler(async (req, res) => {
-    const result = await adminService.broadcastNotification(req.body, req.user as AdminActor);
+    const result = await adminService.broadcastNotification(
+      req.body,
+      req.user as AdminActor & { userId: string },
+    );
     sendApiResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
@@ -386,7 +389,7 @@ const adminController = {
     });
   }),
   clearUserLockout: asyncHandler(async (req, res) => {
-    const { userId } = req.params;
+    const userId = req.params.userId as string;
     const result = await adminService.clearUserLockout(userId, req.user as AdminActor);
     sendApiResponse(res, {
       statusCode: httpStatus.OK,
@@ -396,7 +399,7 @@ const adminController = {
     });
   }),
   toggleJobFeatured: asyncHandler(async (req, res) => {
-    const { jobId } = req.params;
+    const jobId = req.params.jobId as string;
     const { isFeatured } = req.body;
     const result = await adminService.toggleJobFeatured(jobId, isFeatured, req.user as AdminActor);
     sendApiResponse(res, {
@@ -406,7 +409,7 @@ const adminController = {
       data: result,
     });
   }),
-  getSecurityMetadata: asyncHandler(async (req, res) => {
+  getSecurityMetadata: asyncHandler(async (_req, res) => {
     const result = await adminService.getSecurityMetadata();
     sendApiResponse(res, {
       statusCode: httpStatus.OK,
@@ -415,7 +418,7 @@ const adminController = {
       data: result,
     });
   }),
-  getSystemMetrics: asyncHandler(async (req, res) => {
+  getSystemMetrics: asyncHandler(async (_req, res) => {
     const result = await adminService.getSystemMetrics();
     sendApiResponse(res, {
       statusCode: httpStatus.OK,

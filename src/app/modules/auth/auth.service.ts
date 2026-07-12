@@ -12,11 +12,14 @@ import generateVerificationToken from '../../../utils/generateVerificationToken.
 import prisma from '../../../utils/prismaClient.js';
 import AppError from '../../error/AppError.js';
 
+import { UserRole } from '../../../generated/prisma/index.js';
+
 interface RegisterPayload {
   email: string;
   password: string;
   fullName: string;
-  role?: string;
+  phone?: string;
+  role?: UserRole;
 }
 
 interface LoginPayload {

@@ -9,6 +9,7 @@ import {
   JobStatus,
   ReportStatus,
   NotificationType,
+  JobType,
 } from '../../../generated/prisma/index.js';
 import { streamPdfToClient } from '../../../services/file/fileStream.service.js';
 import AppError from '../../error/AppError.js';
@@ -45,8 +46,8 @@ const logAdminAction = async (params: {
       entityType: params.entityType,
       entityId: params.entityId,
       action: params.action,
-      oldValues: params.oldValues || null,
-      newValues: params.newValues || null,
+      oldValues: (params.oldValues ?? Prisma.JsonNull) as Prisma.InputJsonValue,
+      newValues: (params.newValues ?? Prisma.JsonNull) as Prisma.InputJsonValue,
       userId: params.userId || null,
     },
   });
@@ -369,7 +370,7 @@ const deleteEmployer = async (userId: string, actor?: { userId?: string }) => {
     let companyId = user.companyId;
     if (!companyId) {
       const company = await tx.company.findFirst({
-        where: { ownerId: userId, deletedAt: null },
+        where: { employees: { some: { id: userId } }, deletedAt: null },
       });
       if (company) {
         companyId = company.id;
@@ -732,7 +733,7 @@ const adminService = {
             ],
           }
         : {}),
-      ...(query.type ? { jobType: query.type } : {}),
+      ...(query.type ? { jobType: query.type as JobType } : {}),
     };
 
     const [jobs, total] = await Promise.all([
@@ -1368,7 +1369,7 @@ const adminService = {
         entityId: 'singleton',
         action: 'UPDATE',
         oldValues: existing,
-        newValues: formattedUpdateData,
+        newValues: formattedUpdateData as Prisma.InputJsonValue,
         userId: actor?.userId,
       });
 

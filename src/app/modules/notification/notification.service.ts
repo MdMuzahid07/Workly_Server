@@ -3,7 +3,7 @@ import AppError from '../../error/AppError.js';
 import factoryFunctions from '../../../utils/FactoryFunctionsWithFilterEngine.js';
 import { emitToUser } from '../../../socket/index.js';
 import { env } from '../../../config/index.js';
-import { Prisma } from '../../../generated/prisma/index.js';
+import { Prisma, Notification } from '../../../generated/prisma/index.js';
 import prisma from '../../../utils/prismaClient.js';
 import { pushService } from '../../../services/push.service.js';
 import {
@@ -201,13 +201,19 @@ const createNotification = async (payload: CreateNotificationInput) => {
     return {
       id: 'muted',
       userId: payload.userId,
-      type: payload.type,
+      type: payload.type as Parameters<typeof prisma.notification.create>[0]['data']['type'],
       title: payload.title,
       message: payload.message,
       isRead: true,
       createdAt: new Date(),
       updatedAt: new Date(),
-    } as ReturnType<typeof prisma.notification.create> extends Promise<infer T> ? T : never;
+      jobId: null,
+      applicationId: null,
+      metadata: Prisma.JsonNull,
+      sentVia: ['in_app'],
+      emailSentAt: null,
+      pushSentAt: null,
+    } as unknown as Notification;
   }
 
   const created = await prisma.notification.create({
@@ -265,7 +271,7 @@ const getMyNotifications = async (userId: string, query: Record<string, unknown>
   const notificationFilter = factoryFunctions.createNotificationFilter(prisma);
 
   const filterOptions: {
-    where: Record<string, unknown>;
+    where: Record<string, string | number | boolean | Date | null | undefined>;
     page: number;
     limit: number;
     sortBy: string;
@@ -275,13 +281,13 @@ const getMyNotifications = async (userId: string, query: Record<string, unknown>
     where: { userId },
     page: Number(query.page) || 1,
     limit: Number(query.limit) || 20,
-    sortBy: query.sortBy || 'createdAt',
+    sortBy: (query.sortBy as string) || 'createdAt',
     sortOrder: (query.sortOrder as 'asc' | 'desc') || 'desc',
     includeSoftDeleted: true,
   };
 
   if (query.type) {
-    filterOptions.where.type = query.type;
+    filterOptions.where.type = query.type as string;
   }
 
   if (typeof query.isRead === 'boolean') {

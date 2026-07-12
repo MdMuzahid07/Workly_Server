@@ -365,12 +365,12 @@ const createPlan = async (data: CreatePlanPayload) => {
   const plan = await prisma.plan.create({
     data: {
       name: data.name,
-      planType: data.planType || PlanType.JOB_SEEKER,
+      planType: (data.planType as PlanType) || PlanType.JOB_SEEKER,
       description: data.description,
       price: Number(data.price),
       currency: data.currency || 'BDT',
       interval: data.interval || 'month',
-      features: features,
+      features: features as Prisma.InputJsonValue,
       maxActiveJobs: data.maxActiveJobs ? Number(data.maxActiveJobs) : null,
       maxUsers: data.maxUsers ? Number(data.maxUsers) : null,
       isActive: data.isActive !== undefined ? data.isActive : true,
@@ -388,7 +388,7 @@ const updatePlan = async (id: string, data: UpdatePlanPayload) => {
   const updateData: Prisma.PlanUpdateInput = {};
 
   if (data.name !== undefined) updateData.name = data.name;
-  if (data.planType !== undefined) updateData.planType = data.planType;
+  if (data.planType !== undefined) updateData.planType = data.planType as PlanType;
   if (data.description !== undefined) updateData.description = data.description;
   if (data.price !== undefined) updateData.price = Number(data.price);
   if (data.currency !== undefined) updateData.currency = data.currency;

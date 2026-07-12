@@ -132,7 +132,7 @@ const getSearchSuggestions = asyncHandler(async (req, res) => {
 
 const reportJob = asyncHandler(async (req, res) => {
   const jobId = req.params.jobId as string;
-  const userId = req.user.userId;
+  const userId = (req.user as JwtPayload).userId;
   const result = await jobService.reportJob(jobId, userId, req.body);
 
   sendApiResponse(res, {
