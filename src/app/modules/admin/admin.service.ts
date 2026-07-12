@@ -1,19 +1,56 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Response } from 'express';
+import os from 'os';
 import httpStatus from 'http-status';
-import { Prisma } from '../../../generated/prisma/index.js';
+import crypto from 'crypto';
+import { Expo, type ExpoPushMessage, type ExpoPushTicket } from 'expo-server-sdk';
+import { sendBroadcastEmail } from '../../../utils/emailService.js';
+import {
+  Prisma,
+  JobStatus,
+  ReportStatus,
+  NotificationType,
+} from '../../../generated/prisma/index.js';
 import { streamPdfToClient } from '../../../services/file/fileStream.service.js';
 import AppError from '../../error/AppError.js';
 import prisma from '../../../utils/prismaClient.js';
 import { maintenanceCache } from '../../../lib/maintenanceCache.js';
 import { getIO } from '../../../socket/index.js';
 
-type EmployerStatus = 'Verified' | 'Pending' | 'Suspended';
-type JobSeekerStatus = 'Hired' | 'Looking' | 'Active' | 'Suspended';
+import {
+  AdminActor,
+  SystemSettingsUpdate,
+  EmployerStatus,
+  JobSeekerStatus,
+  EmployerOwner,
+  GetJobReportsQuery,
+  SystemMetrics,
+} from './admin.interface.js';
 
 const RECENT_APPLICATION_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
 const recentApplicationCutoff = () => new Date(Date.now() - RECENT_APPLICATION_WINDOW_MS);
+
+const logAdminAction = async (params: {
+  tx?: Prisma.TransactionClient;
+  entityType: string;
+  entityId: string;
+  action: string;
+  oldValues?: Prisma.InputJsonValue;
+  newValues?: Prisma.InputJsonValue;
+  userId?: string | null;
+}) => {
+  const client = params.tx || prisma;
+  return await client.auditLog.create({
+    data: {
+      entityType: params.entityType,
+      entityId: params.entityId,
+      action: params.action,
+      oldValues: params.oldValues || null,
+      newValues: params.newValues || null,
+      userId: params.userId || null,
+    },
+  });
+};
 
 const acceptedApplicationWhere = {
   status: 'ACCEPTED' as const,
@@ -126,13 +163,17 @@ const getEmployersList = async (query: {
   const q = query.q?.trim();
 
   // Base company filter (soft-delete aware)
-  const companyWhere: any = { deletedAt: null };
-  if (q) {
-    companyWhere.OR = [
-      { name: { contains: q, mode: 'insensitive' } },
-      { contactEmail: { contains: q, mode: 'insensitive' } },
-    ];
-  }
+  const companyWhere: Prisma.CompanyWhereInput = {
+    deletedAt: null,
+    ...(q
+      ? {
+          OR: [
+            { name: { contains: q, mode: 'insensitive' } },
+            { contactEmail: { contains: q, mode: 'insensitive' } },
+          ],
+        }
+      : {}),
+  };
 
   const [companies, total] = await Promise.all([
     prisma.company.findMany({
@@ -152,7 +193,15 @@ const getEmployersList = async (query: {
           where: { role: 'EMPLOYER', deletedAt: null },
           orderBy: { createdAt: 'asc' },
           take: 1,
-          select: { id: true, fullName: true, email: true, isActive: true, createdAt: true },
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            isActive: true,
+            failedLoginAttempts: true,
+            lockedUntil: true,
+            createdAt: true,
+          },
         },
       },
     }),
@@ -181,15 +230,25 @@ const getEmployersList = async (query: {
     const owner = c.employees[0] || null;
     const activeJobs = jobCountMap.get(c.id) ?? 0;
 
-    const safeOwner =
-      owner ??
-      ({
-        id: null,
-        fullName: '—',
-        email: '—',
-        isActive: true,
-        createdAt: c.createdAt,
-      } as any);
+    const safeOwner: EmployerOwner = owner
+      ? {
+          id: owner.id,
+          fullName: owner.fullName,
+          email: owner.email,
+          isActive: owner.isActive,
+          failedLoginAttempts: owner.failedLoginAttempts,
+          lockedUntil: owner.lockedUntil,
+          createdAt: owner.createdAt,
+        }
+      : {
+          id: null,
+          fullName: '—',
+          email: '—',
+          isActive: true,
+          failedLoginAttempts: 0,
+          lockedUntil: null,
+          createdAt: c.createdAt,
+        };
 
     const status = companyStatusFrom(
       { isVerified: c.isVerified },
@@ -210,6 +269,8 @@ const getEmployersList = async (query: {
       joinedDate: c.createdAt,
       isCompanyVerified: c.isVerified,
       isOwnerActive: safeOwner.isActive,
+      failedLoginAttempts: safeOwner.failedLoginAttempts,
+      lockedUntil: safeOwner.lockedUntil,
     };
   });
 
@@ -229,21 +290,37 @@ const getEmployersList = async (query: {
   };
 };
 
-const verifyCompany = async (companyId: string) => {
+const verifyCompany = async (companyId: string, actor?: { userId?: string }) => {
   const company = await prisma.company.findUnique({ where: { id: companyId } });
   if (!company || company.deletedAt) {
     throw new AppError(httpStatus.NOT_FOUND, 'Company not found');
   }
 
-  const updated = await prisma.company.update({
-    where: { id: companyId },
-    data: { isVerified: true, verifiedAt: new Date() },
-  });
+  return await prisma.$transaction(async (tx) => {
+    const updated = await tx.company.update({
+      where: { id: companyId },
+      data: { isVerified: true, verifiedAt: new Date() },
+    });
 
-  return updated;
+    await logAdminAction({
+      tx,
+      entityType: 'Company',
+      entityId: companyId,
+      action: 'VERIFY',
+      oldValues: { isVerified: company.isVerified },
+      newValues: { isVerified: true },
+      userId: actor?.userId,
+    });
+
+    return updated;
+  });
 };
 
-const setEmployerActive = async (userId: string, isActive: boolean) => {
+const setEmployerActive = async (
+  userId: string,
+  isActive: boolean,
+  actor?: { userId?: string },
+) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user || user.deletedAt) {
     throw new AppError(httpStatus.NOT_FOUND, 'User not found');
@@ -253,15 +330,27 @@ const setEmployerActive = async (userId: string, isActive: boolean) => {
     throw new AppError(httpStatus.BAD_REQUEST, 'User is not an employer');
   }
 
-  const updated = await prisma.user.update({
-    where: { id: userId },
-    data: { isActive },
-  });
+  return await prisma.$transaction(async (tx) => {
+    const updated = await tx.user.update({
+      where: { id: userId },
+      data: { isActive },
+    });
 
-  return updated;
+    await logAdminAction({
+      tx,
+      entityType: 'User',
+      entityId: userId,
+      action: isActive ? 'REACTIVATE' : 'SUSPEND',
+      oldValues: { isActive: user.isActive },
+      newValues: { isActive },
+      userId: actor?.userId,
+    });
+
+    return updated;
+  });
 };
 
-const deleteEmployer = async (userId: string) => {
+const deleteEmployer = async (userId: string, actor?: { userId?: string }) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user || user.deletedAt) {
     throw new AppError(httpStatus.NOT_FOUND, 'User not found');
@@ -271,12 +360,52 @@ const deleteEmployer = async (userId: string) => {
     throw new AppError(httpStatus.BAD_REQUEST, 'User is not an employer');
   }
 
-  const updated = await prisma.user.update({
-    where: { id: userId },
-    data: { isActive: false, deletedAt: new Date() },
+  const result = await prisma.$transaction(async (tx) => {
+    const updatedUser = await tx.user.update({
+      where: { id: userId },
+      data: { isActive: false, deletedAt: new Date() },
+    });
+
+    let companyId = user.companyId;
+    if (!companyId) {
+      const company = await tx.company.findFirst({
+        where: { ownerId: userId, deletedAt: null },
+      });
+      if (company) {
+        companyId = company.id;
+      }
+    }
+
+    if (companyId) {
+      await tx.company.update({
+        where: { id: companyId },
+        data: { deletedAt: new Date() },
+      });
+
+      await tx.job.updateMany({
+        where: { companyId },
+        data: {
+          status: 'CLOSED',
+          deletedAt: new Date(),
+        },
+      });
+    }
+
+    await tx.auditLog.create({
+      data: {
+        entityType: 'User',
+        entityId: userId,
+        action: 'DELETE',
+        oldValues: { email: user.email, role: user.role, companyId: user.companyId },
+        newValues: { isActive: false, deletedAt: new Date() },
+        userId: actor?.userId || null,
+      },
+    });
+
+    return updatedUser;
   });
 
-  return updated;
+  return result;
 };
 
 const adminService = {
@@ -338,6 +467,8 @@ const adminService = {
           fullName: true,
           email: true,
           isActive: true,
+          failedLoginAttempts: true,
+          lockedUntil: true,
           createdAt: true,
           profile: {
             select: {
@@ -412,6 +543,8 @@ const adminService = {
         primarySkill,
         joinedDate: u.createdAt,
         hasResume,
+        failedLoginAttempts: u.failedLoginAttempts,
+        lockedUntil: u.lockedUntil,
         socials: {
           github: p?.githubUrl ?? undefined,
           linkedin: p?.linkedInUrl ?? undefined,
@@ -431,30 +564,66 @@ const adminService = {
     };
   },
 
-  suspendJobSeeker: async (userId: string) => {
+  suspendJobSeeker: async (userId: string, actor?: { userId?: string }) => {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user || user.deletedAt) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
     if (user.role !== 'JOB_SEEKER')
       throw new AppError(httpStatus.BAD_REQUEST, 'User is not a job seeker');
-    return prisma.user.update({ where: { id: userId }, data: { isActive: false } });
+    return await prisma.$transaction(async (tx) => {
+      const updated = await tx.user.update({ where: { id: userId }, data: { isActive: false } });
+      await logAdminAction({
+        tx,
+        entityType: 'User',
+        entityId: userId,
+        action: 'SUSPEND',
+        oldValues: { isActive: user.isActive },
+        newValues: { isActive: false },
+        userId: actor?.userId,
+      });
+      return updated;
+    });
   },
 
-  reactivateJobSeeker: async (userId: string) => {
+  reactivateJobSeeker: async (userId: string, actor?: { userId?: string }) => {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user || user.deletedAt) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
     if (user.role !== 'JOB_SEEKER')
       throw new AppError(httpStatus.BAD_REQUEST, 'User is not a job seeker');
-    return prisma.user.update({ where: { id: userId }, data: { isActive: true } });
+    return await prisma.$transaction(async (tx) => {
+      const updated = await tx.user.update({ where: { id: userId }, data: { isActive: true } });
+      await logAdminAction({
+        tx,
+        entityType: 'User',
+        entityId: userId,
+        action: 'REACTIVATE',
+        oldValues: { isActive: user.isActive },
+        newValues: { isActive: true },
+        userId: actor?.userId,
+      });
+      return updated;
+    });
   },
 
-  deleteJobSeeker: async (userId: string) => {
+  deleteJobSeeker: async (userId: string, actor?: { userId?: string }) => {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user || user.deletedAt) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
     if (user.role !== 'JOB_SEEKER')
       throw new AppError(httpStatus.BAD_REQUEST, 'User is not a job seeker');
-    return prisma.user.update({
-      where: { id: userId },
-      data: { isActive: false, deletedAt: new Date() },
+    return await prisma.$transaction(async (tx) => {
+      const updated = await tx.user.update({
+        where: { id: userId },
+        data: { isActive: false, deletedAt: new Date() },
+      });
+      await logAdminAction({
+        tx,
+        entityType: 'User',
+        entityId: userId,
+        action: 'DELETE',
+        oldValues: { email: user.email, role: user.role },
+        newValues: { isActive: false, deletedAt: new Date() },
+        userId: actor?.userId,
+      });
+      return updated;
     });
   },
 
@@ -545,28 +714,26 @@ const adminService = {
     limit: number;
     q?: string;
     type?: string;
-    status?: any;
+    status?: JobStatus;
   }) => {
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 20;
     const skip = (page - 1) * limit;
     const q = query.q?.trim();
 
-    const where: any = {
+    const where: Prisma.JobWhereInput = {
       status: query.status || 'ACTIVE',
       deletedAt: null,
+      ...(q
+        ? {
+            OR: [
+              { title: { contains: q, mode: 'insensitive' } },
+              { company: { name: { contains: q, mode: 'insensitive' } } },
+            ],
+          }
+        : {}),
+      ...(query.type ? { jobType: query.type } : {}),
     };
-
-    if (q) {
-      where.OR = [
-        { title: { contains: q, mode: 'insensitive' } },
-        { company: { name: { contains: q, mode: 'insensitive' } } },
-      ];
-    }
-
-    if (query.type) {
-      where.jobType = query.type;
-    }
 
     const [jobs, total] = await Promise.all([
       prisma.job.findMany({
@@ -660,6 +827,7 @@ const adminService = {
         applications: job._count.applications,
         status: job.status,
         description: job.description,
+        isFeatured: job.isFeatured,
         postedBy: job.postedBy
           ? {
               fullName: job.postedBy.fullName,
@@ -781,7 +949,10 @@ const adminService = {
     };
   },
 
-  createStaff: async (payload: any, actor: { id: string; role: string }) => {
+  createStaff: async (
+    payload: { fullName: string; email: string; role: 'ADMIN' | 'SUPER_ADMIN'; phone?: string },
+    actor: AdminActor,
+  ) => {
     // Role logic: only super admin can create super admin, or admin. admin can only create admin.
     if (actor.role === 'ADMIN' && payload.role === 'SUPER_ADMIN') {
       throw new AppError(httpStatus.FORBIDDEN, 'Admins can only create other Admins');
@@ -815,7 +986,7 @@ const adminService = {
         entityId: user.id,
         action: 'CREATE',
         newValues: { role: payload.role, email: payload.email },
-        userId: actor.id,
+        userId: actor.userId || actor.id || null,
       },
     });
 
@@ -825,7 +996,7 @@ const adminService = {
   setStaffStatus: async (
     userId: string,
     isActive: boolean,
-    actor: { id: string; role: string },
+    actor: { id?: string; userId?: string; role: string },
   ) => {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user || user.deletedAt) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
@@ -837,7 +1008,8 @@ const adminService = {
     if (actor.role === 'ADMIN' && user.role === 'SUPER_ADMIN') {
       throw new AppError(httpStatus.FORBIDDEN, 'Admins cannot manage Super Administrators');
     }
-    if (userId === actor.id && !isActive) {
+    const actorId = actor.userId || actor.id;
+    if (userId === actorId && !isActive) {
       throw new AppError(httpStatus.BAD_REQUEST, 'You cannot deactivate your own account');
     }
 
@@ -851,7 +1023,7 @@ const adminService = {
         action: isActive ? 'ACTIVATE' : 'DEACTIVATE',
         oldValues: { isActive: user.isActive },
         newValues: { isActive },
-        userId: actor.id,
+        userId: actorId || null,
       },
     });
 
@@ -861,13 +1033,14 @@ const adminService = {
   setStaffRole: async (
     userId: string,
     role: 'ADMIN' | 'SUPER_ADMIN',
-    actor: { id: string; role: string },
+    actor: { id?: string; userId?: string; role: string },
   ) => {
     if (actor.role !== 'SUPER_ADMIN') {
       throw new AppError(httpStatus.FORBIDDEN, 'Only Super Administrators can change staff roles');
     }
 
-    if (userId === actor.id) {
+    const actorId = actor.userId || actor.id;
+    if (userId === actorId) {
       throw new AppError(httpStatus.BAD_REQUEST, 'You cannot change your own role');
     }
 
@@ -911,7 +1084,7 @@ const adminService = {
         action: 'ROLE_UPDATE',
         oldValues: { role: user.role },
         newValues: { role },
-        userId: actor.id,
+        userId: actorId || null,
       },
     });
 
@@ -924,6 +1097,8 @@ const adminService = {
     entityType?: string;
     action?: string;
     staffId?: string;
+    startDate?: string;
+    endDate?: string;
   }) => {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
@@ -934,6 +1109,16 @@ const adminService = {
     if (query.action) where.action = query.action;
     if (query.staffId) {
       where.OR = [{ entityId: query.staffId }, { userId: query.staffId }];
+    }
+
+    if (query.startDate || query.endDate) {
+      where.createdAt = {};
+      if (query.startDate) {
+        where.createdAt.gte = new Date(query.startDate);
+      }
+      if (query.endDate) {
+        where.createdAt.lte = new Date(query.endDate);
+      }
     }
 
     const [logs, total] = await Promise.all([
@@ -1039,8 +1224,10 @@ const adminService = {
         .catch(() => ({ _sum: { amount: 0 } })),
     ]);
 
-    const totalRevenue = (totalRevenueResult as any)?._sum?.amount || 0;
-    const totalRevenueLastMonth = (totalRevenueLastMonthResult as any)?._sum?.amount || 0;
+    const totalRevenue =
+      (totalRevenueResult as { _sum: { amount: number | null } })?._sum?.amount || 0;
+    const totalRevenueLastMonth =
+      (totalRevenueLastMonthResult as { _sum: { amount: number | null } })?._sum?.amount || 0;
 
     const calculateChange = (current: number, previous: number) => {
       if (previous === 0) return current > 0 ? '+100%' : '0%';
@@ -1108,7 +1295,7 @@ const adminService = {
       },
     });
 
-    return jobs.map((j: any) => ({
+    return jobs.map((j) => ({
       id: j.id,
       title: j.title,
       company: j.company?.name || 'Unknown',
@@ -1142,12 +1329,12 @@ const adminService = {
     });
   },
 
-  updateSystemSettings: async (data: any) => {
+  updateSystemSettings: async (data: SystemSettingsUpdate, actor?: { userId?: string }) => {
     // Strip id if passed to prevent prisma errors trying to change primary key
     const { maintenanceEstimatedEnd, ...updateData } = data;
-    delete (updateData as any).id;
+    delete (updateData as Record<string, unknown>).id;
 
-    const formattedUpdateData: any = { ...updateData };
+    const formattedUpdateData: Record<string, unknown> = { ...updateData };
 
     if (data.maintenanceMode !== undefined) {
       formattedUpdateData.maintenanceSetAt = data.maintenanceMode ? new Date() : null;
@@ -1159,13 +1346,33 @@ const adminService = {
         : null;
     }
 
-    const settings = await prisma.systemSettings.upsert({
+    const existing = await prisma.systemSettings.upsert({
       where: { id: 'singleton' },
-      create: {
-        id: 'singleton',
-        ...formattedUpdateData,
-      },
-      update: formattedUpdateData,
+      create: { id: 'singleton' },
+      update: {},
+    });
+
+    const settings = await prisma.$transaction(async (tx) => {
+      const updated = await tx.systemSettings.upsert({
+        where: { id: 'singleton' },
+        create: {
+          id: 'singleton',
+          ...formattedUpdateData,
+        },
+        update: formattedUpdateData,
+      });
+
+      await logAdminAction({
+        tx,
+        entityType: 'SystemSettings',
+        entityId: 'singleton',
+        action: 'UPDATE',
+        oldValues: existing,
+        newValues: formattedUpdateData,
+        userId: actor?.userId,
+      });
+
+      return updated;
     });
 
     // Sync cache immediately so the server/edge queries see the update instantly
@@ -1207,20 +1414,23 @@ const adminService = {
     return settings;
   },
 
-  getJobReports: async (query: any) => {
+  getJobReports: async (query: GetJobReportsQuery) => {
     const { page = 1, limit = 10, status, severity, q } = query;
     const skip = (Number(page) - 1) * Number(limit);
 
-    const where: any = {};
-    if (status) where.status = status;
-    if (severity) where.severity = severity;
-    if (q) {
-      where.OR = [
-        { job: { title: { contains: q, mode: 'insensitive' } } },
-        { job: { company: { name: { contains: q, mode: 'insensitive' } } } },
-        { reason: { contains: q, mode: 'insensitive' } },
-      ];
-    }
+    const where: Prisma.JobReportWhereInput = {
+      ...(status ? { status } : {}),
+      ...(severity ? { severity: severity as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' } : {}),
+      ...(q
+        ? {
+            OR: [
+              { job: { title: { contains: q, mode: 'insensitive' } } },
+              { job: { company: { name: { contains: q, mode: 'insensitive' } } } },
+              { reason: { contains: q, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    };
 
     const [reports, total] = await Promise.all([
       prisma.jobReport.findMany({
@@ -1247,7 +1457,7 @@ const adminService = {
     ]);
 
     return {
-      data: (reports as any[]).map((r) => ({
+      data: reports.map((r) => ({
         id: r.id,
         jobId: r.job.id,
         title: r.job.title,
@@ -1292,32 +1502,438 @@ const adminService = {
     };
   },
 
-  updateJobReportStatus: async (reportId: string, status: any) => {
+  updateJobReportStatus: async (reportId: string, status: ReportStatus) => {
     return await prisma.jobReport.update({
       where: { id: reportId },
       data: { status },
     });
   },
 
-  deactivateJob: async (jobId: string) => {
-    return await prisma.job.update({
-      where: { id: jobId },
-      data: { status: 'CLOSED' },
+  deactivateJob: async (jobId: string, actor?: { userId?: string }) => {
+    const job = await prisma.job.findUnique({ where: { id: jobId } });
+    if (!job) throw new AppError(httpStatus.NOT_FOUND, 'Job listing not found');
+    return await prisma.$transaction(async (tx) => {
+      const updated = await tx.job.update({
+        where: { id: jobId },
+        data: { status: 'CLOSED' },
+      });
+      await logAdminAction({
+        tx,
+        entityType: 'Job',
+        entityId: jobId,
+        action: 'DEACTIVATE',
+        oldValues: { status: job.status },
+        newValues: { status: 'CLOSED' },
+        userId: actor?.userId,
+      });
+      return updated;
     });
   },
 
-  approveJob: async (jobId: string) => {
-    return await prisma.job.update({
-      where: { id: jobId },
-      data: { status: 'ACTIVE' },
+  approveJob: async (jobId: string, actor?: { userId?: string }) => {
+    const job = await prisma.job.findUnique({ where: { id: jobId } });
+    if (!job) throw new AppError(httpStatus.NOT_FOUND, 'Job listing not found');
+    return await prisma.$transaction(async (tx) => {
+      const updated = await tx.job.update({
+        where: { id: jobId },
+        data: { status: 'ACTIVE' },
+      });
+      await logAdminAction({
+        tx,
+        entityType: 'Job',
+        entityId: jobId,
+        action: 'APPROVE',
+        oldValues: { status: job.status },
+        newValues: { status: 'ACTIVE' },
+        userId: actor?.userId,
+      });
+      return updated;
     });
   },
 
-  deleteJobListing: async (jobId: string) => {
-    return await prisma.job.update({
-      where: { id: jobId },
-      data: { deletedAt: new Date() },
+  deleteJobListing: async (jobId: string, actor?: { userId?: string }) => {
+    const job = await prisma.job.findUnique({ where: { id: jobId } });
+    if (!job) throw new AppError(httpStatus.NOT_FOUND, 'Job listing not found');
+    return await prisma.$transaction(async (tx) => {
+      const updated = await tx.job.update({
+        where: { id: jobId },
+        data: { deletedAt: new Date() },
+      });
+      await logAdminAction({
+        tx,
+        entityType: 'Job',
+        entityId: jobId,
+        action: 'DELETE',
+        oldValues: { title: job.title, status: job.status },
+        newValues: { deletedAt: new Date() },
+        userId: actor?.userId,
+      });
+      return updated;
     });
+  },
+
+  broadcastNotification: async (
+    payload: {
+      title: string;
+      message: string;
+      targetAudience: 'all' | 'job-seekers' | 'employers';
+    },
+    actor: { userId: string },
+  ) => {
+    const { title, message, targetAudience } = payload;
+
+    const users = await prisma.user.findMany({
+      where: {
+        deletedAt: null,
+        isActive: true,
+        ...(targetAudience === 'job-seekers'
+          ? { role: 'JOB_SEEKER' }
+          : targetAudience === 'employers'
+            ? { role: 'EMPLOYER' }
+            : { role: { in: ['JOB_SEEKER', 'EMPLOYER'] } }),
+        OR: [
+          { notificationPreference: null },
+          { notificationPreference: { systemAnnouncements: true } },
+        ],
+      },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+      },
+    });
+
+    if (users.length === 0) {
+      return { success: true, count: 0 };
+    }
+
+    const notifications = users.map((u) => {
+      const id = crypto.randomUUID();
+      return {
+        id,
+        userId: u.id,
+        type: NotificationType.SYSTEM_ANNOUNCEMENT,
+        title,
+        message,
+        sentVia: ['in_app', 'push', 'email'],
+      };
+    });
+
+    await prisma.$transaction(async (tx) => {
+      await tx.notification.createMany({
+        data: notifications.map((n) => ({
+          id: n.id,
+          userId: n.userId,
+          type: n.type,
+          title: n.title,
+          message: n.message,
+          sentVia: n.sentVia,
+        })),
+      });
+
+      await tx.auditLog.create({
+        data: {
+          entityType: 'Notification',
+          entityId: 'broadcast',
+          action: 'BROADCAST',
+          newValues: { title, targetAudience, userCount: users.length },
+          userId: actor.userId,
+        },
+      });
+    });
+
+    const pushTokens = await prisma.pushToken.findMany({
+      where: {
+        userId: { in: users.map((u) => u.id) },
+        isActive: true,
+      },
+      select: {
+        userId: true,
+        expoPushToken: true,
+      },
+    });
+
+    if (pushTokens.length > 0) {
+      const expo = new Expo();
+      const messages: ExpoPushMessage[] = [];
+      const ticketMetadata: { notificationId: string; userId: string; pushToken: string }[] = [];
+
+      for (const token of pushTokens) {
+        if (!Expo.isExpoPushToken(token.expoPushToken)) continue;
+        const userNotification = notifications.find((n) => n.userId === token.userId);
+        if (!userNotification) continue;
+
+        messages.push({
+          to: token.expoPushToken,
+          channelId: 'system',
+          sound: 'default',
+          title,
+          body: message,
+          data: {
+            type: 'SYSTEM_ANNOUNCEMENT',
+            notificationId: userNotification.id,
+          },
+          badge: 1,
+        });
+
+        ticketMetadata.push({
+          notificationId: userNotification.id,
+          userId: token.userId,
+          pushToken: token.expoPushToken,
+        });
+      }
+
+      if (messages.length > 0) {
+        (async () => {
+          try {
+            const chunks = expo.chunkPushNotifications(messages);
+            const tickets: ExpoPushTicket[] = [];
+
+            for (const chunk of chunks) {
+              const chunkTickets = await expo.sendPushNotificationsAsync(chunk);
+              tickets.push(...chunkTickets);
+            }
+
+            const receiptRows = tickets.map((ticket, i) => {
+              const meta = ticketMetadata[i];
+              return {
+                ticketId: ticket.status === 'ok' ? ticket.id : `unknown-${Date.now()}-${i}`,
+                notificationId: meta?.notificationId ?? '',
+                userId: meta?.userId ?? '',
+                pushToken: meta?.pushToken ?? '',
+                status: ticket.status === 'ok' ? 'pending' : 'error',
+                errorCode: ticket.status === 'error' ? (ticket.details?.error ?? null) : null,
+              };
+            });
+
+            await prisma.pushReceipt.createMany({ data: receiptRows });
+          } catch (err) {
+            console.error('[BroadcastPush] Error in dispatch:', err);
+          }
+        })();
+      }
+    }
+
+    (async () => {
+      const batchSize = 50;
+      for (let i = 0; i < users.length; i += batchSize) {
+        const batch = users.slice(i, i + batchSize);
+        await Promise.allSettled(
+          batch.map((u) =>
+            sendBroadcastEmail(u.email, u.fullName, title, message).catch((err) =>
+              console.error(`[BroadcastEmail] Failed for ${u.email}:`, err),
+            ),
+          ),
+        );
+      }
+    })();
+
+    return { success: true, count: users.length };
+  },
+
+  clearUserLockout: async (userId: string, actor?: { userId?: string }) => {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user || user.deletedAt) {
+      throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+    }
+
+    return await prisma.$transaction(async (tx) => {
+      const updated = await tx.user.update({
+        where: { id: userId },
+        data: {
+          failedLoginAttempts: 0,
+          lockedUntil: null,
+        },
+      });
+
+      await logAdminAction({
+        tx,
+        entityType: 'User',
+        entityId: userId,
+        action: 'CLEAR_LOCKOUT',
+        oldValues: {
+          failedLoginAttempts: user.failedLoginAttempts,
+          lockedUntil: user.lockedUntil,
+        },
+        newValues: {
+          failedLoginAttempts: 0,
+          lockedUntil: null,
+        },
+        userId: actor?.userId,
+      });
+
+      return updated;
+    });
+  },
+
+  toggleJobFeatured: async (jobId: string, isFeatured: boolean, actor?: { userId?: string }) => {
+    const job = await prisma.job.findUnique({ where: { id: jobId } });
+    if (!job) throw new AppError(httpStatus.NOT_FOUND, 'Job listing not found');
+
+    return await prisma.$transaction(async (tx) => {
+      const updated = await tx.job.update({
+        where: { id: jobId },
+        data: { isFeatured },
+      });
+
+      await logAdminAction({
+        tx,
+        entityType: 'Job',
+        entityId: jobId,
+        action: 'TOGGLE_FEATURED',
+        oldValues: { isFeatured: job.isFeatured },
+        newValues: { isFeatured },
+        userId: actor?.userId,
+      });
+
+      return updated;
+    });
+  },
+
+  getSecurityMetadata: async () => {
+    // ========================= Fetch active refresh token sessions for staff members (ADMIN, SUPER_ADMIN) ========================
+    const staffTokens = await prisma.refreshToken.findMany({
+      where: {
+        revokedAt: null,
+        expiresAt: { gte: new Date() },
+        user: {
+          role: { in: ['ADMIN', 'SUPER_ADMIN'] },
+        },
+      },
+      include: {
+        user: {
+          select: {
+            fullName: true,
+            email: true,
+            role: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const activeSessions = staffTokens.map((token) => ({
+      id: token.id,
+      userId: token.userId,
+      fullName: token.user.fullName,
+      email: token.user.email,
+      role: token.user.role,
+      ipAddress: token.ipAddress || 'Unknown',
+      userAgent: token.userAgent || 'Unknown',
+      createdAt: token.createdAt,
+      expiresAt: token.expiresAt,
+    }));
+
+    // ========================= Fetch rate limit status/metadata ========================
+    const { checkRedisHealth } = await import('../../../lib/rateLimitStore.js');
+    const redisStatus = await checkRedisHealth();
+
+    const rateLimits = {
+      global: {
+        windowMs: 15 * 60 * 1000,
+        limit: 100,
+        store: redisStatus === 'UP' ? 'RedisStore' : 'MemoryStore',
+        redisStatus,
+      },
+      auth: {
+        windowMs: 15 * 60 * 1000,
+        limit: 5,
+        store: redisStatus === 'UP' ? 'RedisStore' : 'MemoryStore',
+        redisStatus,
+      },
+    };
+
+    return {
+      activeSessions,
+      rateLimits,
+    };
+  },
+
+  getSystemMetrics: async (): Promise<SystemMetrics> => {
+    // ========================= Calculate Event Loop Lag ========================
+    const start = Date.now();
+    const eventLoopLagMs = await new Promise<number>((resolve) => {
+      setTimeout(() => {
+        resolve(Math.max(0, Date.now() - start));
+      }, 0);
+    });
+
+    // ========================= DB Health & Latency check ========================
+    const dbStart = Date.now();
+    let dbStatus: 'UP' | 'DOWN' = 'UP';
+    let dbLatencyMs = 0;
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      dbLatencyMs = Date.now() - dbStart;
+    } catch {
+      dbStatus = 'DOWN';
+    }
+
+    // ========================= Redis Health check ========================
+    const { checkRedisHealth } = await import('../../../lib/rateLimitStore.js');
+    const redisStatus = await checkRedisHealth();
+
+    // ========================= System Resources ========================
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+    const usedMem = totalMem - freeMem;
+    const memRatio = Math.round((usedMem / totalMem) * 1000) / 10;
+
+    const processHeap = process.memoryUsage();
+
+    // Node exposes internal handle/request counts via private APIs — typed explicitly
+    // to avoid unsafe `any` while acknowledging these are undocumented internals.
+    interface NodeProcessInternals {
+      _getActiveHandles?: () => unknown[];
+      _getActiveRequests?: () => unknown[];
+    }
+    const proc = process as typeof process & NodeProcessInternals;
+    const activeHandles =
+      typeof proc._getActiveHandles === 'function' ? proc._getActiveHandles().length : 0;
+    const activeRequests =
+      typeof proc._getActiveRequests === 'function' ? proc._getActiveRequests().length : 0;
+
+    return {
+      server: {
+        platform: os.platform(),
+        arch: os.arch(),
+        nodeVersion: process.version,
+        uptime: os.uptime(),
+        processUptime: process.uptime(),
+        pid: process.pid,
+        currentTime: new Date().toISOString(),
+      },
+      resources: {
+        cpuLoad: os.loadavg(),
+        memory: {
+          total: totalMem,
+          free: freeMem,
+          used: usedMem,
+          ratio: memRatio,
+          processHeap: {
+            rss: processHeap.rss,
+            heapTotal: processHeap.heapTotal,
+            heapUsed: processHeap.heapUsed,
+            external: processHeap.external,
+          },
+        },
+      },
+      performance: {
+        eventLoopLagMs,
+        activeHandles,
+        activeRequests,
+      },
+      dependencies: {
+        database: {
+          status: dbStatus,
+          latencyMs: dbLatencyMs,
+        },
+        redis: {
+          status: redisStatus === 'UP' ? 'UP' : 'DOWN',
+          store: redisStatus === 'UP' ? 'RedisStore' : 'MemoryStore',
+        },
+      },
+    };
   },
 };
 

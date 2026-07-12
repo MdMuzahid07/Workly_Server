@@ -1,25 +1,26 @@
-import httpStatus from "http-status";
-import asyncHandler from "../../../utils/asyncHandler.js";
-import sendApiResponse from "../../../utils/sendApiResponse.js";
-import jobService from "./job.service.js";
-import jwt, { type JwtPayload } from "jsonwebtoken";
-import config from "../../../config/index.js";
+import type { Request } from 'express';
+import httpStatus from 'http-status';
+import asyncHandler from '../../../utils/asyncHandler.js';
+import sendApiResponse from '../../../utils/sendApiResponse.js';
+import jobService from './job.service.js';
+import jwt, { type JwtPayload } from 'jsonwebtoken';
+import config from '../../../config/index.js';
 
-const extractUserId = (req: any) => {
+const extractUserId = (req: Request) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) return null;
-    const token = authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : authHeader;
+    const token = authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : authHeader;
     if (!token) return null;
     const decoded = jwt.verify(token, config.jwt_secret as string) as JwtPayload;
     return decoded.userId;
-  } catch (e) {
+  } catch {
     return null;
   }
 };
 
 const createJob = asyncHandler(async (req, res) => {
-  //@ts-ignore
+  // @ts-expect-error — req.user is set by authValidator middleware
   const userId = req.user.userId;
   const payload = req.body;
 
@@ -28,7 +29,7 @@ const createJob = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,
-    message: "Job post created successfully",
+    message: 'Job post created successfully',
     data: result,
   });
 });
@@ -40,21 +41,21 @@ const getJobs = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Jobs fetched successfully",
+    message: 'Jobs fetched successfully',
     data,
     meta,
   });
 });
 
 const getMyJobs = asyncHandler(async (req, res) => {
-  //@ts-ignore
+  // @ts-expect-error — req.user is set by authValidator middleware
   const userId = req.user.userId;
   const { data, meta } = await jobService.getMyJobs(userId, req.query);
 
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Employer jobs fetched successfully",
+    message: 'Employer jobs fetched successfully',
     data,
     meta,
   });
@@ -69,14 +70,14 @@ const getJobById = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Jobs fetched successfully using id",
+    message: 'Jobs fetched successfully using id',
     data: result,
   });
 });
 
 const updateJob = asyncHandler(async (req, res) => {
   const { jobId } = req.params;
-  //@ts-ignore
+  // @ts-expect-error — req.user is set by authValidator middleware
   const userId = req.user.userId;
   const payload = req.body;
 
@@ -85,14 +86,14 @@ const updateJob = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Job updated successfully",
+    message: 'Job updated successfully',
     data: result,
   });
 });
 
 const deleteJob = asyncHandler(async (req, res) => {
   const { jobId } = req.params;
-  //@ts-ignore
+  // @ts-expect-error — req.user is set by authValidator middleware
   const userId = req.user.userId;
 
   await jobService.deleteJob(userId, jobId as string);
@@ -100,19 +101,19 @@ const deleteJob = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Job deleted successfully",
+    message: 'Job deleted successfully',
   });
 });
 
 const getRecommendedJobs = asyncHandler(async (req, res) => {
-  //@ts-ignore
+  // @ts-expect-error — req.user is set by authValidator middleware
   const userId = req.user.userId;
   const { data, meta } = await jobService.getRecommendedJobs(userId, req.query);
 
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Recommended jobs fetched successfully",
+    message: 'Recommended jobs fetched successfully',
     data,
     meta,
   });
@@ -124,7 +125,20 @@ const getSearchSuggestions = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Search suggestions fetched successfully",
+    message: 'Search suggestions fetched successfully',
+    data: result,
+  });
+});
+
+const reportJob = asyncHandler(async (req, res) => {
+  const jobId = req.params.jobId as string;
+  const userId = req.user.userId;
+  const result = await jobService.reportJob(jobId, userId, req.body);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: 'Job reported successfully',
     data: result,
   });
 });
@@ -138,6 +152,7 @@ const jobController = {
   deleteJob,
   getRecommendedJobs,
   getSearchSuggestions,
+  reportJob,
 };
 
 export default jobController;

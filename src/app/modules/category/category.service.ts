@@ -1,15 +1,15 @@
-import httpStatus from "http-status";
-import { Prisma } from "../../../generated/prisma/index.js";
-import generateUniqueSlug from "../../../utils/generateUniqueSlug.js";
-import prisma from "../../../utils/prismaClient.js";
-import AppError from "../../error/AppError.js";
+import httpStatus from 'http-status';
+import { Prisma } from '../../../generated/prisma/index.js';
+import generateUniqueSlug from '../../../utils/generateUniqueSlug.js';
+import prisma from '../../../utils/prismaClient.js';
+import AppError from '../../error/AppError.js';
 import {
   CategoryPayload,
   CategoryStatisticsResponse,
   CategoryWithStats,
   QueryParams,
   Summary,
-} from "./category.interface.js";
+} from './category.interface.js';
 
 const normalizeSubcategories = (subs?: string[] | null) => {
   if (!subs || subs.length === 0) return [];
@@ -30,22 +30,20 @@ const createCategory = async (payload: CategoryPayload) => {
   const normalizedSubs = normalizeSubcategories(payload.subcategories);
   const normalizedSkills = normalizeSkills(payload.skills);
 
-  const categoryClient = (prisma as any).industry;
-
   const [existingName, existingSlug] = await Promise.all([
-    categoryClient.findFirst({ where: { name: payload.name, isDeleted: false } }),
-    categoryClient.findFirst({ where: { slug: payload.slug, isDeleted: false } }),
+    prisma.industry.findFirst({ where: { name: payload.name, isDeleted: false } }),
+    prisma.industry.findFirst({ where: { slug: payload.slug, isDeleted: false } }),
   ]);
 
   if (existingName) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Category with this name already exists");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Category with this name already exists');
   }
 
   if (existingSlug) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Category with this slug already exists");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Category with this slug already exists');
   }
 
-  const slug = await generateUniqueSlug(payload.slug || payload.name, "industry");
+  const slug = await generateUniqueSlug(payload.slug || payload.name, 'industry');
 
   const result = await prisma.$transaction(async (tx) => {
     const category = await tx.industry.create({
@@ -75,29 +73,27 @@ const createCategory = async (payload: CategoryPayload) => {
 };
 
 const getCategories = async (query: Record<string, unknown>) => {
-  const search = (query.search as string)?.trim() ?? "";
+  const search = (query.search as string)?.trim() ?? '';
   const type = query.type as string;
 
-  const where: any = {
+  const where: Prisma.IndustryWhereInput = {
     isDeleted: false,
     ...(search && {
       OR: [
-        { name: { contains: search, mode: "insensitive" } },
-        { slug: { contains: search, mode: "insensitive" } },
+        { name: { contains: search, mode: 'insensitive' } },
+        { slug: { contains: search, mode: 'insensitive' } },
         { subcategories: { has: search.toLowerCase() } },
       ],
     }),
   };
 
-  if (type === "company") {
+  if (type === 'company') {
     where.companies = { some: { deletedAt: null } };
-  } else if (type === "job") {
+  } else if (type === 'job') {
     where.jobs = { some: { deletedAt: null } };
   }
 
-  const categoryClient = (prisma as any).industry;
-
-  const result = await categoryClient.findMany({
+  const result = await prisma.industry.findMany({
     where,
     include: {
       taxonomySkills: {
@@ -111,7 +107,7 @@ const getCategories = async (query: Record<string, unknown>) => {
         select: {
           jobs: {
             where: {
-              status: "ACTIVE",
+              status: 'ACTIVE',
               deletedAt: null,
               OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
             },
@@ -122,15 +118,16 @@ const getCategories = async (query: Record<string, unknown>) => {
   });
 
   // Sort by active job count in descending order
-  result.sort((a: any, b: any) => (b._count?.jobs || 0) - (a._count?.jobs || 0));
+  result.sort(
+    (a: { _count?: { jobs?: number } }, b: { _count?: { jobs?: number } }) =>
+      (b._count?.jobs ?? 0) - (a._count?.jobs ?? 0),
+  );
 
   return result;
 };
 
 const getCategoryBySlug = async (slug: string) => {
-  const categoryClient = (prisma as any).industry;
-
-  const category = await categoryClient.findFirst({
+  const category = await prisma.industry.findFirst({
     where: { slug, isDeleted: false },
     include: {
       taxonomySkills: {
@@ -144,41 +141,39 @@ const getCategoryBySlug = async (slug: string) => {
   });
 
   if (!category) {
-    throw new AppError(httpStatus.NOT_FOUND, "Category not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'Category not found');
   }
 
   return category;
 };
 
 const updateCategory = async (categoryId: string, payload: Partial<CategoryPayload>) => {
-  const categoryClient = (prisma as any).industry;
-
-  const existing = await categoryClient.findFirst({ where: { id: categoryId, isDeleted: false } });
+  const existing = await prisma.industry.findFirst({ where: { id: categoryId, isDeleted: false } });
   if (!existing) {
-    throw new AppError(httpStatus.NOT_FOUND, "Category not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'Category not found');
   }
 
   if (payload.name) {
-    const duplicateName = await categoryClient.findFirst({
+    const duplicateName = await prisma.industry.findFirst({
       where: { name: payload.name },
     });
     if (duplicateName && duplicateName.id !== categoryId) {
-      throw new AppError(httpStatus.BAD_REQUEST, "Category with this name already exists");
+      throw new AppError(httpStatus.BAD_REQUEST, 'Category with this name already exists');
     }
   }
 
   if (payload.slug) {
-    const duplicateSlug = await categoryClient.findFirst({
+    const duplicateSlug = await prisma.industry.findFirst({
       where: { slug: payload.slug },
     });
     if (duplicateSlug && duplicateSlug.id !== categoryId) {
-      throw new AppError(httpStatus.BAD_REQUEST, "Category with this slug already exists");
+      throw new AppError(httpStatus.BAD_REQUEST, 'Category with this slug already exists');
     }
   }
 
   const nextSlug =
     payload.slug !== undefined
-      ? await generateUniqueSlug(payload.slug || payload.name || existing.name, "industry")
+      ? await generateUniqueSlug(payload.slug || payload.name || existing.name, 'industry')
       : existing.slug;
 
   const updated = await prisma.$transaction(async (tx) => {
@@ -186,44 +181,25 @@ const updateCategory = async (categoryId: string, payload: Partial<CategoryPaylo
       where: { id: categoryId, isDeleted: false },
       data: {
         name: payload.name ?? existing.name,
-        slug: nextSlug,
         icon: payload.icon ?? existing.icon,
+        slug: nextSlug,
         description: payload.description ?? existing.description,
-        subcategories:
-          payload.subcategories !== undefined
-            ? normalizeSubcategories(payload.subcategories)
-            : existing.subcategories,
+        subcategories: payload.subcategories
+          ? normalizeSubcategories(payload.subcategories)
+          : undefined,
       },
     });
 
     if (payload.skills !== undefined) {
       const normalizedSkills = normalizeSkills(payload.skills);
-
-      // Fetch existing taxonomy skills
-      const existingSkills = await tx.taxonomySkill.findMany({
-        where: { industryId: categoryId },
-        select: { name: true },
-      });
-      const existingNames = existingSkills.map((s) => s.name);
-
-      const toAdd = normalizedSkills.filter((name) => !existingNames.includes(name));
-      const toRemove = existingNames.filter((name) => !normalizedSkills.includes(name));
-
-      if (toRemove.length > 0) {
-        await tx.taxonomySkill.deleteMany({
-          where: {
-            industryId: categoryId,
-            name: { in: toRemove },
-          },
-        });
-      }
-
-      if (toAdd.length > 0) {
+      await tx.taxonomySkill.deleteMany({ where: { industryId: categoryId } });
+      if (normalizedSkills.length > 0) {
         await tx.taxonomySkill.createMany({
-          data: toAdd.map((name) => ({
-            name,
+          data: normalizedSkills.map((skillName) => ({
+            name: skillName,
             industryId: categoryId,
           })),
+          skipDuplicates: true,
         });
       }
     }
@@ -235,13 +211,27 @@ const updateCategory = async (categoryId: string, payload: Partial<CategoryPaylo
 };
 
 const deleteCategory = async (categoryId: string) => {
-  const categoryClient = (prisma as any).industry;
-  const existing = await categoryClient.findFirst({ where: { id: categoryId, isDeleted: false } });
+  const existing = await prisma.industry.findFirst({ where: { id: categoryId, isDeleted: false } });
   if (!existing || existing.isDeleted) {
-    throw new AppError(httpStatus.NOT_FOUND, "Category not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'Category not found');
   }
 
-  await categoryClient.update({
+  const activeJobsCount = await prisma.job.count({
+    where: {
+      industryId: categoryId,
+      status: 'ACTIVE',
+      deletedAt: null,
+    },
+  });
+
+  if (activeJobsCount > 0) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `Cannot delete category: there are ${activeJobsCount} active job listings referencing it. Please update or close those listings first.`,
+    );
+  }
+
+  await prisma.industry.update({
     where: { id: categoryId },
     data: { isDeleted: true, deletedAt: new Date(), active: false },
   });
@@ -250,14 +240,12 @@ const deleteCategory = async (categoryId: string) => {
 };
 
 const toggleCategoryStatus = async (categoryId: string) => {
-  const categoryClient = (prisma as any).industry;
-
-  const existing = await categoryClient.findFirst({ where: { id: categoryId, isDeleted: false } });
+  const existing = await prisma.industry.findFirst({ where: { id: categoryId, isDeleted: false } });
   if (!existing || existing.isDeleted) {
-    throw new AppError(httpStatus.NOT_FOUND, "Category not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'Category not found');
   }
 
-  const updated = await categoryClient.update({
+  const updated = await prisma.industry.update({
     where: { id: categoryId },
     data: {
       active: !existing.active,
@@ -272,7 +260,7 @@ const toggleCategoryStatus = async (categoryId: string) => {
 export const getCategoryStatistics = async (
   params: QueryParams = {},
 ): Promise<CategoryStatisticsResponse> => {
-  const { search, active = "all", sortBy = "createdAt", sortOrder = "desc" } = params;
+  const { search, active = 'all', sortBy = 'createdAt', sortOrder = 'desc' } = params;
 
   // ==== build where clause ====>
   const where: Prisma.IndustryWhereInput = {
@@ -280,17 +268,17 @@ export const getCategoryStatistics = async (
   };
 
   // Active filter
-  if (active === "true") {
+  if (active === 'true') {
     where.active = true;
-  } else if (active === "false") {
+  } else if (active === 'false') {
     where.active = false;
   }
 
   // ===== search filter ===>
   if (search?.trim()) {
     where.OR = [
-      { name: { contains: search.trim(), mode: "insensitive" } },
-      { slug: { contains: search.trim(), mode: "insensitive" } },
+      { name: { contains: search.trim(), mode: 'insensitive' } },
+      { slug: { contains: search.trim(), mode: 'insensitive' } },
       { subcategories: { has: search.trim().toLowerCase() } },
     ];
   }
@@ -330,20 +318,22 @@ export const getCategoryStatistics = async (
       },
     },
     orderBy:
-      sortBy === "createdAt" || sortBy === "name"
+      sortBy === 'createdAt' || sortBy === 'name'
         ? { [sortBy]: sortOrder }
         : { createdAt: sortOrder },
   });
 
   // ====  process categories and calculate statistics ====>
-  //@ts-ignore
-  const processedCategories: CategoryWithStats[] = categories.map((cat: any) => {
-    const totalJobs = cat.jobs.length;
-    const activeJobs = cat.jobs.filter((job: any) => job.status === "ACTIVE").length;
-    const totalApplications = cat.jobs.reduce(
-      (sum: number, job: any) => sum + job._count.applications,
-      0,
-    );
+  // @ts-expect-error — Prisma's inferred return type for this complex include doesn't surface
+  // the nested relations in the static type, but they are present at runtime.
+  const processedCategories: CategoryWithStats[] = categories.map((cat) => {
+    const totalJobs = (cat.jobs as { status: string; _count: { applications: number } }[]).length;
+    const activeJobs = (cat.jobs as { status: string; _count: { applications: number } }[]).filter(
+      (job) => job.status === 'ACTIVE',
+    ).length;
+    const totalApplications = (
+      cat.jobs as { status: string; _count: { applications: number } }[]
+    ).reduce((sum, job) => sum + job._count.applications, 0);
 
     return {
       id: cat.id,
@@ -363,10 +353,10 @@ export const getCategoryStatistics = async (
   });
 
   // ====  sort by computed fields if needed ====>
-  if (sortBy === "totalJobs" || sortBy === "totalApplications") {
+  if (sortBy === 'totalJobs' || sortBy === 'totalApplications') {
     processedCategories.sort((a, b) => {
       const diff = a[sortBy] - b[sortBy];
-      return sortOrder === "asc" ? diff : -diff;
+      return sortOrder === 'asc' ? diff : -diff;
     });
   }
 
@@ -392,15 +382,26 @@ export const getCategoryStatistics = async (
   });
 
   const totalCategories = allCategories.length;
-  const activeCategories = allCategories.filter((c: any) => c.active).length;
-  const totalJobs = allCategories.reduce((sum: number, c: any) => sum + c.jobs.length, 0);
+  const activeCategories = allCategories.filter((c) => c.active).length;
+  const totalJobs = allCategories.reduce(
+    (sum, c) => sum + (c.jobs as { status: string; _count: { applications: number } }[]).length,
+    0,
+  );
   const activeJobs = allCategories.reduce(
-    (sum: number, c: any) => sum + c.jobs.filter((j: any) => j.status === "ACTIVE").length,
+    (sum, c) =>
+      sum +
+      (c.jobs as { status: string; _count: { applications: number } }[]).filter(
+        (j) => j.status === 'ACTIVE',
+      ).length,
     0,
   );
   const totalApplications = allCategories.reduce(
-    (sum: number, c: any) =>
-      sum + c.jobs.reduce((s: number, j: any) => s + j._count.applications, 0),
+    (sum, c) =>
+      sum +
+      (c.jobs as { status: string; _count: { applications: number } }[]).reduce(
+        (s, j) => s + j._count.applications,
+        0,
+      ),
     0,
   );
 

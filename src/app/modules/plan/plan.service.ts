@@ -1,5 +1,42 @@
-import prisma from "../../../utils/prismaClient.js";
-import { PlanType } from "../../../generated/prisma/index.js";
+import prisma from '../../../utils/prismaClient.js';
+import { Prisma, PlanType } from '../../../generated/prisma/index.js';
+import AppError from '../../error/AppError.js';
+import httpStatus from 'http-status';
+import { AdminActor } from '../admin/admin.interface.js';
+
+interface PlanQueryParams {
+  isActive?: string;
+  type?: string;
+}
+
+interface CreatePlanPayload {
+  name: string;
+  planType?: string;
+  description?: string;
+  price: number | string;
+  currency?: string;
+  interval?: string;
+  features?: unknown;
+  maxActiveJobs?: number | string | null;
+  maxUsers?: number | string | null;
+  isActive?: boolean;
+  isCustom?: boolean;
+  createdByAdminId?: string | null;
+}
+
+interface UpdatePlanPayload {
+  name?: string;
+  planType?: string;
+  description?: string;
+  price?: number | string;
+  currency?: string;
+  interval?: string;
+  isActive?: boolean;
+  maxActiveJobs?: number | string | null;
+  maxUsers?: number | string | null;
+  features?: unknown;
+  firstTimeDiscountPercent?: number | string;
+}
 
 // ─── Default plan definitions ────────────────────────────────────────────────
 // These values are authoritative. Running syncDefaultPlans() will upsert them
@@ -9,12 +46,12 @@ import { PlanType } from "../../../generated/prisma/index.js";
 const SEED_PLANS = [
   // ── Employer plans ──────────────────────────────────────────────────────────
   {
-    name: "Free",
+    name: 'Free',
     planType: PlanType.EMPLOYER,
-    description: "Standard local recruiting package at zero cost.",
+    description: 'Standard local recruiting package at zero cost.',
     price: 0.0,
-    currency: "BDT",
-    interval: "month",
+    currency: 'BDT',
+    interval: 'month',
     features: {
       maxActiveJobs: 1,
       maxUsers: 1,
@@ -26,19 +63,19 @@ const SEED_PLANS = [
       isFeaturedProfile: false,
       canMessageEmployer: false,
       durationMonths: 0,
-      displayFeatures: ["1 active job listing", "1 user account", "Standard applicant tracking"],
+      displayFeatures: ['1 active job listing', '1 user account', 'Standard applicant tracking'],
     },
     maxActiveJobs: 1,
     maxUsers: 1,
     isActive: true,
   },
   {
-    name: "Growth",
+    name: 'Growth',
     planType: PlanType.EMPLOYER,
-    description: "Best for growing teams and active recruitment campaigns.",
+    description: 'Best for growing teams and active recruitment campaigns.',
     price: 7999.0,
-    currency: "BDT",
-    interval: "month",
+    currency: 'BDT',
+    interval: 'month',
     features: {
       maxActiveJobs: 10,
       maxUsers: 4,
@@ -51,10 +88,10 @@ const SEED_PLANS = [
       canMessageEmployer: false,
       durationMonths: 1,
       displayFeatures: [
-        "10 active job listings",
-        "4 user accounts",
-        "Direct candidate messaging",
-        "Basic analytics dashboard",
+        '10 active job listings',
+        '4 user accounts',
+        'Direct candidate messaging',
+        'Basic analytics dashboard',
       ],
     },
     maxActiveJobs: 10,
@@ -62,12 +99,12 @@ const SEED_PLANS = [
     isActive: true,
   },
   {
-    name: "Enterprise",
+    name: 'Enterprise',
     planType: PlanType.EMPLOYER,
-    description: "Unlimited options and custom solutions for large corporate teams.",
+    description: 'Unlimited options and custom solutions for large corporate teams.',
     price: 24999.0,
-    currency: "BDT",
-    interval: "month",
+    currency: 'BDT',
+    interval: 'month',
     features: {
       maxActiveJobs: 9999,
       maxUsers: 9999,
@@ -80,11 +117,11 @@ const SEED_PLANS = [
       canMessageEmployer: false,
       durationMonths: 1,
       displayFeatures: [
-        "Unlimited active jobs",
-        "Unlimited user accounts",
-        "Direct candidate messaging",
-        "Advanced analytics dashboard",
-        "Priority customer support",
+        'Unlimited active jobs',
+        'Unlimited user accounts',
+        'Direct candidate messaging',
+        'Advanced analytics dashboard',
+        'Priority customer support',
       ],
     },
     maxActiveJobs: 9999,
@@ -94,12 +131,12 @@ const SEED_PLANS = [
 
   // ── Job Seeker plans ────────────────────────────────────────────────────────
   {
-    name: "Free",
+    name: 'Free',
     planType: PlanType.JOB_SEEKER,
-    description: "Start your job search with essential tools at no cost.",
+    description: 'Start your job search with essential tools at no cost.',
     price: 0.0,
-    currency: "BDT",
-    interval: "month",
+    currency: 'BDT',
+    interval: 'month',
     features: {
       maxActiveJobs: 0,
       maxUsers: 0,
@@ -112,12 +149,12 @@ const SEED_PLANS = [
       canMessageEmployer: false,
       durationMonths: 0,
       displayFeatures: [
-        "40 job applications per month",
-        "1 active CV upload",
-        "Standard algorithmic ranking",
-        "7-day view history",
-        "Standard in-app alerts",
-        "Basic application status",
+        '40 job applications per month',
+        '1 active CV upload',
+        'Standard algorithmic ranking',
+        '7-day view history',
+        'Standard in-app alerts',
+        'Basic application status',
       ],
     },
     maxActiveJobs: 0,
@@ -125,12 +162,12 @@ const SEED_PLANS = [
     isActive: true,
   },
   {
-    name: "Starter",
+    name: 'Starter',
     planType: PlanType.JOB_SEEKER,
-    description: "1-month premium access. Great entry point for active job seekers.",
+    description: '1-month premium access. Great entry point for active job seekers.',
     price: 90.0,
-    currency: "BDT",
-    interval: "month",
+    currency: 'BDT',
+    interval: 'month',
     features: {
       maxActiveJobs: 0,
       maxUsers: 0,
@@ -144,12 +181,12 @@ const SEED_PLANS = [
       durationMonths: 1,
       firstTimeDiscountPercent: 45,
       displayFeatures: [
-        "200 job applications per month",
-        "5 active CV uploads",
-        "Direct messaging to HR",
-        "30-day view history",
-        "Priority real-time alerts",
-        "Detailed stage tracking",
+        '200 job applications per month',
+        '5 active CV uploads',
+        'Direct messaging to HR',
+        '30-day view history',
+        'Priority real-time alerts',
+        'Detailed stage tracking',
       ],
     },
     maxActiveJobs: 0,
@@ -157,12 +194,12 @@ const SEED_PLANS = [
     isActive: true,
   },
   {
-    name: "Pro",
+    name: 'Pro',
     planType: PlanType.JOB_SEEKER,
-    description: "2-month premium access. Better value for sustained job searching.",
+    description: '2-month premium access. Better value for sustained job searching.',
     price: 160.0,
-    currency: "BDT",
-    interval: "month",
+    currency: 'BDT',
+    interval: 'month',
     features: {
       maxActiveJobs: 0,
       maxUsers: 0,
@@ -176,13 +213,13 @@ const SEED_PLANS = [
       durationMonths: 2,
       firstTimeDiscountPercent: 35,
       displayFeatures: [
-        "300 job applications per month",
-        "10 active CV uploads",
-        "Direct messaging to HR",
-        "30-day view history",
-        "Priority real-time alerts",
-        "Detailed stage tracking",
-        "Advanced search optimization",
+        '300 job applications per month',
+        '10 active CV uploads',
+        'Direct messaging to HR',
+        '30-day view history',
+        'Priority real-time alerts',
+        'Detailed stage tracking',
+        'Advanced search optimization',
       ],
     },
     maxActiveJobs: 0,
@@ -190,12 +227,12 @@ const SEED_PLANS = [
     isActive: true,
   },
   {
-    name: "Premium",
+    name: 'Premium',
     planType: PlanType.JOB_SEEKER,
-    description: "3-month premium access. Maximum visibility with Featured Candidate status.",
+    description: '3-month premium access. Maximum visibility with Featured Candidate status.',
     price: 225.0,
-    currency: "BDT",
-    interval: "month",
+    currency: 'BDT',
+    interval: 'month',
     features: {
       maxActiveJobs: 0,
       maxUsers: 0,
@@ -209,13 +246,13 @@ const SEED_PLANS = [
       durationMonths: 3,
       firstTimeDiscountPercent: 25,
       displayFeatures: [
-        "Unlimited job applications",
-        "Unlimited CV uploads",
-        "Direct messaging to HR",
-        "Full view history (90 days)",
-        "Priority real-time alerts",
-        "Detailed stage tracking",
-        "Featured candidate profile",
+        'Unlimited job applications',
+        'Unlimited CV uploads',
+        'Direct messaging to HR',
+        'Full view history (90 days)',
+        'Priority real-time alerts',
+        'Detailed stage tracking',
+        'Featured candidate profile',
       ],
     },
     maxActiveJobs: 0,
@@ -249,7 +286,7 @@ const syncDefaultPlans = async () => {
         price: plan.price,
         currency: plan.currency,
         interval: plan.interval,
-        features: plan.features as any,
+        features: plan.features as Prisma.InputJsonValue,
         maxActiveJobs: plan.maxActiveJobs,
         maxUsers: plan.maxUsers,
         isActive: plan.isActive,
@@ -261,7 +298,7 @@ const syncDefaultPlans = async () => {
         price: plan.price,
         currency: plan.currency,
         interval: plan.interval,
-        features: plan.features as any,
+        features: plan.features as Prisma.InputJsonValue,
         maxActiveJobs: plan.maxActiveJobs,
         maxUsers: plan.maxUsers,
         isActive: plan.isActive,
@@ -278,17 +315,17 @@ const syncDefaultPlans = async () => {
 // Keep backward compat export
 const seedPlans = syncDefaultPlans;
 
-const getPlans = async (query: any) => {
+const getPlans = async (query: PlanQueryParams) => {
   await syncDefaultPlans();
-  const where: any = {};
+  const where: Prisma.PlanWhereInput = {};
 
   if (query.isActive !== undefined) {
-    where.isActive = query.isActive === "true";
+    where.isActive = query.isActive === 'true';
   }
 
-  if (query.type === "employer") {
+  if (query.type === 'employer') {
     where.planType = PlanType.EMPLOYER;
-  } else if (query.type === "candidate" || query.type === "seeker" || query.type === "job_seeker") {
+  } else if (query.type === 'candidate' || query.type === 'seeker' || query.type === 'job_seeker') {
     where.planType = PlanType.JOB_SEEKER;
   }
 
@@ -296,20 +333,22 @@ const getPlans = async (query: any) => {
     where,
     include: {
       subscriptions: {
-        where: { status: "ACTIVE" },
+        where: { status: 'ACTIVE' },
         select: { id: true },
       },
       userSubscriptions: {
-        where: { status: "ACTIVE" },
+        where: { status: 'ACTIVE' },
         select: { id: true },
       },
     },
-    orderBy: { price: "asc" },
+    orderBy: { price: 'asc' },
   });
 
   return plans.map((p) => {
     const activeSubCount = p.subscriptions.length + p.userSubscriptions.length;
-    const { subscriptions, userSubscriptions, ...rest } = p;
+    const { subscriptions: _s, userSubscriptions: _us, ...rest } = p;
+    void _s;
+    void _us;
     return {
       ...rest,
       subscriberCount: activeSubCount,
@@ -317,9 +356,9 @@ const getPlans = async (query: any) => {
   });
 };
 
-const createPlan = async (data: any) => {
+const createPlan = async (data: CreatePlanPayload) => {
   let features = data.features;
-  if (typeof features === "string") {
+  if (typeof features === 'string') {
     features = JSON.parse(features);
   }
 
@@ -329,8 +368,8 @@ const createPlan = async (data: any) => {
       planType: data.planType || PlanType.JOB_SEEKER,
       description: data.description,
       price: Number(data.price),
-      currency: data.currency || "BDT",
-      interval: data.interval || "month",
+      currency: data.currency || 'BDT',
+      interval: data.interval || 'month',
       features: features,
       maxActiveJobs: data.maxActiveJobs ? Number(data.maxActiveJobs) : null,
       maxUsers: data.maxUsers ? Number(data.maxUsers) : null,
@@ -342,11 +381,11 @@ const createPlan = async (data: any) => {
   return plan;
 };
 
-const updatePlan = async (id: string, data: any) => {
+const updatePlan = async (id: string, data: UpdatePlanPayload) => {
   const existing = await prisma.plan.findUnique({ where: { id } });
-  if (!existing) throw new Error("Plan not found");
+  if (!existing) throw new Error('Plan not found');
 
-  const updateData: any = {};
+  const updateData: Prisma.PlanUpdateInput = {};
 
   if (data.name !== undefined) updateData.name = data.name;
   if (data.planType !== undefined) updateData.planType = data.planType;
@@ -361,17 +400,17 @@ const updatePlan = async (id: string, data: any) => {
     updateData.maxUsers = data.maxUsers ? Number(data.maxUsers) : null;
 
   // Smart merge features JSON object to preserve tech/interval counters
-  let mergedFeatures: any =
-    typeof existing.features === "object" && existing.features !== null
-      ? { ...existing.features }
+  let mergedFeatures: Record<string, Prisma.InputJsonValue> =
+    typeof existing.features === 'object' && existing.features !== null
+      ? { ...(existing.features as Record<string, Prisma.InputJsonValue>) }
       : {};
 
   if (data.features !== undefined) {
-    const incoming = typeof data.features === "string" ? JSON.parse(data.features) : data.features;
+    const incoming = typeof data.features === 'string' ? JSON.parse(data.features) : data.features;
     if (Array.isArray(incoming)) {
       // String lists from UI are mapped to displayFeatures
       mergedFeatures.displayFeatures = incoming;
-    } else if (typeof incoming === "object" && incoming !== null) {
+    } else if (typeof incoming === 'object' && incoming !== null) {
       mergedFeatures = {
         ...mergedFeatures,
         ...incoming,
@@ -394,7 +433,7 @@ const updatePlan = async (id: string, data: any) => {
 
 const togglePlanStatus = async (id: string) => {
   const existing = await prisma.plan.findUnique({ where: { id } });
-  if (!existing) throw new Error("Plan not found");
+  if (!existing) throw new Error('Plan not found');
 
   const plan = await prisma.plan.update({
     where: { id },
@@ -403,8 +442,41 @@ const togglePlanStatus = async (id: string) => {
   return plan;
 };
 
-const deletePlan = async (id: string) => {
-  await prisma.plan.delete({ where: { id } });
+const deletePlan = async (id: string, actor?: AdminActor) => {
+  const existing = await prisma.plan.findUnique({ where: { id } });
+  if (!existing) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Plan not found');
+  }
+
+  const subCount = await prisma.subscription.count({
+    where: { planId: id },
+  });
+
+  const userSubCount = await prisma.userSubscription.count({
+    where: { planId: id },
+  });
+
+  if (subCount > 0 || userSubCount > 0) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'Cannot delete a plan with active or past subscribers',
+    );
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.plan.delete({ where: { id } });
+
+    await tx.auditLog.create({
+      data: {
+        entityType: 'Plan',
+        entityId: id,
+        action: 'DELETE',
+        oldValues: { name: existing.name, price: existing.price, planType: existing.planType },
+        userId: actor?.userId || null,
+      },
+    });
+  });
+
   return true;
 };
 

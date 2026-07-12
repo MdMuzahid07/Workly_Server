@@ -200,6 +200,38 @@ const sendInterviewScheduledEmail = async (
   }
 };
 
+const sendBroadcastEmail = async (
+  to: string,
+  userName: string,
+  subject: string,
+  bodyText: string,
+) => {
+  try {
+    const transporter = await createTransporter();
+
+    const mailOptions = {
+      from: `"Workly Announcements" <${env.SMTP_USER}>`,
+      to: to,
+      subject: subject,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 12px;">
+          <h2 style="color: #4f46e5; margin-bottom: 20px;">Hi ${userName},</h2>
+          <p style="font-size: 16px; line-height: 1.6; color: #374151; white-space: pre-wrap;">${bodyText}</p>
+          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #f3f4f6; font-size: 12px; color: #9ca3af;">
+            You received this system announcement because you have enabled notifications in your account settings.
+          </div>
+        </div>
+      `,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('Error sending broadcast email:', error);
+    throw new Error('Failed to send broadcast email');
+  }
+};
+
 export {
   sendPasswordResetEmail,
   sendResendVerificationEmail,
@@ -208,6 +240,7 @@ export {
   sendApplicationStatusUpdateEmail,
   sendInterviewScheduledEmail,
   sendSubscriptionRenewalEmail,
+  sendBroadcastEmail,
 };
 
 // ---------------------------------------------------------------------------

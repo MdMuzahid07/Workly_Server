@@ -13,6 +13,8 @@ coverage
 *.bak
 *.cache
 *.pid
-*.orig  
+*.orig
 src/generated/
 .vercel
+.agent
+

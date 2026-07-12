@@ -1,15 +1,16 @@
-import httpStatus from "http-status";
-import AppError from "../../error/AppError.js";
-import factoryFunctions from "../../../utils/FactoryFunctionsWithFilterEngine.js";
-import { emitToUser } from "../../../socket/index.js";
-import { env } from "../../../config/index.js";
-import prisma from "../../../utils/prismaClient.js";
-import { pushService } from "../../../services/push.service.js";
+import httpStatus from 'http-status';
+import AppError from '../../error/AppError.js';
+import factoryFunctions from '../../../utils/FactoryFunctionsWithFilterEngine.js';
+import { emitToUser } from '../../../socket/index.js';
+import { env } from '../../../config/index.js';
+import { Prisma } from '../../../generated/prisma/index.js';
+import prisma from '../../../utils/prismaClient.js';
+import { pushService } from '../../../services/push.service.js';
 import {
   sendNewApplicationEmail,
   sendApplicationStatusUpdateEmail,
   sendInterviewScheduledEmail,
-} from "../../../utils/emailService.js";
+} from '../../../utils/emailService.js';
 
 type CreateNotificationInput = {
   userId: string;
@@ -21,6 +22,13 @@ type CreateNotificationInput = {
   metadata?: unknown;
   sentVia?: string[];
 };
+
+interface NotificationMetadata {
+  status?: string;
+  rejectionReason?: string | null;
+  interviewScheduledAt?: string;
+  interviewNotes?: string | null;
+}
 
 const triggerEmailNotificationIfPremium = async (userId: string, notificationId: string) => {
   const recipient = await prisma.user.findUnique({
@@ -64,7 +72,7 @@ const triggerEmailNotificationIfPremium = async (userId: string, notificationId:
   const frontendUrl = env.FRONTEND_URL;
 
   try {
-    if (notification.type === "APPLICATION_RECEIVED") {
+    if (notification.type === 'APPLICATION_RECEIVED') {
       if (settings && settings.jobRecommendations === false) {
         return;
       }
@@ -73,9 +81,9 @@ const triggerEmailNotificationIfPremium = async (userId: string, notificationId:
       const job = notification.job || app?.job;
       if (!job) return;
 
-      const candidateName = app?.fullName || app?.applicant?.fullName || "A candidate";
+      const candidateName = app?.fullName || app?.applicant?.fullName || 'A candidate';
       const experience = app?.yearsOfExperience || 0;
-      const location = app?.currentLocation || "Not specified";
+      const location = app?.currentLocation || 'Not specified';
       const applicationUrl = `${frontendUrl}/employer/jobs/${job.id}/applications`;
 
       await sendNewApplicationEmail(
@@ -92,11 +100,11 @@ const triggerEmailNotificationIfPremium = async (userId: string, notificationId:
       await prisma.notification.update({
         where: { id: notificationId },
         data: {
-          sentVia: [...notification.sentVia, "email"],
+          sentVia: [...notification.sentVia, 'email'],
           emailSentAt: new Date(),
         },
       });
-    } else if (notification.type === "APPLICATION_STATUS_CHANGE") {
+    } else if (notification.type === 'APPLICATION_STATUS_CHANGE') {
       if (settings && settings.applicationUpdates === false) {
         return;
       }
@@ -105,8 +113,8 @@ const triggerEmailNotificationIfPremium = async (userId: string, notificationId:
       const job = notification.job || app?.job;
       if (!job || !app) return;
 
-      const metadata = notification.metadata as any;
-      const status = metadata?.status || app.status || "SUBMITTED";
+      const metadata = notification.metadata as NotificationMetadata;
+      const status = metadata?.status || app.status || 'SUBMITTED';
       const rejectionReason = metadata?.rejectionReason || app.rejectionReason || null;
       const applicationUrl = `${frontendUrl}/job-seeker/applications`;
 
@@ -123,11 +131,11 @@ const triggerEmailNotificationIfPremium = async (userId: string, notificationId:
       await prisma.notification.update({
         where: { id: notificationId },
         data: {
-          sentVia: [...notification.sentVia, "email"],
+          sentVia: [...notification.sentVia, 'email'],
           emailSentAt: new Date(),
         },
       });
-    } else if (notification.type === "INTERVIEW_SCHEDULED") {
+    } else if (notification.type === 'INTERVIEW_SCHEDULED') {
       if (settings && settings.interviewUpdates === false) {
         return;
       }
@@ -136,12 +144,12 @@ const triggerEmailNotificationIfPremium = async (userId: string, notificationId:
       const job = notification.job || app?.job;
       if (!job || !app) return;
 
-      const metadata = notification.metadata as any;
+      const metadata = notification.metadata as NotificationMetadata;
       const scheduledAtRaw = metadata?.interviewScheduledAt || app.interviewScheduledAt;
       const notes = metadata?.interviewNotes || app.interviewNotes || null;
       const scheduledAt = scheduledAtRaw
         ? new Date(scheduledAtRaw).toLocaleString()
-        : "Not specified";
+        : 'Not specified';
       const applicationUrl = `${frontendUrl}/job-seeker/applications`;
 
       await sendInterviewScheduledEmail(
@@ -157,7 +165,7 @@ const triggerEmailNotificationIfPremium = async (userId: string, notificationId:
       await prisma.notification.update({
         where: { id: notificationId },
         data: {
-          sentVia: [...notification.sentVia, "email"],
+          sentVia: [...notification.sentVia, 'email'],
           emailSentAt: new Date(),
         },
       });
@@ -172,36 +180,63 @@ const triggerEmailNotificationIfPremium = async (userId: string, notificationId:
 
 const createNotification = async (payload: CreateNotificationInput) => {
   if (!payload.userId) {
-    throw new AppError(httpStatus.BAD_REQUEST, "userId is required");
+    throw new AppError(httpStatus.BAD_REQUEST, 'userId is required');
+  }
+
+  const settings = await prisma.systemSettings.upsert({
+    where: { id: 'singleton' },
+    create: { id: 'singleton' },
+    update: {},
+  });
+
+  const nonCriticalTypes = [
+    'NEW_JOB_MATCH',
+    'PROFILE_VIEWED',
+    'JOB_VIEWED',
+    'PROFILE_INCOMPLETE',
+    'SYSTEM_ANNOUNCEMENT',
+  ];
+
+  if (!settings.globalNotifications && nonCriticalTypes.includes(payload.type)) {
+    return {
+      id: 'muted',
+      userId: payload.userId,
+      type: payload.type,
+      title: payload.title,
+      message: payload.message,
+      isRead: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as ReturnType<typeof prisma.notification.create> extends Promise<infer T> ? T : never;
   }
 
   const created = await prisma.notification.create({
     data: {
       userId: payload.userId,
       // prisma enum typed as string in JS runtime; validated by DB enum
-      type: payload.type as any,
+      type: payload.type as Parameters<typeof prisma.notification.create>[0]['data']['type'],
       title: payload.title,
       message: payload.message,
       jobId: payload.jobId ?? null,
       applicationId: payload.applicationId ?? null,
-      metadata: payload.metadata as any,
-      sentVia: payload.sentVia ?? ["in_app"],
+      metadata: (payload.metadata as Prisma.InputJsonValue) ?? Prisma.JsonNull,
+      sentVia: payload.sentVia ?? ['in_app'],
     },
   });
 
-  emitToUser(payload.userId, "notification:new", created);
+  emitToUser(payload.userId, 'notification:new', created);
 
   // Trigger premium email asynchronously to ensure non-blocking best practice
   triggerEmailNotificationIfPremium(payload.userId, created.id).catch((err) => {
-    console.error("Async error in triggerEmailNotificationIfPremium:", err);
+    console.error('Async error in triggerEmailNotificationIfPremium:', err);
   });
 
   // Trigger push notification asynchronously to ensure non-blocking best practice
   const pushData: Record<string, string> = {};
-  if (created.metadata && typeof created.metadata === "object") {
+  if (created.metadata && typeof created.metadata === 'object') {
     for (const [key, value] of Object.entries(created.metadata)) {
       if (value !== null && value !== undefined) {
-        pushData[key] = typeof value === "object" ? JSON.stringify(value) : String(value);
+        pushData[key] = typeof value === 'object' ? JSON.stringify(value) : String(value);
       }
     }
   }
@@ -216,25 +251,32 @@ const createNotification = async (payload: CreateNotificationInput) => {
       data: pushData,
     })
     .catch((err) => {
-      console.error("Async error in pushService.send:", err);
+      console.error('Async error in pushService.send:', err);
     });
 
   return created;
 };
 
-const getMyNotifications = async (userId: string, query: any) => {
+const getMyNotifications = async (userId: string, query: Record<string, unknown>) => {
   if (!userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Not authorized');
   }
 
-  const notificationFilter = factoryFunctions.createNotificationFilter(prisma as any);
+  const notificationFilter = factoryFunctions.createNotificationFilter(prisma);
 
-  const filterOptions: any = {
+  const filterOptions: {
+    where: Record<string, unknown>;
+    page: number;
+    limit: number;
+    sortBy: string;
+    sortOrder: 'asc' | 'desc';
+    includeSoftDeleted: boolean;
+  } = {
     where: { userId },
     page: Number(query.page) || 1,
     limit: Number(query.limit) || 20,
-    sortBy: query.sortBy || "createdAt",
-    sortOrder: (query.sortOrder as "asc" | "desc") || "desc",
+    sortBy: query.sortBy || 'createdAt',
+    sortOrder: (query.sortOrder as 'asc' | 'desc') || 'desc',
     includeSoftDeleted: true,
   };
 
@@ -242,7 +284,7 @@ const getMyNotifications = async (userId: string, query: any) => {
     filterOptions.where.type = query.type;
   }
 
-  if (typeof query.isRead === "boolean") {
+  if (typeof query.isRead === 'boolean') {
     filterOptions.where.isRead = query.isRead;
   }
 
@@ -264,7 +306,7 @@ const getMyNotifications = async (userId: string, query: any) => {
 
 const getUnreadCount = async (userId: string) => {
   if (!userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Not authorized');
   }
   const unreadCount = await prisma.notification.count({
     where: { userId, isRead: false },
@@ -274,12 +316,12 @@ const getUnreadCount = async (userId: string) => {
 
 const markAsRead = async (userId: string, id: string) => {
   if (!userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Not authorized');
   }
 
   const notification = await prisma.notification.findUnique({ where: { id } });
   if (!notification || notification.userId !== userId) {
-    throw new AppError(httpStatus.NOT_FOUND, "Notification not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'Notification not found');
   }
 
   return prisma.notification.update({
@@ -290,7 +332,7 @@ const markAsRead = async (userId: string, id: string) => {
 
 const markAllAsRead = async (userId: string) => {
   if (!userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Not authorized');
   }
 
   const result = await prisma.notification.updateMany({
@@ -303,12 +345,12 @@ const markAllAsRead = async (userId: string) => {
 
 const deleteNotification = async (userId: string, id: string) => {
   if (!userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Not authorized');
   }
 
   const notification = await prisma.notification.findUnique({ where: { id } });
   if (!notification || notification.userId !== userId) {
-    throw new AppError(httpStatus.NOT_FOUND, "Notification not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'Notification not found');
   }
 
   await prisma.notification.delete({ where: { id } });
