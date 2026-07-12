@@ -1,8 +1,8 @@
-import type { Store } from "express-rate-limit";
-import { env } from "../config/index.js";
+import type { Store } from 'express-rate-limit';
+import { env } from '../config/index.js';
 
 // Lazy-initialized so the module can be imported without connecting immediately.
-let redisClient: import("ioredis").Redis | null = null;
+let redisClient: import('ioredis').Redis | null = null;
 
 /**
  * Returns a Redis-backed rate-limit store when REDIS_URL is set,
@@ -20,15 +20,15 @@ let redisClient: import("ioredis").Redis | null = null;
 export async function getRateLimitStore(): Promise<Store | undefined> {
   if (!env.REDIS_URL) {
     console.warn(
-      "[RateLimit] REDIS_URL not set — using in-memory MemoryStore. " +
-        "Correct for a single Node process only. Set REDIS_URL before scaling out.",
+      '[RateLimit] REDIS_URL not set — using in-memory MemoryStore. ' +
+        'Correct for a single Node process only. Set REDIS_URL before scaling out.',
     );
     return undefined;
   }
 
   try {
-    const { default: Redis } = await import("ioredis");
-    const { RedisStore } = await import("rate-limit-redis");
+    const { default: Redis } = await import('ioredis');
+    const { RedisStore } = await import('rate-limit-redis');
 
     redisClient ??= new Redis(env.REDIS_URL, {
       // Fail open: if Redis is unavailable, let the limiter degrade gracefully
@@ -41,7 +41,18 @@ export async function getRateLimitStore(): Promise<Store | undefined> {
         redisClient!.call(...args) as Promise<number>,
     });
   } catch (err) {
-    console.warn("[RateLimit] Redis store init failed — falling back to in-memory:", err);
+    console.warn('[RateLimit] Redis store init failed — falling back to in-memory:', err);
     return undefined;
+  }
+}
+
+export async function checkRedisHealth(): Promise<string> {
+  if (!env.REDIS_URL) return 'NOT_CONFIGURED';
+  if (!redisClient) return 'NOT_INITIALIZED';
+  try {
+    const res = await redisClient.ping();
+    return res === 'PONG' ? 'UP' : 'DOWN';
+  } catch {
+    return 'DOWN';
   }
 }

@@ -1,8 +1,8 @@
-import dotenv from "dotenv";
-import path from "path";
-import { z } from "zod";
+import dotenv from 'dotenv';
+import path from 'path';
+import { z } from 'zod';
 
-dotenv.config({ path: path.join(process.cwd(), ".env") });
+dotenv.config({ path: path.join(process.cwd(), '.env') });
 
 // ---------------------------------------------------------------------------
 // P0.5 — Startup environment validation (fail-fast)
@@ -11,42 +11,55 @@ dotenv.config({ path: path.join(process.cwd(), ".env") });
 // ---------------------------------------------------------------------------
 const envSchema = z.object({
   // Runtime
-  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().default(5000),
 
   // Database
   DATABASE_URL: z.string().url(),
   DB_CA_CERT_PATH: z.string().optional(), // path to CA cert for self-hosted Postgres — see P3
 
+  // Connection pool sizing (per-process; total = DB_POOL_MAX × instance count)
+  // Assumed: 1 instance. If scaling to N replicas, ensure N × DB_POOL_MAX < pg max_connections.
+  DB_POOL_MAX: z.coerce.number().default(20),
+  DB_CONNECTION_TIMEOUT_MS: z.coerce.number().default(5000),
+  DB_IDLE_TIMEOUT_MS: z.coerce.number().default(30000),
+
+  // Postgres session-level timeouts — uptime protection against stuck queries/transactions
+  DB_STATEMENT_TIMEOUT_MS: z.coerce.number().default(15000),
+  DB_IDLE_IN_TRANSACTION_TIMEOUT_MS: z.coerce.number().default(15000),
+
+  // Observability — slow query threshold for structured logging
+  SLOW_QUERY_THRESHOLD_MS: z.coerce.number().default(500),
+
   // JWT (algorithm-pinned in authValidator, auth.service, socket, maintenanceMode)
   JWT_SECRET: z.string().min(32),
   JWT_REFRESH_SECRET: z.string().min(32),
-  JWT_EXPIRES_IN: z.string().default("1d"),
-  JWT_REFRESH_EXPIRES_IN: z.string().default("7d"),
-  JWT_ALGORITHM: z.string().default("HS256"),
+  JWT_EXPIRES_IN: z.string().default('1d'),
+  JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
+  JWT_ALGORITHM: z.string().default('HS256'),
 
   // Auth
   // P2: default 13 (up from 12) — 2^13 rounds; within OWASP's updated recommendation
   BCRYPT_SALT_ROUNDS: z.coerce.number().default(13),
   // Signed-cookie secret — min 32 bytes enforced; dev default warns loudly in logs
-  COOKIE_SECRET: z.string().min(32).default("workly-dev-cookie-secret-REPLACE-BEFORE-PRODUCTION!"),
+  COOKIE_SECRET: z.string().min(32).default('workly-dev-cookie-secret-REPLACE-BEFORE-PRODUCTION!'),
 
   // CORS — comma-separated list of exact origins; no substrings, no wildcards
-  ALLOWED_ORIGINS: z.string().default("http://localhost:3000,http://localhost:8081"),
+  ALLOWED_ORIGINS: z.string().default('http://localhost:3000,http://localhost:8081'),
 
   // SSLCommerz
-  SSLCOMMERZ_STORE_ID: z.string().min(1).default("testbox"),
-  SSLCOMMERZ_STORE_PASSWD: z.string().min(1).default("qwerty"),
+  SSLCOMMERZ_STORE_ID: z.string().min(1).default('testbox'),
+  SSLCOMMERZ_STORE_PASSWD: z.string().min(1).default('qwerty'),
   SSLCOMMERZ_IS_LIVE: z
-    .preprocess((val) => val === "true" || val === "1" || val === true, z.boolean())
+    .preprocess((val) => val === 'true' || val === '1' || val === true, z.boolean())
     .default(false),
 
   // Redis (optional now — P1's in-memory fallback is used until REDIS_URL is set)
   REDIS_URL: z.string().url().optional(),
 
   // URLs
-  BACKEND_URL: z.string().default("http://localhost:5000"),
-  FRONTEND_URL: z.string().default("http://localhost:3000"),
+  BACKEND_URL: z.string().default('http://localhost:5000'),
+  FRONTEND_URL: z.string().default('http://localhost:3000'),
 
   // Google OAuth (optional — strategy not registered if absent)
   GOOGLE_CLIENT_ID: z.string().optional(),
@@ -58,7 +71,7 @@ const envSchema = z.object({
   CLOUDINARY_API_SECRET: z.string().optional(),
 
   // SMTP (optional — email sending fails gracefully if absent)
-  SMTP_HOST: z.string().default("smtp.gmail.com"),
+  SMTP_HOST: z.string().default('smtp.gmail.com'),
   SMTP_PORT: z.coerce.number().default(587),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
@@ -67,7 +80,7 @@ const envSchema = z.object({
 const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
-  console.error("❌  Invalid environment configuration — server cannot start:");
+  console.error('❌  Invalid environment configuration — server cannot start:');
   console.error(parsed.error.format());
   process.exit(1);
 }
@@ -82,11 +95,11 @@ export const env = parsed.data;
 // Warn loudly in production if the dev-default COOKIE_SECRET sneaked through.
 // The min-length check ensures it has a value; this catches the specific default.
 if (
-  env.NODE_ENV === "production" &&
-  env.COOKIE_SECRET === "workly-dev-cookie-secret-REPLACE-BEFORE-PRODUCTION!"
+  env.NODE_ENV === 'production' &&
+  env.COOKIE_SECRET === 'workly-dev-cookie-secret-REPLACE-BEFORE-PRODUCTION!'
 ) {
   console.error(
-    "❌  COOKIE_SECRET is still set to the dev default in production. Set a real secret and restart.",
+    '❌  COOKIE_SECRET is still set to the dev default in production. Set a real secret and restart.',
   );
   process.exit(1);
 }
@@ -123,7 +136,7 @@ const config = {
   },
   frontend_url: env.FRONTEND_URL,
   // P0.3 fix: exact-match array; SSLCommerz real origins must be added here
-  allowed_origins: env.ALLOWED_ORIGINS.split(",")
+  allowed_origins: env.ALLOWED_ORIGINS.split(',')
     .map((o) => o.trim())
     .filter(Boolean),
   cloudinary: {

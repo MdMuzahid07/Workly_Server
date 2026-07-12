@@ -1,5 +1,6 @@
-import rateLimit from "express-rate-limit";
-import { getRateLimitStore } from "./rateLimitStore.js";
+import rateLimit from 'express-rate-limit';
+import { env } from '../config/index.js';
+import { getRateLimitStore } from './rateLimitStore.js';
 
 // Store is resolved once at startup; awaited in app.ts before the server binds.
 const storePromise = getRateLimitStore();
@@ -10,11 +11,11 @@ const storePromise = getRateLimitStore();
  */
 export const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 100,
+  limit: env.NODE_ENV === 'production' ? 100 : 999999,
   standardHeaders: true, // Return RateLimit-* headers (RFC 6585)
   legacyHeaders: false, // Disable X-RateLimit-* headers
   store: undefined, // replaced with resolved store below
-  skip: (req) => req.method === "OPTIONS", // preflight requests don't count
+  skip: (req) => req.method === 'OPTIONS' || env.NODE_ENV !== 'production', // preflight requests don't count, skip in dev
 });
 
 /**
@@ -23,14 +24,15 @@ export const globalLimiter = rateLimit({
  */
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 5,
+  limit: env.NODE_ENV === 'production' ? 5 : 999999,
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true, // only count failed attempts
   store: undefined, // replaced with resolved store below
+  skip: () => env.NODE_ENV !== 'production', // skip in dev
   message: {
     success: false,
-    message: "Too many attempts from this IP, please try again after 15 minutes.",
+    message: 'Too many attempts from this IP, please try again after 15 minutes.',
   },
 });
 
@@ -41,9 +43,10 @@ export const authLimiter = rateLimit({
 export async function initRateLimiters(): Promise<void> {
   const store = await storePromise;
   if (store) {
-    // @ts-ignore — express-rate-limit allows store to be set after construction
+    // @ts-expect-error — express-rate-limit allows store to be set after construction
     globalLimiter.store = store;
-    // @ts-ignore
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
     authLimiter.store = store;
   }
 }

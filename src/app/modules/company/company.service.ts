@@ -1,26 +1,56 @@
-import httpStatus from "http-status";
+import httpStatus from 'http-status';
 import type {
   Benefits,
   Company,
   Prisma,
   SocialLink,
   UserRole,
-} from "../../../generated/prisma/index.js";
-import factoryFunctions from "../../../utils/FactoryFunctionsWithFilterEngine.js";
-import generateUniqueSlug from "../../../utils/generateUniqueSlug.js";
-import prisma from "../../../utils/prismaClient.js";
-import AppError from "../../error/AppError.js";
+} from '../../../generated/prisma/index.js';
+import factoryFunctions from '../../../utils/FactoryFunctionsWithFilterEngine.js';
+import generateUniqueSlug from '../../../utils/generateUniqueSlug.js';
+import prisma from '../../../utils/prismaClient.js';
+import AppError from '../../error/AppError.js';
+
+import type { FilterOptions } from '../../../utils/FilterEngine.js';
+
+interface GetCompaniesQuery {
+  search?: string;
+  industry?: string;
+  location?: string;
+  size?: string;
+  isVerified?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  page?: string;
+  limit?: string;
+}
+
+interface UpdateCompanySettingsInput {
+  emailNotifications?: boolean;
+  applicationAlerts?: boolean;
+  jobExpiryReminders?: boolean;
+  weeklyReports?: boolean;
+  profileVisibility?: boolean;
+  showEmployeeCount?: boolean;
+  allowDirectMessages?: boolean;
+}
 
 //* ============ helper functions ============>
 
-const parseArray = (value: any) => {
+const parseArray = (value: unknown): string[] | undefined => {
   if (!value) return undefined;
-  return Array.isArray(value) ? value : value.split(",").map((v: string) => v.trim());
+  if (Array.isArray(value)) {
+    return value.map(String);
+  }
+  if (typeof value === 'string') {
+    return value.split(',').map((v) => v.trim());
+  }
+  return undefined;
 };
 
-const parseBool = (value: any) => {
-  if (value === "true" || value === true) return true;
-  if (value === "false" || value === false) return false;
+const parseBool = (value: unknown): boolean | undefined => {
+  if (value === 'true' || value === true) return true;
+  if (value === 'false' || value === false) return false;
   return undefined;
 };
 
@@ -29,7 +59,7 @@ const createCompany = async (
   payload: Company & { socialLinks: SocialLink[]; benefits: Benefits[] },
 ) => {
   if (!userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Not authorized');
   }
 
   const isUserExits = await prisma.user.findUnique({
@@ -74,9 +104,10 @@ const createCompany = async (
     throw new AppError(httpStatus.BAD_REQUEST, `Company with same slug already exists`);
   }
 
-  const { socialLinks, benefits: companyBenefits, isVerified, ...companyData } = payload;
+  const { socialLinks, benefits: companyBenefits, ...companyData } = payload;
+  delete (companyData as { isVerified?: unknown }).isVerified;
 
-  const slug = await generateUniqueSlug(companyData.name, "company");
+  const slug = await generateUniqueSlug(companyData.name, 'company');
 
   const result = await prisma.$transaction(async (transactor) => {
     const company = await transactor.company.create({
@@ -148,19 +179,19 @@ const getCompanyBySlug = async (slug: string) => {
       },
       jobs: {
         where: {
-          status: "ACTIVE",
+          status: 'ACTIVE',
           deletedAt: null,
           OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
         },
         take: 10,
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: 'desc' },
       },
       _count: {
         select: {
           employees: true,
           jobs: {
             where: {
-              status: "ACTIVE",
+              status: 'ACTIVE',
               deletedAt: null,
               OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
             },
@@ -171,26 +202,26 @@ const getCompanyBySlug = async (slug: string) => {
   });
 
   if (!result) {
-    throw new AppError(httpStatus.NOT_FOUND, "Company not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'Company not found');
   }
 
   return result;
 };
-const getCompanies = async (query: any) => {
+const getCompanies = async (query: GetCompaniesQuery) => {
   const {
     search,
     industry,
     location,
     size,
     isVerified,
-    sortBy = "createdAt",
-    sortOrder = "desc",
+    sortBy = 'createdAt',
+    sortOrder = 'desc',
     page,
     limit,
   } = query;
 
   // build filter query ==========>
-  const filterQuery: any = {
+  const filterQuery: FilterOptions = {
     sortBy,
     sortOrder,
     page: page ? parseInt(page) : 1,
@@ -201,11 +232,11 @@ const getCompanies = async (query: any) => {
   // text search ===============>
   if (search) {
     filterQuery.search = search.trim();
-    filterQuery.searchIn = ["name", "description"];
+    filterQuery.searchIn = ['name', 'description'];
   }
 
   const verified = parseBool(isVerified);
-  if (verified !== undefined) filterQuery.where.isVerified = verified;
+  if (verified !== undefined && filterQuery.where) filterQuery.where.isVerified = verified;
 
   const companyFilter = factoryFunctions.createCompanyFilter(prisma);
   const { where, orderBy, skip, take, pagination } = await companyFilter.filter(filterQuery);
@@ -213,7 +244,7 @@ const getCompanies = async (query: any) => {
   if (location && location.trim()) {
     where.location = {
       contains: location.trim(),
-      mode: "insensitive",
+      mode: 'insensitive',
     };
   }
 
@@ -230,7 +261,7 @@ const getCompanies = async (query: any) => {
     const industries = parseArray(industry);
     if (industries?.length) {
       where.industry = {
-        name: { in: industries, mode: "insensitive" },
+        name: { in: industries, mode: 'insensitive' },
       };
     }
   }
@@ -251,7 +282,7 @@ const getCompanies = async (query: any) => {
 
 const deleteCompanyById = async (userId: string, companyId: string) => {
   if (!userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Not authorized');
   }
   const user = await prisma.user.findUnique({
     where: { id: userId, isActive: true, isVerified: true },
@@ -259,7 +290,7 @@ const deleteCompanyById = async (userId: string, companyId: string) => {
   });
 
   if (!user || user.companyId !== companyId) {
-    throw new AppError(httpStatus.FORBIDDEN, "Not authorized to delete this company");
+    throw new AppError(httpStatus.FORBIDDEN, 'Not authorized to delete this company');
   }
 
   return await prisma.$transaction(async (transactor) => {
@@ -271,7 +302,7 @@ const deleteCompanyById = async (userId: string, companyId: string) => {
     await transactor.job.updateMany({
       where: { companyId },
       data: {
-        status: "CLOSED",
+        status: 'CLOSED',
         deletedAt: new Date(),
       },
     });
@@ -286,7 +317,7 @@ const updateCompanyById = async (
   payload: Partial<Company> & { socialLinks: SocialLink[]; benefits: Benefits[] },
 ) => {
   if (!userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Not authorized');
   }
   const user = await prisma.user.findUnique({
     where: { id: userId, isActive: true, isVerified: true },
@@ -294,10 +325,12 @@ const updateCompanyById = async (
   });
 
   if (!user || user.companyId !== companyId) {
-    throw new AppError(httpStatus.FORBIDDEN, "Not authorized to delete this company");
+    throw new AppError(httpStatus.FORBIDDEN, 'Not authorized to delete this company');
   }
 
-  const { socialLinks, benefits, ...companyData } = payload;
+  const companyData = { ...payload } as Omit<typeof payload, 'socialLinks' | 'benefits'>;
+  delete (companyData as Partial<typeof payload>).socialLinks;
+  delete (companyData as Partial<typeof payload>).benefits;
 
   const result = await prisma.$transaction(async (transactor) => {
     const company = await transactor.company.update({
@@ -425,9 +458,9 @@ const addTeamMember = async (
   if (
     !admin ||
     admin.companyId !== companyId ||
-    (admin.role !== "ADMIN" && admin.role !== "SUPER_ADMIN")
+    (admin.role !== 'ADMIN' && admin.role !== 'SUPER_ADMIN')
   ) {
-    throw new AppError(httpStatus.FORBIDDEN, "Not authorized to add team members");
+    throw new AppError(httpStatus.FORBIDDEN, 'Not authorized to add team members');
   }
 
   const member = await prisma.user.findUnique({
@@ -435,11 +468,11 @@ const addTeamMember = async (
   });
 
   if (!member) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
 
   if (member.companyId) {
-    throw new AppError(httpStatus.BAD_REQUEST, "User already belongs to a company");
+    throw new AppError(httpStatus.BAD_REQUEST, 'User already belongs to a company');
   }
 
   return await prisma.user.update({
@@ -460,9 +493,9 @@ const removeTeamMember = async (companyId: string, adminId: string, memberId: st
   if (
     !admin ||
     admin.companyId !== companyId ||
-    (admin.role !== "ADMIN" && admin.role !== "SUPER_ADMIN")
+    (admin.role !== 'ADMIN' && admin.role !== 'SUPER_ADMIN')
   ) {
-    throw new AppError(httpStatus.FORBIDDEN, "Not authorized to remove team members");
+    throw new AppError(httpStatus.FORBIDDEN, 'Not authorized to remove team members');
   }
 
   const member = await prisma.user.findUnique({
@@ -470,14 +503,14 @@ const removeTeamMember = async (companyId: string, adminId: string, memberId: st
   });
 
   if (!member) {
-    throw new AppError(httpStatus.NOT_FOUND, "Team member not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'Team member not found');
   }
 
   return await prisma.user.update({
     where: { id: memberId },
     data: {
       companyId: null,
-      role: "JOB_SEEKER",
+      role: 'JOB_SEEKER',
     },
   });
 };
@@ -491,16 +524,16 @@ const checkPremiumStatus = async (userId: string) => {
   });
 
   if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
 
   let isPremium = user.isPremium;
 
-  if (!isPremium && user.role === "EMPLOYER" && user.companyId) {
+  if (!isPremium && user.role === 'EMPLOYER' && user.companyId) {
     const activeSub = await prisma.subscription.findUnique({
       where: { companyId: user.companyId },
     });
-    if (activeSub && activeSub.status === "ACTIVE") {
+    if (activeSub && (activeSub.status === 'ACTIVE' || activeSub.status === 'TRIALING')) {
       isPremium = true;
     }
   }
@@ -508,7 +541,7 @@ const checkPremiumStatus = async (userId: string) => {
   if (!isPremium) {
     throw new AppError(
       httpStatus.FORBIDDEN,
-      "This is a premium feature. Please upgrade your plan to continue.",
+      'This is a premium feature. Please upgrade your plan to continue.',
     );
   }
 };
@@ -520,24 +553,24 @@ const getCompanyOverviewStatistics = async (userId: string) => {
   });
 
   if (!user || !user.companyId) {
-    throw new AppError(httpStatus.NOT_FOUND, "Company not found for this user");
+    throw new AppError(httpStatus.NOT_FOUND, 'Company not found for this user');
   }
 
   const companyId = user.companyId;
 
   // 1. Total & Active Jobs
   const jobsStats = await prisma.job.groupBy({
-    by: ["status"],
+    by: ['status'],
     where: { companyId, deletedAt: null },
     _count: { id: true },
   });
 
   const totalJobs = jobsStats.reduce((acc, curr) => acc + curr._count.id, 0);
-  const activeJobs = jobsStats.find((s) => s.status === "ACTIVE")?._count.id || 0;
+  const activeJobs = jobsStats.find((s) => s.status === 'ACTIVE')?._count.id || 0;
 
   // 2. Total & Pending Applications
   const applicationsStats = await prisma.application.groupBy({
-    by: ["status"],
+    by: ['status'],
     where: {
       job: { companyId, deletedAt: null },
     },
@@ -546,7 +579,7 @@ const getCompanyOverviewStatistics = async (userId: string) => {
 
   const totalApplications = applicationsStats.reduce((acc, curr) => acc + curr._count.id, 0);
   const pendingApplications =
-    applicationsStats.find((s) => s.status === "SUBMITTED")?._count.id || 0;
+    applicationsStats.find((s) => s.status === 'SUBMITTED')?._count.id || 0;
 
   // 3. Employer users linked to this company (Prisma: Company.employees)
   const totalTeamMembers = await prisma.user.count({
@@ -613,7 +646,7 @@ const getCompanyOverviewStatistics = async (userId: string) => {
     }),
     prisma.user.findMany({
       where: { companyId, isActive: true, deletedAt: null },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
       take: 5,
       select: {
         id: true,
@@ -643,19 +676,19 @@ const getCompanyOverviewStatistics = async (userId: string) => {
   };
 };
 
-type AnalyticsPeriod = "7d" | "30d" | "90d" | "1y";
+type AnalyticsPeriod = '7d' | '30d' | '90d' | '1y';
 
 const MS_DAY = 24 * 60 * 60 * 1000;
 
 const msForPeriod = (p: AnalyticsPeriod): number => {
   switch (p) {
-    case "7d":
+    case '7d':
       return 7 * MS_DAY;
-    case "30d":
+    case '30d':
       return 30 * MS_DAY;
-    case "90d":
+    case '90d':
       return 90 * MS_DAY;
-    case "1y":
+    case '1y':
       return 365 * MS_DAY;
     default:
       return 30 * MS_DAY;
@@ -670,17 +703,17 @@ function pctChange(current: number, previous: number): number {
 }
 
 const assertAnalyticsPeriod = (raw: string): AnalyticsPeriod =>
-  ["7d", "30d", "90d", "1y"].includes(raw) ? (raw as AnalyticsPeriod) : "30d";
+  ['7d', '30d', '90d', '1y'].includes(raw) ? (raw as AnalyticsPeriod) : '30d';
 
-const dateTruncWhitelist = (unit: string): "day" | "week" | "month" =>
-  unit === "day" || unit === "week" || unit === "month" ? unit : "month";
+const dateTruncWhitelist = (unit: string): 'day' | 'week' | 'month' =>
+  unit === 'day' || unit === 'week' || unit === 'month' ? unit : 'month';
 
 const countActiveJobsAtPoint = async (companyId: string, at: Date) => {
   return prisma.job.count({
     where: {
       companyId,
       deletedAt: null,
-      status: "ACTIVE",
+      status: 'ACTIVE',
       createdAt: { lte: at },
       OR: [{ expiresAt: null }, { expiresAt: { gt: at } }],
     },
@@ -688,14 +721,14 @@ const countActiveJobsAtPoint = async (companyId: string, at: Date) => {
 };
 
 const emptyEmployerAnalytics = (period: AnalyticsPeriod, hasCompany: boolean) => {
-  const FUNNEL_COLORS = ["#f87171", "#fb923c", "#fbbf24", "#a3e635", "#4ade80", "#22c55e"];
+  const FUNNEL_COLORS = ['#f87171', '#fb923c', '#fbbf24', '#a3e635', '#4ade80', '#22c55e'];
   const funnelStages = [
-    { name: "Applications", count: 0, percentage: 0, color: FUNNEL_COLORS[0]! },
-    { name: "In review", count: 0, percentage: 0, color: FUNNEL_COLORS[1]! },
-    { name: "Shortlisted", count: 0, percentage: 0, color: FUNNEL_COLORS[2]! },
-    { name: "Interviewed", count: 0, percentage: 0, color: FUNNEL_COLORS[3]! },
-    { name: "Offers", count: 0, percentage: 0, color: FUNNEL_COLORS[4]! },
-    { name: "Hired", count: 0, percentage: 0, color: FUNNEL_COLORS[5]! },
+    { name: 'Applications', count: 0, percentage: 0, color: FUNNEL_COLORS[0]! },
+    { name: 'In review', count: 0, percentage: 0, color: FUNNEL_COLORS[1]! },
+    { name: 'Shortlisted', count: 0, percentage: 0, color: FUNNEL_COLORS[2]! },
+    { name: 'Interviewed', count: 0, percentage: 0, color: FUNNEL_COLORS[3]! },
+    { name: 'Offers', count: 0, percentage: 0, color: FUNNEL_COLORS[4]! },
+    { name: 'Hired', count: 0, percentage: 0, color: FUNNEL_COLORS[5]! },
   ];
   return {
     period,
@@ -739,40 +772,40 @@ const emptyEmployerAnalytics = (period: AnalyticsPeriod, hasCompany: boolean) =>
     }[],
     funnelStages,
     conversionMetrics: [
-      { label: "Application to interview", value: "0%" },
-      { label: "Interview to offer", value: "0%" },
-      { label: "Overall hire rate", value: "0%" },
+      { label: 'Application to interview', value: '0%' },
+      { label: 'Interview to offer', value: '0%' },
+      { label: 'Overall hire rate', value: '0%' },
     ],
   };
 };
 
-const alignDate = (date: Date, step: "day" | "week" | "month") => {
+const alignDate = (date: Date, step: 'day' | 'week' | 'month') => {
   const d = new Date(date);
   d.setUTCHours(0, 0, 0, 0);
-  if (step === "day") {
+  if (step === 'day') {
     // already aligned
-  } else if (step === "week") {
+  } else if (step === 'week') {
     const day = d.getUTCDay();
     const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1);
     d.setUTCDate(diff);
-  } else if (step === "month") {
+  } else if (step === 'month') {
     d.setUTCDate(1);
   }
   return d;
 };
 
-const generateTimelineBuckets = (start: Date, end: Date, step: "day" | "week" | "month") => {
+const generateTimelineBuckets = (start: Date, end: Date, step: 'day' | 'week' | 'month') => {
   const buckets: Date[] = [];
   const current = alignDate(start, step);
   const alignedEnd = alignDate(end, step);
 
   while (current <= alignedEnd) {
     buckets.push(new Date(current));
-    if (step === "day") {
+    if (step === 'day') {
       current.setUTCDate(current.getUTCDate() + 1);
-    } else if (step === "week") {
+    } else if (step === 'week') {
       current.setUTCDate(current.getUTCDate() + 7);
-    } else if (step === "month") {
+    } else if (step === 'month') {
       current.setUTCMonth(current.getUTCMonth() + 1);
     }
   }
@@ -783,8 +816,8 @@ const generateTimelineBuckets = (start: Date, end: Date, step: "day" | "week" | 
 const getEmployerAnalytics = async (
   userId: string,
   rawPeriod: string,
-  jobSortBy: "views" | "applications" | "conversion" = "applications",
-  jobSortOrder: "asc" | "desc" = "desc",
+  jobSortBy: 'views' | 'applications' | 'conversion' = 'applications',
+  jobSortOrder: 'asc' | 'desc' = 'desc',
   jobSearch?: string,
   jobPage: number = 1,
   jobLimit: number = 10,
@@ -795,7 +828,7 @@ const getEmployerAnalytics = async (
   });
 
   if (!user) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "User not found");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'User not found');
   }
 
   const period = assertAnalyticsPeriod(rawPeriod);
@@ -811,7 +844,7 @@ const getEmployerAnalytics = async (
   const previousEnd = new Date(currentStart.getTime());
   const previousStart = new Date(previousEnd.getTime() - windowMs);
 
-  const truncByPeriod = period === "7d" ? "day" : period === "30d" ? "week" : "month";
+  const truncByPeriod = period === '7d' ? 'day' : period === '30d' ? 'week' : 'month';
   const unitSafe = dateTruncWhitelist(truncByPeriod);
 
   const appWhereBetween = (rangeStart: Date, rangeEnd: Date): Prisma.ApplicationWhereInput => ({
@@ -878,7 +911,7 @@ const getEmployerAnalytics = async (
     prisma.application.count({
       where: {
         deletedAt: null,
-        status: "ACCEPTED",
+        status: 'ACCEPTED',
         updatedAt: { gte: currentStart, lte: now },
         job: { companyId, deletedAt: null },
       },
@@ -886,7 +919,7 @@ const getEmployerAnalytics = async (
     prisma.application.count({
       where: {
         deletedAt: null,
-        status: "ACCEPTED",
+        status: 'ACCEPTED',
         updatedAt: { gte: previousStart, lte: previousEnd },
         job: { companyId, deletedAt: null },
       },
@@ -941,23 +974,23 @@ const getEmployerAnalytics = async (
       ) period_apps ON period_apps."jobId" = j.id
       WHERE j."companyId" = $1::text
         AND j."deletedAt" IS NULL
-        ${jobSearch && jobSearch.trim() !== "" ? `AND j.title ILIKE $4::text` : ""}
+        ${jobSearch && jobSearch.trim() !== '' ? `AND j.title ILIKE $4::text` : ''}
       ORDER BY 
         ${
-          jobSortBy === "views"
-            ? `j."viewCount" ${jobSortOrder === "asc" ? "ASC" : "DESC"}`
-            : jobSortBy === "conversion"
-              ? `"conversionRate" ${jobSortOrder === "asc" ? "ASC" : "DESC"}`
-              : `"periodApplications" ${jobSortOrder === "asc" ? "ASC" : "DESC"}`
+          jobSortBy === 'views'
+            ? `j."viewCount" ${jobSortOrder === 'asc' ? 'ASC' : 'DESC'}`
+            : jobSortBy === 'conversion'
+              ? `"conversionRate" ${jobSortOrder === 'asc' ? 'ASC' : 'DESC'}`
+              : `"periodApplications" ${jobSortOrder === 'asc' ? 'ASC' : 'DESC'}`
         }
-      LIMIT ${jobSearch && jobSearch.trim() !== "" ? "$5" : "$4"}::int
-      OFFSET ${jobSearch && jobSearch.trim() !== "" ? "$6" : "$5"}::int
+      LIMIT ${jobSearch && jobSearch.trim() !== '' ? '$5' : '$4'}::int
+      OFFSET ${jobSearch && jobSearch.trim() !== '' ? '$6' : '$5'}::int
       `,
       ...[
         companyId,
         currentStart,
         now,
-        ...(jobSearch && jobSearch.trim() !== "" ? [`%${jobSearch.trim()}%`] : []),
+        ...(jobSearch && jobSearch.trim() !== '' ? [`%${jobSearch.trim()}%`] : []),
         jobLimit,
         (jobPage - 1) * jobLimit,
       ],
@@ -969,9 +1002,9 @@ const getEmployerAnalytics = async (
       FROM jobs j 
       WHERE j."companyId" = $1::text 
         AND j."deletedAt" IS NULL 
-        ${jobSearch && jobSearch.trim() !== "" ? `AND j.title ILIKE $2::text` : ""}
+        ${jobSearch && jobSearch.trim() !== '' ? `AND j.title ILIKE $2::text` : ''}
       `,
-        ...[companyId, ...(jobSearch && jobSearch.trim() !== "" ? [`%${jobSearch.trim()}%`] : [])],
+        ...[companyId, ...(jobSearch && jobSearch.trim() !== '' ? [`%${jobSearch.trim()}%`] : [])],
       )
       .then((r) => r[0]?.count ?? 0),
     prisma.$queryRawUnsafe<{ bucket: Date; ct: number }[]>(
@@ -1013,7 +1046,7 @@ const getEmployerAnalytics = async (
       currentStart,
     ),
     prisma.application.groupBy({
-      by: ["status"],
+      by: ['status'],
       where: funnelBase,
       _count: { id: true },
     }),
@@ -1021,11 +1054,11 @@ const getEmployerAnalytics = async (
 
   const countsMap = new Map(statusCounts.map((x) => [x.status, x._count.id]));
   const funnelApps = statusCounts.reduce((acc, curr) => acc + curr._count.id, 0);
-  const funnelReviewing = countsMap.get("REVIEWING") ?? 0;
-  const funnelShortlisted = countsMap.get("SHORTLISTED") ?? 0;
-  const funnelInterviewed = countsMap.get("INTERVIEWED") ?? 0;
-  const funnelOffered = countsMap.get("OFFERED") ?? 0;
-  const funnelHired = countsMap.get("ACCEPTED") ?? 0;
+  const funnelReviewing = countsMap.get('REVIEWING') ?? 0;
+  const funnelShortlisted = countsMap.get('SHORTLISTED') ?? 0;
+  const funnelInterviewed = countsMap.get('INTERVIEWED') ?? 0;
+  const funnelOffered = countsMap.get('OFFERED') ?? 0;
+  const funnelHired = countsMap.get('ACCEPTED') ?? 0;
 
   const interviewedAll = funnelInterviewed + funnelOffered + funnelHired;
   const offeredAll = funnelOffered + funnelHired;
@@ -1034,23 +1067,23 @@ const getEmployerAnalytics = async (
     title: j.title,
     views: j.views ?? 0,
     applications: j.periodApplications ?? 0,
-    conversionRate: Number(j.conversionRate) ?? 0,
-    status: j.status === "ACTIVE" ? "Active" : j.status,
+    conversionRate: Number(j.conversionRate),
+    status: j.status === 'ACTIVE' ? 'Active' : j.status,
   }));
 
   const PIE_COLORS = [
-    "#22c55e",
-    "#3b82f6",
-    "#f59e0b",
-    "#ef4444",
-    "#8b5cf6",
-    "#06b6d4",
-    "#ec4899",
-    "#64748b",
+    '#22c55e',
+    '#3b82f6',
+    '#f59e0b',
+    '#ef4444',
+    '#8b5cf6',
+    '#06b6d4',
+    '#ec4899',
+    '#64748b',
   ];
   const discTotal = departmentCounts.reduce((acc, curr) => acc + curr.ct, 0) || 1;
   const departments = departmentCounts.map((d, i) => ({
-    name: d.discipline?.trim() || "Other",
+    name: d.discipline?.trim() || 'Other',
     count: d.ct,
     percentage: Math.round((d.ct / discTotal) * 1000) / 10,
     color: PIE_COLORS[i % PIE_COLORS.length]!,
@@ -1065,13 +1098,13 @@ const getEmployerAnalytics = async (
   const hireMap = new Map(hiredRows.map((r) => [getIsoKey(r.bucket), Number(r.ct)]));
 
   const formatBucketLabel = (d: Date) => {
-    if (unitSafe === "day") {
-      return d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+    if (unitSafe === 'day') {
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
     }
-    if (unitSafe === "week") {
-      return d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+    if (unitSafe === 'week') {
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
     }
-    return d.toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
+    return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
   };
 
   const applicationTrends = timelineBuckets.map((bucketDate) => {
@@ -1084,14 +1117,14 @@ const getEmployerAnalytics = async (
     };
   });
 
-  const FUNNEL_COLORS = ["#f87171", "#fb923c", "#fbbf24", "#a3e635", "#4ade80", "#22c55e"];
+  const FUNNEL_COLORS = ['#f87171', '#fb923c', '#fbbf24', '#a3e635', '#4ade80', '#22c55e'];
   const funnelStages = [
-    { name: "Applications", count: funnelApps, color: FUNNEL_COLORS[0]! },
-    { name: "In review", count: funnelReviewing, color: FUNNEL_COLORS[1]! },
-    { name: "Shortlisted", count: funnelShortlisted, color: FUNNEL_COLORS[2]! },
-    { name: "Interviewed", count: funnelInterviewed, color: FUNNEL_COLORS[3]! },
-    { name: "Offers", count: funnelOffered, color: FUNNEL_COLORS[4]! },
-    { name: "Hired", count: funnelHired, color: FUNNEL_COLORS[5]! },
+    { name: 'Applications', count: funnelApps, color: FUNNEL_COLORS[0]! },
+    { name: 'In review', count: funnelReviewing, color: FUNNEL_COLORS[1]! },
+    { name: 'Shortlisted', count: funnelShortlisted, color: FUNNEL_COLORS[2]! },
+    { name: 'Interviewed', count: funnelInterviewed, color: FUNNEL_COLORS[3]! },
+    { name: 'Offers', count: funnelOffered, color: FUNNEL_COLORS[4]! },
+    { name: 'Hired', count: funnelHired, color: FUNNEL_COLORS[5]! },
   ].map((s) => ({
     ...s,
     percentage: funnelApps > 0 ? Math.round((s.count / funnelApps) * 1000) / 10 : 0,
@@ -1101,14 +1134,14 @@ const getEmployerAnalytics = async (
 
   const conversionMetrics = [
     {
-      label: "Application to interview",
+      label: 'Application to interview',
       value: `${pct(interviewedAll, funnelApps)}%`,
     },
     {
-      label: "Interview to offer",
+      label: 'Interview to offer',
       value: `${pct(offeredAll, interviewedAll)}%`,
     },
-    { label: "Overall hire rate", value: `${pct(funnelHired, funnelApps)}%` },
+    { label: 'Overall hire rate', value: `${pct(funnelHired, funnelApps)}%` },
   ];
 
   return {
@@ -1142,7 +1175,7 @@ const getEmployerAnalytics = async (
 
 const getMyCompany = async (userId: string) => {
   if (!userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Not authorized');
   }
 
   const user = await prisma.user.findUnique({
@@ -1163,11 +1196,11 @@ const getMyCompany = async (userId: string) => {
   });
 
   if (!user || !user.companyId) {
-    throw new AppError(httpStatus.NOT_FOUND, "Company not found for this user");
+    throw new AppError(httpStatus.NOT_FOUND, 'Company not found for this user');
   }
 
   if (!user.company) {
-    throw new AppError(httpStatus.NOT_FOUND, "Company not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'Company not found');
   }
 
   // Include count for stats
@@ -1187,7 +1220,7 @@ const getMyCompany = async (userId: string) => {
           },
           jobs: {
             where: {
-              status: "ACTIVE",
+              status: 'ACTIVE',
               deletedAt: null,
             },
           },
@@ -1213,8 +1246,7 @@ const getSettings = async (companyId: string) => {
   return settings;
 };
 
-// Update company settings
-const updateSettings = async (companyId: string, data: any) => {
+const updateSettings = async (companyId: string, data: UpdateCompanySettingsInput) => {
   return prisma.companySettings.upsert({
     where: { companyId },
     update: {

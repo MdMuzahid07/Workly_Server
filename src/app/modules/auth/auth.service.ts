@@ -1,36 +1,92 @@
-import bcrypt from "bcrypt";
-import httpStatus from "http-status";
-import jwt from "jsonwebtoken";
-import config, { env } from "../../../config/index.js";
+import bcrypt from 'bcrypt';
+import httpStatus from 'http-status';
+import jwt from 'jsonwebtoken';
+import config, { env } from '../../../config/index.js';
 import {
   sendPasswordResetEmail,
   sendResendVerificationEmail,
   sendVerificationEmail,
-} from "../../../utils/emailService.js";
-import generateJsonWebToken from "../../../utils/generateJsonWebToken.js";
-import generateVerificationToken from "../../../utils/generateVerificationToken.js";
-import prisma from "../../../utils/prismaClient.js";
-import AppError from "../../error/AppError.js";
+} from '../../../utils/emailService.js';
+import generateJsonWebToken from '../../../utils/generateJsonWebToken.js';
+import generateVerificationToken from '../../../utils/generateVerificationToken.js';
+import prisma from '../../../utils/prismaClient.js';
+import AppError from '../../error/AppError.js';
 
-const isUserPremium = async (user: any): Promise<boolean> => {
+import { UserRole } from '../../../generated/prisma/index.js';
+
+interface RegisterPayload {
+  email: string;
+  password: string;
+  fullName: string;
+  phone?: string;
+  role?: UserRole;
+}
+
+interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+interface ForgotPasswordPayload {
+  email: string;
+}
+
+interface ResetPasswordPayload {
+  token: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+interface VerifyEmailPayload {
+  token: string;
+}
+
+interface ResendVerificationPayload {
+  email: string;
+}
+
+interface ChangePasswordPayload {
+  oldPassword: string;
+  newPassword: string;
+}
+
+interface PremiumCheckUser {
+  isPremium?: boolean;
+  role: string;
+  companyId?: string | null;
+}
+
+const isUserPremium = async (user: PremiumCheckUser): Promise<boolean> => {
   if (user.isPremium) return true;
-  if (user.role === "EMPLOYER" && user.companyId) {
+  if (user.role === 'EMPLOYER' && user.companyId) {
     const activeSub = await prisma.subscription.findUnique({
       where: { companyId: user.companyId },
     });
-    if (activeSub && activeSub.status === "ACTIVE") {
+    if (activeSub && activeSub.status === 'ACTIVE') {
       return true;
     }
   }
   return false;
 };
 
-const register = async (payload: any) => {
-  // Normalize email (consistent with googleOAuth and forgotPassword)
-  const normalizedEmail = (payload.email || "").toLowerCase().trim();
+const register = async (payload: RegisterPayload) => {
+  const settings = await prisma.systemSettings.upsert({
+    where: { id: 'singleton' },
+    create: { id: 'singleton' },
+    update: {},
+  });
+
+  if (!settings.publicRegistration) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'Public registration is currently disabled by the system administrator',
+    );
+  }
+
+  const normalizedEmail = (payload.email || '').toLowerCase().trim();
 
   if (!normalizedEmail) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Email is required");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Email is required');
   }
 
   const isExits = await prisma.user.findUnique({
@@ -61,7 +117,7 @@ const register = async (payload: any) => {
   });
 
   if (!user) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Failed to create user");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Failed to create user');
   }
 
   // Generate verification token
@@ -72,7 +128,7 @@ const register = async (payload: any) => {
   await prisma.verificationToken.create({
     data: {
       token: verificationToken,
-      type: "EMAIL_VERIFICATION",
+      type: 'EMAIL_VERIFICATION',
       userId: user.id,
       expiresAt: expiresAt,
     },
@@ -84,10 +140,10 @@ const register = async (payload: any) => {
   try {
     await sendVerificationEmail(user.email, user.fullName, verificationUrl);
   } catch (error) {
-    console.error("Failed to send verification email =>", error);
+    console.error('Failed to send verification email =>', error);
   }
 
-  const isPremium = env.NODE_ENV !== "production" ? true : await isUserPremium(user);
+  const isPremium = env.NODE_ENV !== 'production' ? true : await isUserPremium(user);
 
   const jwtPayload = {
     userId: user.id,
@@ -98,13 +154,17 @@ const register = async (payload: any) => {
     isPremium,
   };
 
-  const accessToken = generateJsonWebToken(jwtPayload, "access");
-  const refreshToken = generateJsonWebToken(jwtPayload, "refresh");
+  const accessToken = generateJsonWebToken(jwtPayload, 'access');
+  const refreshToken = generateJsonWebToken(jwtPayload, 'refresh');
 
-  const { passwordHash: _, ...safeUser } = {
-    ...user,
-    isPremium,
-  } as typeof user & { passwordHash?: string; isPremium: boolean };
+  const safeUser = (() => {
+    const { passwordHash: _pw, ...rest } = {
+      ...user,
+      isPremium,
+    } as typeof user & { passwordHash?: string; isPremium: boolean };
+    void _pw;
+    return rest;
+  })();
 
   return {
     safeUser,
@@ -113,12 +173,12 @@ const register = async (payload: any) => {
   };
 };
 
-const login = async (payload: any) => {
+const login = async (payload: LoginPayload) => {
   // Normalize email (consistent with register, googleOAuth, and forgotPassword)
-  const normalizedEmail = (payload.email || "").toLowerCase().trim();
+  const normalizedEmail = (payload.email || '').toLowerCase().trim();
 
   if (!normalizedEmail) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Email is required");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Email is required');
   }
 
   const isExits = await prisma.user.findUnique({
@@ -159,7 +219,7 @@ const login = async (payload: any) => {
         lockedUntil: shouldLock ? new Date(Date.now() + 15 * 60 * 1000) : null,
       },
     });
-    throw new AppError(httpStatus.BAD_REQUEST, "Invalid credentials");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Invalid credentials');
   }
 
   // Reset lockout on successful login
@@ -173,7 +233,7 @@ const login = async (payload: any) => {
   if (!isExits.isVerified) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "Please verify your email address before logging in",
+      'Please verify your email address before logging in',
     );
   }
 
@@ -183,7 +243,7 @@ const login = async (payload: any) => {
     data: { lastLogin: new Date() },
   });
 
-  const isPremium = env.NODE_ENV !== "production" ? true : await isUserPremium(user);
+  const isPremium = env.NODE_ENV !== 'production' ? true : await isUserPremium(user);
 
   const jwtPayload = {
     userId: user.id,
@@ -195,12 +255,16 @@ const login = async (payload: any) => {
     isPremium,
   };
 
-  const accessToken = generateJsonWebToken(jwtPayload, "access");
-  const refreshToken = generateJsonWebToken(jwtPayload, "refresh");
-  const { passwordHash: _, ...safeUser } = {
-    ...user,
-    isPremium,
-  } as typeof user & { passwordHash?: string; isPremium: boolean };
+  const accessToken = generateJsonWebToken(jwtPayload, 'access');
+  const refreshToken = generateJsonWebToken(jwtPayload, 'refresh');
+  const safeUser = (() => {
+    const { passwordHash: _pw, ...rest } = {
+      ...user,
+      isPremium,
+    } as typeof user & { passwordHash?: string; isPremium: boolean };
+    void _pw;
+    return rest;
+  })();
 
   return {
     accessToken,
@@ -214,17 +278,17 @@ const logout = async () => {};
 
 const refresh = async (refreshToken: string) => {
   if (!refreshToken) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Refresh token is required");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Refresh token is required');
   }
 
-  let decodedRefreshToken: any;
+  let decodedRefreshToken: jwt.JwtPayload;
   try {
     // B2 fix — algorithm pinning on verify (matches sign in generateJsonWebToken.ts)
     decodedRefreshToken = jwt.verify(refreshToken, env.JWT_REFRESH_SECRET, {
       algorithms: [env.JWT_ALGORITHM as jwt.Algorithm],
-    });
-  } catch (error) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Invalid refresh token");
+    }) as jwt.JwtPayload;
+  } catch {
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Invalid refresh token');
   }
 
   const isUserExists = await prisma.user.findUnique({
@@ -234,17 +298,17 @@ const refresh = async (refreshToken: string) => {
   });
 
   if (!isUserExists || !isUserExists.isActive) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "User not found");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'User not found');
   }
 
   if (!isUserExists.isVerified) {
     throw new AppError(
       httpStatus.UNAUTHORIZED,
-      "Please verify your email address before logging in",
+      'Please verify your email address before logging in',
     );
   }
 
-  const isPremium = env.NODE_ENV !== "production" ? true : await isUserPremium(isUserExists);
+  const isPremium = env.NODE_ENV !== 'production' ? true : await isUserPremium(isUserExists);
 
   const jwtPayload = {
     userId: isUserExists.id,
@@ -255,17 +319,17 @@ const refresh = async (refreshToken: string) => {
     isPremium,
   };
 
-  const newAccessToken = generateJsonWebToken(jwtPayload, "access");
+  const newAccessToken = generateJsonWebToken(jwtPayload, 'access');
   return {
     accessToken: newAccessToken,
   };
 };
 
-const forgotPassword = async (payload: any) => {
+const forgotPassword = async (payload: ForgotPasswordPayload) => {
   const email = payload.email;
 
   if (!email) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Email is required");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Email is required');
   }
 
   const normalizedEmail = email.toLowerCase().trim();
@@ -291,7 +355,7 @@ const forgotPassword = async (payload: any) => {
   const recentResetAttempts = await prisma.verificationToken.count({
     where: {
       userId: isUserExists.id,
-      type: "PASSWORD_RESET",
+      type: 'PASSWORD_RESET',
       createdAt: { gte: oneHourAgo },
     },
   });
@@ -306,7 +370,7 @@ const forgotPassword = async (payload: any) => {
   await prisma.verificationToken.deleteMany({
     where: {
       userId: isUserExists.id,
-      type: "PASSWORD_RESET",
+      type: 'PASSWORD_RESET',
       usedAt: null,
     },
   });
@@ -317,7 +381,7 @@ const forgotPassword = async (payload: any) => {
   await prisma.verificationToken.create({
     data: {
       token: resetToken,
-      type: "PASSWORD_RESET",
+      type: 'PASSWORD_RESET',
       userId: isUserExists.id,
       expiresAt: expiresAt,
     },
@@ -335,14 +399,14 @@ const forgotPassword = async (payload: any) => {
       where: {
         token: resetToken,
         userId: isUserExists.id,
-        type: "PASSWORD_RESET",
+        type: 'PASSWORD_RESET',
         usedAt: null,
       },
     });
 
     throw new AppError(
       httpStatus.INTERNAL_SERVER_ERROR,
-      "Failed to send password reset email. Please try again later.",
+      'Failed to send password reset email. Please try again later.',
     );
   }
 
@@ -354,23 +418,23 @@ const forgotPassword = async (payload: any) => {
   };
 };
 
-const resetPassword = async (payload: any) => {
+const resetPassword = async (payload: ResetPasswordPayload) => {
   const { token, newPassword, confirmPassword } = payload;
 
   if (!token) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Token is required");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Token is required');
   }
 
   if (!newPassword) {
-    throw new AppError(httpStatus.BAD_REQUEST, "New password is required");
+    throw new AppError(httpStatus.BAD_REQUEST, 'New password is required');
   }
 
   if (!confirmPassword) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Confirm password is required");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Confirm password is required');
   }
 
   if (newPassword.length < 8) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Password must be at least 8 characters long");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Password must be at least 8 characters long');
   }
 
   // =========== Find and validate reset token ============>
@@ -386,8 +450,8 @@ const resetPassword = async (payload: any) => {
     },
   });
 
-  if (!resetTokenRecord || resetTokenRecord.type !== "PASSWORD_RESET") {
-    throw new AppError(httpStatus.BAD_REQUEST, "Invalid or expired password reset token");
+  if (!resetTokenRecord || resetTokenRecord.type !== 'PASSWORD_RESET') {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Invalid or expired password reset token');
   }
 
   // ======== Checking reset token expiry ========>
@@ -401,25 +465,25 @@ const resetPassword = async (payload: any) => {
 
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "Password reset token has expired, please request a new one",
+      'Password reset token has expired, please request a new one',
     );
   }
 
   if (resetTokenRecord.usedAt) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Password reset token has already been used");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Password reset token has already been used');
   }
 
   if (!resetTokenRecord.user || !resetTokenRecord.user.isActive) {
-    throw new AppError(httpStatus.BAD_REQUEST, "User not found");
+    throw new AppError(httpStatus.BAD_REQUEST, 'User not found');
   }
 
   if (newPassword !== confirmPassword) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Passwords do not match");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Passwords do not match');
   }
 
   const isSamePassword = await bcrypt.compare(newPassword, resetTokenRecord.user.passwordHash);
   if (isSamePassword) {
-    throw new AppError(httpStatus.BAD_REQUEST, "New password must be different from your old one");
+    throw new AppError(httpStatus.BAD_REQUEST, 'New password must be different from your old one');
   }
 
   const newPasswordHash = await bcrypt.hash(newPassword, Number(config.bcrypt_salt_rounds));
@@ -443,7 +507,7 @@ const resetPassword = async (payload: any) => {
   return result;
 };
 
-const verifyEmail = async (payload: any) => {
+const verifyEmail = async (payload: VerifyEmailPayload) => {
   const { token } = payload;
 
   const verificationToken = await prisma.verificationToken.findUnique({
@@ -452,19 +516,19 @@ const verifyEmail = async (payload: any) => {
   });
 
   if (!verificationToken) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Invalid verification token");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Invalid verification token');
   }
 
   if (verificationToken.expiresAt < new Date()) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Verification token has expired");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Verification token has expired');
   }
 
   if (verificationToken.usedAt) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Verification token has already been used");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Verification token has already been used');
   }
 
   if (verificationToken.user.isVerified) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Email is already verified");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Email is already verified');
   }
 
   await prisma.user.update({
@@ -478,7 +542,7 @@ const verifyEmail = async (payload: any) => {
   });
 
   const isPremium =
-    env.NODE_ENV !== "production" ? true : await isUserPremium(verificationToken.user);
+    env.NODE_ENV !== 'production' ? true : await isUserPremium(verificationToken.user);
 
   const jwtPayload = {
     userId: verificationToken.user.id,
@@ -490,11 +554,11 @@ const verifyEmail = async (payload: any) => {
     isPremium,
   };
 
-  const accessToken = generateJsonWebToken(jwtPayload, "access");
-  const refreshToken = generateJsonWebToken(jwtPayload, "refresh");
+  const accessToken = generateJsonWebToken(jwtPayload, 'access');
+  const refreshToken = generateJsonWebToken(jwtPayload, 'refresh');
 
   return {
-    message: "Email verified successfully",
+    message: 'Email verified successfully',
     accessToken,
     refreshToken,
     user: {
@@ -509,7 +573,7 @@ const verifyEmail = async (payload: any) => {
   };
 };
 
-const resendVerificationEmail = async (payload: any) => {
+const resendVerificationEmail = async (payload: ResendVerificationPayload) => {
   const { email } = payload;
 
   const user = await prisma.user.findUnique({
@@ -517,17 +581,17 @@ const resendVerificationEmail = async (payload: any) => {
   });
 
   if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found with this email");
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found with this email');
   }
 
   if (user.isVerified) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Email is already verified");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Email is already verified');
   }
 
   await prisma.verificationToken.deleteMany({
     where: {
       userId: user.id,
-      type: "EMAIL_VERIFICATION",
+      type: 'EMAIL_VERIFICATION',
       usedAt: null,
     },
   });
@@ -538,7 +602,7 @@ const resendVerificationEmail = async (payload: any) => {
   await prisma.verificationToken.create({
     data: {
       token: verificationToken,
-      type: "EMAIL_VERIFICATION",
+      type: 'EMAIL_VERIFICATION',
       userId: user.id,
       expiresAt: expiresAt,
     },
@@ -549,12 +613,12 @@ const resendVerificationEmail = async (payload: any) => {
   try {
     await sendResendVerificationEmail(user.email, user.fullName, verificationUrl);
   } catch (error) {
-    console.error("Failed to send verification email:", error);
-    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "Failed to send verification email");
+    console.error('Failed to send verification email:', error);
+    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to send verification email');
   }
 
   return {
-    message: "Verification email sent successfully",
+    message: 'Verification email sent successfully',
     email: user.email,
   };
 };
@@ -566,12 +630,12 @@ const googleOAuth = async (
     name: string;
     avatar?: string;
   },
-  role: "EMPLOYER" | "JOB_SEEKER" = "JOB_SEEKER",
+  role: 'EMPLOYER' | 'JOB_SEEKER' = 'JOB_SEEKER',
 ) => {
-  const normalizedEmail = (googleProfile.email || "").toLowerCase().trim();
+  const normalizedEmail = (googleProfile.email || '').toLowerCase().trim();
 
   if (!normalizedEmail) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Google account email is required");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Google account email is required');
   }
 
   // If the user already exists, mark verified (Google emails are verified) and update lastLogin.
@@ -581,13 +645,26 @@ const googleOAuth = async (
   });
 
   if (user && !user.isActive) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "User is inactive");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'User is inactive');
   }
 
   // Track whether this is a new account so the controller can signal the client
   let isNewUser = false;
 
   if (!user) {
+    const settings = await prisma.systemSettings.upsert({
+      where: { id: 'singleton' },
+      create: { id: 'singleton' },
+      update: {},
+    });
+
+    if (!settings.publicRegistration) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        'Public registration is currently disabled by the system administrator',
+      );
+    }
+
     isNewUser = true;
     const randomPassword = generateVerificationToken();
     const passwordHash = await bcrypt.hash(randomPassword, Number(config.bcrypt_salt_rounds));
@@ -611,7 +688,7 @@ const googleOAuth = async (
     await prisma.verificationToken.create({
       data: {
         token: verificationToken,
-        type: "EMAIL_VERIFICATION",
+        type: 'EMAIL_VERIFICATION',
         userId: user.id,
         expiresAt: expiresAt,
       },
@@ -622,7 +699,7 @@ const googleOAuth = async (
     try {
       await sendVerificationEmail(user.email, user.fullName, verificationUrl);
     } catch (error) {
-      console.error("Failed to send Google signup verification email =>", error);
+      console.error('Failed to send Google signup verification email =>', error);
     }
   } else {
     // If user exists, update lastLogin but keep their current isVerified status
@@ -634,7 +711,7 @@ const googleOAuth = async (
     });
   }
 
-  const isPremium = env.NODE_ENV !== "production" ? true : await isUserPremium(user);
+  const isPremium = env.NODE_ENV !== 'production' ? true : await isUserPremium(user);
 
   const jwtPayload = {
     userId: user.id,
@@ -646,13 +723,17 @@ const googleOAuth = async (
     isPremium,
   };
 
-  const accessToken = generateJsonWebToken(jwtPayload, "access");
-  const refreshToken = generateJsonWebToken(jwtPayload, "refresh");
+  const accessToken = generateJsonWebToken(jwtPayload, 'access');
+  const refreshToken = generateJsonWebToken(jwtPayload, 'refresh');
 
-  const { passwordHash: _, ...safeUser } = {
-    ...user,
-    isPremium,
-  } as typeof user & { passwordHash?: string; isPremium: boolean };
+  const safeUser = (() => {
+    const { passwordHash: _pw, ...rest } = {
+      ...user,
+      isPremium,
+    } as typeof user & { passwordHash?: string; isPremium: boolean };
+    void _pw;
+    return rest;
+  })();
 
   return {
     safeUser,
@@ -662,7 +743,7 @@ const googleOAuth = async (
   };
 };
 
-const changePassword = async (userId: string, payload: any) => {
+const changePassword = async (userId: string, payload: ChangePasswordPayload) => {
   const { oldPassword, newPassword } = payload;
 
   const user = await prisma.user.findUnique({
@@ -673,12 +754,12 @@ const changePassword = async (userId: string, payload: any) => {
   });
 
   if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
 
   const isPasswordMatch = await bcrypt.compare(oldPassword, user.passwordHash);
   if (!isPasswordMatch) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Incorrect old password");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Incorrect old password');
   }
 
   const newPasswordHash = await bcrypt.hash(newPassword, Number(config.bcrypt_salt_rounds));
@@ -691,7 +772,7 @@ const changePassword = async (userId: string, payload: any) => {
   });
 
   return {
-    message: "Password changed successfully",
+    message: 'Password changed successfully',
   };
 };
 

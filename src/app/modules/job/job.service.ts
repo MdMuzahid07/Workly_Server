@@ -1,49 +1,70 @@
-import httpStatus from "http-status";
-import { type Job, type JobSkill } from "../../../generated/prisma/index.js";
-import factoryFunctions from "../../../utils/FactoryFunctionsWithFilterEngine.js";
-import generateUniqueSlug from "../../../utils/generateUniqueSlug.js";
-import prisma from "../../../utils/prismaClient.js";
-import AppError from "../../error/AppError.js";
-import { EntitlementService } from "../../../services/entitlement.service.js";
-import { env } from "../../../config/index.js";
+import httpStatus from 'http-status';
+import { type Job, type JobSkill, Prisma } from '../../../generated/prisma/index.js';
+import factoryFunctions from '../../../utils/FactoryFunctionsWithFilterEngine.js';
+import generateUniqueSlug from '../../../utils/generateUniqueSlug.js';
+import prisma from '../../../utils/prismaClient.js';
+import AppError from '../../error/AppError.js';
+import { EntitlementService } from '../../../services/entitlement.service.js';
+import { env } from '../../../config/index.js';
+import { FilterOptions } from '../../../utils/FilterEngine.js';
+
+interface GetJobsQuery {
+  search?: string;
+  location?: string;
+  jobType?: string | string[];
+  experienceLevel?: string | string[];
+  skills?: string | string[];
+  industry?: string | string[];
+  isRemote?: string | boolean;
+  isFeatured?: string | boolean;
+  salaryMin?: string;
+  salaryMax?: string;
+  postedWithin?: string;
+  status?: string;
+  companyId?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  page?: string | number;
+  limit?: string | number;
+}
 
 //* ============ helper functions ============>
 
-const parseArray = (value: any) => {
+const parseArray = (value: string | string[] | undefined | null): string[] | undefined => {
   if (!value) return undefined;
-  return Array.isArray(value) ? value : value.split(",").map((v: string) => v.trim());
+  return Array.isArray(value) ? value : value.split(',').map((v) => v.trim());
 };
 
-const parseBool = (value: any) => {
-  if (value === "true" || value === true) return true;
-  if (value === "false" || value === false) return false;
+const parseBool = (value: string | boolean | undefined | null): boolean | undefined => {
+  if (value === 'true' || value === true) return true;
+  if (value === 'false' || value === false) return false;
   return undefined;
 };
 
 const getDateFromPeriod = (period: string) => {
   const now = new Date();
   const periods: Record<string, number> = {
-    "24h": 1,
-    "3d": 3,
-    "1w": 7,
-    "1m": 30,
+    '24h': 1,
+    '3d': 3,
+    '1w': 7,
+    '1m': 30,
   };
   const days = periods[period];
   return days ? new Date(now.getTime() - days * 24 * 60 * 60 * 1000) : null;
 };
 
 const getPublicJobUnavailableReason = (
-  job: Pick<Job, "status" | "deletedAt" | "applicationDeadline" | "expiresAt">,
+  job: Pick<Job, 'status' | 'deletedAt' | 'applicationDeadline' | 'expiresAt'>,
 ) => {
   const now = new Date();
 
-  if (job.deletedAt) return "Job not found";
-  if (job.status !== "ACTIVE") return "Job not found";
+  if (job.deletedAt) return 'Job not found';
+  if (job.status !== 'ACTIVE') return 'Job not found';
   if (job.applicationDeadline && job.applicationDeadline <= now) {
-    return "This job is no longer accepting applications";
+    return 'This job is no longer accepting applications';
   }
   if (job.expiresAt && job.expiresAt <= now) {
-    return "This job posting has expired";
+    return 'This job posting has expired';
   }
 
   return null;
@@ -51,7 +72,7 @@ const getPublicJobUnavailableReason = (
 
 const canUserManageJob = async (
   userId: string | null | undefined,
-  job: Pick<Job, "postedById" | "companyId">,
+  job: Pick<Job, 'postedById' | 'companyId'>,
 ) => {
   if (!userId) return false;
 
@@ -61,7 +82,7 @@ const canUserManageJob = async (
   });
 
   if (!user) return false;
-  if (user.role === "ADMIN" || user.role === "SUPER_ADMIN") return true;
+  if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') return true;
 
   return user.id === job.postedById || (!!user.companyId && user.companyId === job.companyId);
 };
@@ -70,7 +91,7 @@ const canUserManageJob = async (
 
 const createJob = async (userId: string, payload: Job & { skillsRequired: JobSkill[] }) => {
   if (!userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Not authorized');
   }
 
   const isUserExits = await prisma.user.findUnique({
@@ -90,16 +111,16 @@ const createJob = async (userId: string, payload: Job & { skillsRequired: JobSki
     throw new AppError(httpStatus.BAD_REQUEST, `User not verified`);
   }
 
-  const allowedRoles = ["ADMIN", "EMPLOYER", "SUPER_ADMIN"];
+  const allowedRoles = ['ADMIN', 'EMPLOYER', 'SUPER_ADMIN'];
   if (!allowedRoles.includes(isUserExits.role)) {
-    throw new AppError(httpStatus.FORBIDDEN, "Only employers and admins can create jobs");
+    throw new AppError(httpStatus.FORBIDDEN, 'Only employers and admins can create jobs');
   }
 
-  if (isUserExits.role !== "SUPER_ADMIN") {
+  if (isUserExits.role !== 'SUPER_ADMIN') {
     if (!isUserExits.company || isUserExits.companyId !== payload.companyId) {
       throw new AppError(
         httpStatus.FORBIDDEN,
-        "You are not authorized to post jobs for this company",
+        'You are not authorized to post jobs for this company',
       );
     }
   }
@@ -113,15 +134,15 @@ const createJob = async (userId: string, payload: Job & { skillsRequired: JobSki
   });
 
   if (!isCompanyExists) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Company not found or not verified");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Company not found or not verified');
   }
 
   // Enforce 1 active job limit for free (non-premium) employers (only in production)
-  if (env.NODE_ENV === "production" && !isUserExits.isPremium && payload.status === "ACTIVE") {
+  if (env.NODE_ENV === 'production' && !isUserExits.isPremium && payload.status === 'ACTIVE') {
     const activeJobsCount = await prisma.job.count({
       where: {
         postedById: userId,
-        status: "ACTIVE",
+        status: 'ACTIVE',
         deletedAt: null,
       },
     });
@@ -129,7 +150,7 @@ const createJob = async (userId: string, payload: Job & { skillsRequired: JobSki
     if (activeJobsCount >= 1) {
       throw new AppError(
         httpStatus.FORBIDDEN,
-        "Free plan is limited to 1 active job posting. Upgrade to Starter or Professional to post more.",
+        'Free plan is limited to 1 active job posting. Upgrade to Starter or Professional to post more.',
       );
     }
   }
@@ -139,12 +160,12 @@ const createJob = async (userId: string, payload: Job & { skillsRequired: JobSki
   });
 
   if (existingJob) {
-    throw new AppError(httpStatus.CONFLICT, "This job is already posted for this company");
+    throw new AppError(httpStatus.CONFLICT, 'This job is already posted for this company');
   }
 
   const { skillsRequired, ...rest } = payload;
 
-  const slug = await generateUniqueSlug(payload.title, "job");
+  const slug = await generateUniqueSlug(payload.title, 'job');
 
   const result = await prisma.$transaction(async (transactor) => {
     const job = await transactor.job.create({
@@ -153,7 +174,7 @@ const createJob = async (userId: string, payload: Job & { skillsRequired: JobSki
         postedById: userId,
         companyId: rest.companyId,
         slug,
-        status: rest.status ?? "DRAFT",
+        status: rest.status ?? 'DRAFT',
       },
     });
 
@@ -192,13 +213,13 @@ const createJob = async (userId: string, payload: Job & { skillsRequired: JobSki
     return updatedJob;
   });
 
-  await EntitlementService.incrementUsage(userId, "jobsPosted");
+  await EntitlementService.incrementUsage(userId, 'jobsPosted');
 
   return result;
 };
 
 const getJobs = async (
-  query: any,
+  query: GetJobsQuery,
   currentUserId?: string | null,
   options: { publicOnly?: boolean } = { publicOnly: true },
 ) => {
@@ -216,24 +237,27 @@ const getJobs = async (
     postedWithin,
     status,
     companyId,
-    sortBy = "createdAt",
-    sortOrder = "desc",
+    sortBy = 'createdAt',
+    sortOrder = 'desc',
     page,
     limit,
   } = query;
 
   // build filter query ==========>
-  const filterQuery: any = {
-    sortBy,
-    sortOrder,
-    page: page ? parseInt(page) : 1,
-    limit: limit ? parseInt(limit) : 10,
+  const filterQuery: FilterOptions & {
+    where: Record<string, unknown>;
+    whereIn: Record<string, unknown[]>;
+  } = {
+    sortBy: sortBy as string,
+    sortOrder: sortOrder as 'asc' | 'desc',
+    page: page ? parseInt(String(page)) : 1,
+    limit: limit ? parseInt(String(limit)) : 10,
     where: {},
     whereIn: {},
   };
 
   if (options.publicOnly) {
-    filterQuery.where.status = "ACTIVE";
+    filterQuery.where.status = 'ACTIVE';
     filterQuery.customWhere = {
       AND: [
         {
@@ -249,7 +273,7 @@ const getJobs = async (
   // text search ===============>
   if (search) {
     filterQuery.search = search.trim();
-    filterQuery.searchIn = ["title", "discipline", "requirements"];
+    filterQuery.searchIn = ['title', 'discipline', 'requirements'];
   }
 
   // exact matches =============>
@@ -259,29 +283,29 @@ const getJobs = async (
     filterQuery.where.status = status;
   }
 
-  const remote = parseBool(isRemote);
+  const remote = parseBool(isRemote as string | boolean | undefined | null);
   if (remote !== undefined) filterQuery.where.isRemote = remote;
 
-  const featured = parseBool(isFeatured);
+  const featured = parseBool(isFeatured as string | boolean | undefined | null);
   if (featured !== undefined) filterQuery.where.isFeatured = featured;
 
   // array filters ===============>
-  const jobTypes = parseArray(jobType);
+  const jobTypes = parseArray(jobType as string | string[] | undefined | null);
   if (jobTypes?.length) filterQuery.whereIn.jobType = jobTypes;
 
-  const levels = parseArray(experienceLevel);
+  const levels = parseArray(experienceLevel as string | string[] | undefined | null);
   if (levels?.length) filterQuery.whereIn.experienceLevel = levels;
 
   // salary range ===============>
   if (salaryMin || salaryMax) {
     filterQuery.range = {};
-    if (salaryMin) filterQuery.range.salaryMin = { min: parseInt(salaryMin) };
-    if (salaryMax) filterQuery.range.salaryMax = { max: parseInt(salaryMax) };
+    if (salaryMin) filterQuery.range.salaryMin = { min: parseInt(String(salaryMin)) };
+    if (salaryMax) filterQuery.range.salaryMax = { max: parseInt(String(salaryMax)) };
   }
 
   // date range ========================>
   if (postedWithin) {
-    const startDate = getDateFromPeriod(postedWithin);
+    const startDate = getDateFromPeriod(postedWithin as string);
     if (startDate) {
       filterQuery.dateRange = {
         createdAt: { start: startDate, end: new Date() },
@@ -291,34 +315,36 @@ const getJobs = async (
 
   // execute filterEngine ================>
   const jobFilter = factoryFunctions.createJobFilter(prisma);
-  const { where, orderBy, skip, take, pagination } = await jobFilter.filter(filterQuery);
+  const { where, orderBy, skip, take, pagination } = await jobFilter.filter(
+    filterQuery as FilterOptions,
+  );
 
-  if (location && location.trim()) {
+  if (location && (location as string).trim()) {
     where.location = {
-      contains: location.trim(),
-      mode: "insensitive",
+      contains: (location as string).trim(),
+      mode: 'insensitive',
     };
   }
 
-  const skillsList = parseArray(skills);
+  const skillsList = parseArray(skills as string | string[] | undefined | null);
   if (skillsList?.length) {
     where.JobSkill = {
       some: {
-        skillName: { in: skillsList, mode: "insensitive" },
+        skillName: { in: skillsList, mode: 'insensitive' as Prisma.QueryMode },
       },
     };
   }
 
   // Industry filter (relation with company or direct on Job)
-  const industries = parseArray(industry);
+  const industries = parseArray(industry as string | string[] | undefined | null);
   if (industries?.length) {
     if (!where.AND) {
       where.AND = [];
     }
     where.AND.push({
       OR: [
-        { industry: { name: { in: industries, mode: "insensitive" } } },
-        { company: { industry: { name: { in: industries, mode: "insensitive" } } } },
+        { industry: { name: { in: industries, mode: 'insensitive' } } },
+        { company: { industry: { name: { in: industries, mode: 'insensitive' } } } },
       ],
     });
   }
@@ -360,7 +386,7 @@ const getJobs = async (
     dataWithSavedStatus = result.map((job) => ({
       ...job,
       isSaved: savedJobIds.has(job.id),
-    })) as any;
+    })) as ((typeof result)[number] & { isSaved: boolean })[];
   }
 
   return { data: dataWithSavedStatus, meta: pagination };
@@ -368,13 +394,13 @@ const getJobs = async (
 
 // };
 
-const getMyJobs = async (userId: string, query: any) => {
+const getMyJobs = async (userId: string, query: GetJobsQuery) => {
   const user = await prisma.user.findUnique({
     where: { id: userId, isActive: true },
   });
 
   if (!user || !user.companyId) {
-    throw new AppError(httpStatus.NOT_FOUND, "Company not found for this user");
+    throw new AppError(httpStatus.NOT_FOUND, 'Company not found for this user');
   }
 
   // Force companyId to be the employer's companyId
@@ -416,7 +442,7 @@ const getJobById = async (jobId: string, currentUserId?: string | null) => {
   });
 
   if (!result) {
-    throw new AppError(httpStatus.NOT_FOUND, "Job not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'Job not found');
   }
 
   const canManageJob = await canUserManageJob(currentUserId, result);
@@ -451,7 +477,7 @@ const updateJob = async (
   });
 
   if (!user || !user.isActive || !user.isVerified) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "User not authorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'User not authorized');
   }
 
   const job = await prisma.job.findUnique({
@@ -460,26 +486,26 @@ const updateJob = async (
   });
 
   if (!job) {
-    throw new AppError(httpStatus.NOT_FOUND, "Job not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'Job not found');
   }
 
   const isUserCanUpdate = job.postedById === userId || user.companyId === job.companyId;
 
   if (!isUserCanUpdate) {
-    throw new AppError(httpStatus.FORBIDDEN, "You are not authorized to update this job");
+    throw new AppError(httpStatus.FORBIDDEN, 'You are not authorized to update this job');
   }
 
   // Enforce 1 active job limit for free (non-premium) employers when activating a job (only in production)
   if (
-    env.NODE_ENV === "production" &&
+    env.NODE_ENV === 'production' &&
     !user.isPremium &&
-    payload.status === "ACTIVE" &&
-    job.status !== "ACTIVE"
+    payload.status === 'ACTIVE' &&
+    job.status !== 'ACTIVE'
   ) {
     const activeJobsCount = await prisma.job.count({
       where: {
         postedById: userId,
-        status: "ACTIVE",
+        status: 'ACTIVE',
         deletedAt: null,
       },
     });
@@ -487,7 +513,7 @@ const updateJob = async (
     if (activeJobsCount >= 1) {
       throw new AppError(
         httpStatus.FORBIDDEN,
-        "Free plan is limited to 1 active job posting. Upgrade to Starter or Professional to post more.",
+        'Free plan is limited to 1 active job posting. Upgrade to Starter or Professional to post more.',
       );
     }
   }
@@ -529,7 +555,7 @@ const updateJob = async (
               skillName: skill.skillName,
               experienceYears: skill.experienceYears,
               isRequired: skill.isRequired ?? true,
-              priority: skill.priority ?? "HIGH",
+              priority: skill.priority ?? 'HIGH',
               description: skill.description,
             },
             create: {
@@ -537,7 +563,7 @@ const updateJob = async (
               skillName: skill.skillName,
               experienceYears: skill.experienceYears,
               isRequired: skill.isRequired ?? true,
-              priority: skill.priority ?? "HIGH",
+              priority: skill.priority ?? 'HIGH',
               description: skill.description,
             },
           });
@@ -548,7 +574,7 @@ const updateJob = async (
               skillName: skill.skillName,
               experienceYears: skill.experienceYears,
               isRequired: skill.isRequired ?? true,
-              priority: skill.priority ?? "HIGH",
+              priority: skill.priority ?? 'HIGH',
               description: skill.description,
             },
           });
@@ -578,7 +604,7 @@ const updateJob = async (
 
 const deleteJob = async (userId: string, jobId: string) => {
   if (!userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Not authorized');
   }
 
   const isUserExits = await prisma.user.findUnique({
@@ -603,15 +629,15 @@ const deleteJob = async (userId: string, jobId: string) => {
   });
 
   if (!isJobExists) {
-    throw new AppError(httpStatus.NOT_FOUND, "Job not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'Job not found');
   }
 
   if (isJobExists.postedById !== userId && isJobExists.companyId !== isUserExits.companyId) {
-    throw new AppError(httpStatus.FORBIDDEN, "You are not authorized to delete this job");
+    throw new AppError(httpStatus.FORBIDDEN, 'You are not authorized to delete this job');
   }
 
-  if (isJobExists?.status === "ACTIVE") {
-    throw new AppError(httpStatus.BAD_REQUEST, "Job is active, cannot delete");
+  if (isJobExists?.status === 'ACTIVE') {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Job is active, cannot delete');
   }
 
   const result = await prisma.job.update({
@@ -627,10 +653,14 @@ const deleteJob = async (userId: string, jobId: string) => {
   return result;
 };
 
-const getRecommendedJobs = async (userId: string, query: any) => {
-  const { page = 1, limit = 10, search } = query;
-  const skip = (parseInt(page) - 1) * parseInt(limit);
-  const take = parseInt(limit);
+const getRecommendedJobs = async (userId: string, query: Record<string, unknown>) => {
+  const {
+    page = 1,
+    limit = 10,
+    search,
+  } = query as { page?: string | number; limit?: string | number; search?: string };
+  const skip = (parseInt(String(page)) - 1) * parseInt(String(limit));
+  const take = parseInt(String(limit));
 
   const user = await prisma.user.findUnique({
     where: { id: userId, isActive: true },
@@ -644,24 +674,34 @@ const getRecommendedJobs = async (userId: string, query: any) => {
   });
 
   if (!user || !user.profile) {
-    throw new AppError(httpStatus.NOT_FOUND, "User profile not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'User profile not found');
   }
 
-  const userSkillNames = user.profile.skills.map((s) => s.skillName.toLowerCase());
+  const settings = await prisma.systemSettings.upsert({
+    where: { id: 'singleton' },
+    create: { id: 'singleton' },
+    update: {},
+  });
 
-  // If user has no skills, return recent active jobs (with search applied if provided)
+  const userSkillNames = settings.aiMatchmaking
+    ? user.profile.skills.map((s) => s.skillName.toLowerCase())
+    : [];
+
+  const isMatchmakingDisabled = !settings.aiMatchmaking;
+
+  // If user has no skills (or matchmaking is disabled), return recent active jobs (with search applied if provided)
   if (userSkillNames.length === 0) {
-    const whereClause: any = { status: "ACTIVE", deletedAt: null };
+    const whereClause: Prisma.JobWhereInput = { status: 'ACTIVE', deletedAt: null };
     if (search && search.trim()) {
       const trimmedSearch = search.trim();
       whereClause.OR = [
-        { title: { contains: trimmedSearch, mode: "insensitive" } },
-        { description: { contains: trimmedSearch, mode: "insensitive" } },
-        { company: { name: { contains: trimmedSearch, mode: "insensitive" } } },
+        { title: { contains: trimmedSearch, mode: 'insensitive' } },
+        { description: { contains: trimmedSearch, mode: 'insensitive' } },
+        { company: { name: { contains: trimmedSearch, mode: 'insensitive' } } },
         {
           JobSkill: {
             some: {
-              skillName: { contains: trimmedSearch, mode: "insensitive" },
+              skillName: { contains: trimmedSearch, mode: 'insensitive' },
             },
           },
         },
@@ -670,23 +710,29 @@ const getRecommendedJobs = async (userId: string, query: any) => {
     const jobs = await prisma.job.findMany({
       where: whereClause,
       include: { JobSkill: true, company: true },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
       skip,
       take,
     });
     const total = await prisma.job.count({ where: whereClause });
     return {
-      data: jobs.map((j) => ({ ...j, matchScore: 70, matchReason: "Relevant for your profile." })),
-      meta: { page: parseInt(page), limit: take, total, pages: Math.ceil(total / take) },
+      data: jobs.map((j) => ({
+        ...j,
+        matchScore: 70,
+        matchReason: isMatchmakingDisabled
+          ? 'Matchmaking disabled; displaying recent jobs.'
+          : 'Relevant for your profile.',
+      })),
+      meta: { page: parseInt(String(page)), limit: take, total, pages: Math.ceil(total / take) },
     };
   }
 
   // Matching logic: Find jobs with overlapping skills
-  const baseConditions: any[] = [
+  const baseConditions: Prisma.JobWhereInput[] = [
     {
       JobSkill: {
         some: {
-          skillName: { in: userSkillNames, mode: "insensitive" },
+          skillName: { in: userSkillNames, mode: 'insensitive' },
         },
       },
     },
@@ -695,27 +741,27 @@ const getRecommendedJobs = async (userId: string, query: any) => {
     baseConditions.push({
       title: {
         contains: userSkillNames[0],
-        mode: "insensitive",
+        mode: 'insensitive',
       },
     });
   }
 
-  const whereClause: any = {
-    status: "ACTIVE",
+  const whereClause: Prisma.JobWhereInput = {
+    status: 'ACTIVE',
     deletedAt: null,
   };
 
   if (search && search.trim()) {
     const trimmedSearch = search.trim();
-    const searchConditions = {
+    const searchConditions: Prisma.JobWhereInput = {
       OR: [
-        { title: { contains: trimmedSearch, mode: "insensitive" } },
-        { description: { contains: trimmedSearch, mode: "insensitive" } },
-        { company: { name: { contains: trimmedSearch, mode: "insensitive" } } },
+        { title: { contains: trimmedSearch, mode: 'insensitive' as Prisma.QueryMode } },
+        { description: { contains: trimmedSearch, mode: 'insensitive' as Prisma.QueryMode } },
+        { company: { name: { contains: trimmedSearch, mode: 'insensitive' as Prisma.QueryMode } } },
         {
           JobSkill: {
             some: {
-              skillName: { contains: trimmedSearch, mode: "insensitive" },
+              skillName: { contains: trimmedSearch, mode: 'insensitive' as Prisma.QueryMode },
             },
           },
         },
@@ -760,7 +806,7 @@ const getRecommendedJobs = async (userId: string, query: any) => {
         matchReason:
           matchCount > 0
             ? `Matches ${matchCount} of the required skills for this position.`
-            : "Matches your career interests and background.",
+            : 'Matches your career interests and background.',
       };
     })
     .sort((a, b) => b.matchScore - a.matchScore);
@@ -771,7 +817,7 @@ const getRecommendedJobs = async (userId: string, query: any) => {
   return {
     data: paginatedData,
     meta: {
-      page: parseInt(page),
+      page: parseInt(String(page)),
       limit: take,
       total,
       pages: Math.ceil(total / take),
@@ -780,8 +826,8 @@ const getRecommendedJobs = async (userId: string, query: any) => {
 };
 
 const getSearchSuggestions = async (query: Record<string, unknown>) => {
-  const keyword = (query.keyword as string)?.trim() ?? "";
-  const location = (query.location as string)?.trim() ?? "";
+  const keyword = (query.keyword as string)?.trim() ?? '';
+  const location = (query.location as string)?.trim() ?? '';
 
   const results: { keywords: string[]; locations: string[] } = {
     keywords: [],
@@ -793,8 +839,8 @@ const getSearchSuggestions = async (query: Record<string, unknown>) => {
   }
 
   // Get active jobs to query matching suggestions
-  const activeWhere: any = {
-    status: "ACTIVE",
+  const activeWhere: Prisma.JobWhereInput = {
+    status: 'ACTIVE',
     deletedAt: null,
     OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
   };
@@ -805,8 +851,8 @@ const getSearchSuggestions = async (query: Record<string, unknown>) => {
       where: {
         ...activeWhere,
         OR: [
-          { title: { contains: keyword, mode: "insensitive" } },
-          { discipline: { contains: keyword, mode: "insensitive" } },
+          { title: { contains: keyword, mode: 'insensitive' } },
+          { discipline: { contains: keyword, mode: 'insensitive' } },
         ],
       },
       select: {
@@ -830,7 +876,7 @@ const getSearchSuggestions = async (query: Record<string, unknown>) => {
     const matchingCategories = await prisma.industry.findMany({
       where: {
         isDeleted: false,
-        name: { contains: keyword, mode: "insensitive" },
+        name: { contains: keyword, mode: 'insensitive' },
       },
       select: {
         name: true,
@@ -847,12 +893,12 @@ const getSearchSuggestions = async (query: Record<string, unknown>) => {
     const matchingJobs = await prisma.job.findMany({
       where: {
         ...activeWhere,
-        location: { contains: location, mode: "insensitive" },
+        location: { contains: location, mode: 'insensitive' },
       },
       select: {
         location: true,
       },
-      distinct: ["location"],
+      distinct: ['location'],
       take: 8,
     });
 
@@ -860,6 +906,59 @@ const getSearchSuggestions = async (query: Record<string, unknown>) => {
   }
 
   return results;
+};
+
+const reportJob = async (
+  jobId: string,
+  reporterId: string,
+  payload: { reason: string; comment?: string; severity?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' },
+) => {
+  const job = await prisma.job.findFirst({
+    where: { id: jobId, deletedAt: null },
+  });
+
+  if (!job) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Job not found');
+  }
+
+  const existingReport = await prisma.jobReport.findFirst({
+    where: {
+      jobId,
+      reporterId,
+      status: { in: ['OPEN', 'PENDING'] },
+    },
+  });
+
+  if (existingReport) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'You have already reported this job listing');
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    const report = await tx.jobReport.create({
+      data: {
+        jobId,
+        reporterId,
+        reason: payload.reason,
+        comment: payload.comment || null,
+        severity: payload.severity || 'LOW',
+        status: 'OPEN',
+      },
+    });
+
+    await tx.auditLog.create({
+      data: {
+        entityType: 'JobReport',
+        entityId: report.id,
+        action: 'CREATE',
+        newValues: { jobId, reason: payload.reason, severity: payload.severity || 'LOW' },
+        userId: reporterId,
+      },
+    });
+
+    return report;
+  });
+
+  return result;
 };
 
 const jobService = {
@@ -871,6 +970,7 @@ const jobService = {
   deleteJob,
   getRecommendedJobs,
   getSearchSuggestions,
+  reportJob,
 };
 
 export default jobService;

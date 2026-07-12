@@ -313,6 +313,7 @@ model Skill {
 
   @@index([profileId])
   @@index([skillName])
+  @@index([jobId])
   @@map("skills")
 }
 
@@ -519,6 +520,7 @@ model Job {
   @@index([postedById])
   @@index([deletedAt])
   @@index([slug])
+  @@index([industryId])
   @@map("jobs")
 }
 
@@ -632,6 +634,7 @@ model Conversation {
   application              Application?              @relation(fields: [applicationId], references: [id])
   conversationParticipants ConversationParticipant[]
 
+  @@index([applicationId])
   @@map("conversations")
 }
 
@@ -704,6 +707,8 @@ model Notification {
   @@index([userId, isRead])
   @@index([createdAt])
   @@index([type, createdAt])
+  @@index([jobId])
+  @@index([applicationId])
   @@map("notifications")
 }
 
@@ -810,6 +815,7 @@ model Subscription {
 
   @@index([status])
   @@index([endDate])
+  @@index([planId])
   @@map("subscriptions")
 }
 
@@ -837,6 +843,8 @@ model Invoice {
   @@index([companyId])
   @@index([status])
   @@index([dueDate])
+  @@index([subscriptionId])
+  @@index([userSubscriptionId])
   @@map("invoices")
 }
 
@@ -1184,6 +1192,7 @@ model UserSubscription {
 
   @@index([status])
   @@index([endDate])
+  @@index([planId])
   @@map("user_subscriptions")
 }
 

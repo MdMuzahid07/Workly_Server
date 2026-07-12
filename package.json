@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "concurrently \"tsx watch src/server.ts\" \"prisma studio\"",
     "start": "node dist/server.js",
-    "build": "tsc",
+    "build": "prisma generate && tsc",
     "type-check": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,js,json,md,yaml,yml}\" --ignore-path .gitignore",
@@ -20,7 +20,8 @@
     "prisma-pull": "prisma db pull",
     "prepare": "husky",
     "vercel-build": "prisma generate && tsc",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "test:equivalence": "tsx src/tests/queryEquivalence.test.ts"
   },
   "packageManager": "pnpm@11.11.0+sha512.4463f65fd80ed80d69bc1d4bf163ee94f605c7380fc318bb5b2ebe15f8cd12d49c51a4d59e951b401e764d3b6ca751cbf51bc50ed7001a6bcb4935e684c34882",
   "devDependencies": {

@@ -1,37 +1,40 @@
-import { Expo, type ExpoPushMessage, type ExpoPushTicket } from "expo-server-sdk";
-import prisma from "../utils/prismaClient.js";
-import { NotificationType } from "../generated/prisma/index.js";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { Expo, type ExpoPushMessage, type ExpoPushTicket } from 'expo-server-sdk';
+import prisma from '../utils/prismaClient.js';
+import { NotificationType } from '../generated/prisma/index.js';
+import { CircuitBreaker } from '../utils/circuitBreaker.js';
 
 const expo = new Expo();
+export const pushCircuitBreaker = new CircuitBreaker('ExpoPushNotification', 5, 30000);
 
 // Maps notification types to Android channel IDs
 const CHANNEL_MAP: Record<NotificationType, string> = {
-  APPLICATION_RECEIVED: "applications",
-  APPLICATION_STATUS_CHANGE: "applications",
-  NEW_JOB_MATCH: "jobs",
-  JOB_EXPIRING: "applications",
-  JOB_CLOSED: "applications",
-  MESSAGE_RECEIVED: "messages",
-  SYSTEM_ANNOUNCEMENT: "system",
-  PROFILE_INCOMPLETE: "system",
-  INTERVIEW_SCHEDULED: "applications",
-  PROFILE_VIEWED: "system",
-  JOB_VIEWED: "system",
+  APPLICATION_RECEIVED: 'applications',
+  APPLICATION_STATUS_CHANGE: 'applications',
+  NEW_JOB_MATCH: 'jobs',
+  JOB_EXPIRING: 'applications',
+  JOB_CLOSED: 'applications',
+  MESSAGE_RECEIVED: 'messages',
+  SYSTEM_ANNOUNCEMENT: 'system',
+  PROFILE_INCOMPLETE: 'system',
+  INTERVIEW_SCHEDULED: 'applications',
+  PROFILE_VIEWED: 'system',
+  JOB_VIEWED: 'system',
 };
 
 // Maps notification types to user preference keys
 const PREFERENCE_MAP: Record<NotificationType, string | null> = {
-  APPLICATION_STATUS_CHANGE: "applicationUpdates",
-  INTERVIEW_SCHEDULED: "interviewAlerts",
-  MESSAGE_RECEIVED: "newMessages",
-  NEW_JOB_MATCH: "jobRecommendations",
-  APPLICATION_RECEIVED: "applicationUpdates",
-  JOB_EXPIRING: "subscriptionAlerts",
-  JOB_CLOSED: "subscriptionAlerts",
-  SYSTEM_ANNOUNCEMENT: "systemAnnouncements",
-  PROFILE_INCOMPLETE: "systemAnnouncements",
-  PROFILE_VIEWED: "systemAnnouncements",
-  JOB_VIEWED: "systemAnnouncements",
+  APPLICATION_STATUS_CHANGE: 'applicationUpdates',
+  INTERVIEW_SCHEDULED: 'interviewAlerts',
+  MESSAGE_RECEIVED: 'newMessages',
+  NEW_JOB_MATCH: 'jobRecommendations',
+  APPLICATION_RECEIVED: 'applicationUpdates',
+  JOB_EXPIRING: 'subscriptionAlerts',
+  JOB_CLOSED: 'subscriptionAlerts',
+  SYSTEM_ANNOUNCEMENT: 'systemAnnouncements',
+  PROFILE_INCOMPLETE: 'systemAnnouncements',
+  PROFILE_VIEWED: 'systemAnnouncements',
+  JOB_VIEWED: 'systemAnnouncements',
 };
 
 export interface PushPayload {
@@ -73,8 +76,8 @@ export class PushService {
         .filter((t: any) => Expo.isExpoPushToken(t.expoPushToken))
         .map((t: any) => ({
           to: t.expoPushToken,
-          channelId: CHANNEL_MAP[type] ?? "default",
-          sound: "default",
+          channelId: CHANNEL_MAP[type] ?? 'default',
+          sound: 'default',
           title,
           body,
           data: {
@@ -83,7 +86,7 @@ export class PushService {
             ...(data ?? {}),
           },
           badge: 1,
-          priority: type === "MESSAGE_RECEIVED" ? "high" : "normal",
+          priority: type === 'MESSAGE_RECEIVED' ? 'high' : 'normal',
           expiration: Math.floor(Date.now() / 1000) + 60 * 60 * 24, // 24 hours TTL
         }));
 
@@ -94,7 +97,9 @@ export class PushService {
       const tickets: ExpoPushTicket[] = [];
 
       for (const chunk of chunks) {
-        const chunkTickets = await expo.sendPushNotificationsAsync(chunk);
+        const chunkTickets = await pushCircuitBreaker.execute(() =>
+          expo.sendPushNotificationsAsync(chunk),
+        );
         tickets.push(...chunkTickets);
       }
 
@@ -103,28 +108,28 @@ export class PushService {
         ticketId: (ticket as any).id ?? `unknown-${Date.now()}-${i}`,
         notificationId,
         userId,
-        pushToken: (messages[i]?.to as string) ?? "",
-        status: ticket.status === "ok" ? "pending" : "error",
-        errorCode: ticket.status === "error" ? (ticket.details?.error ?? null) : null,
+        pushToken: (messages[i]?.to as string) ?? '',
+        status: ticket.status === 'ok' ? 'pending' : 'error',
+        errorCode: ticket.status === 'error' ? (ticket.details?.error ?? null) : null,
       }));
 
       await (prisma as any).pushReceipt.createMany({ data: receiptRows });
 
       // Step 6: Handle synchronous errors immediately
       for (const ticket of tickets) {
-        if (ticket.status === "error") {
+        if (ticket.status === 'error') {
           const error = ticket.details?.error;
-          if (error === "DeviceNotRegistered") {
+          if (error === 'DeviceNotRegistered') {
             const tokenStr = messages[tickets.indexOf(ticket)]?.to as string;
             if (tokenStr) {
               await this.deactivateToken(tokenStr);
             }
           }
-          console.error("[PushService] Send error:", error, ticket.message);
+          console.error('[PushService] Send error:', error, ticket.message);
         }
       }
     } catch (err) {
-      console.error("[PushService] Send flow error:", err);
+      console.error('[PushService] Send flow error:', err);
     }
   }
 
@@ -139,7 +144,7 @@ export class PushService {
     userId: string,
     expoPushToken: string,
     deviceToken: string | null,
-    platform: "ios" | "android",
+    platform: 'ios' | 'android',
   ): Promise<void> {
     if (!Expo.isExpoPushToken(expoPushToken)) {
       throw new Error(`Invalid Expo push token: ${expoPushToken}`);
