@@ -104,8 +104,8 @@ const createCompany = async (
     throw new AppError(httpStatus.BAD_REQUEST, `Company with same slug already exists`);
   }
 
-  const { socialLinks, benefits: companyBenefits, isVerified, ...companyData } = payload;
-  void isVerified;
+  const { socialLinks, benefits: companyBenefits, ...companyData } = payload;
+  delete (companyData as { isVerified?: unknown }).isVerified;
 
   const slug = await generateUniqueSlug(companyData.name, 'company');
 
@@ -328,9 +328,9 @@ const updateCompanyById = async (
     throw new AppError(httpStatus.FORBIDDEN, 'Not authorized to delete this company');
   }
 
-  const { socialLinks, benefits, ...companyData } = payload;
-  void socialLinks;
-  void benefits;
+  const companyData = { ...payload } as Omit<typeof payload, 'socialLinks' | 'benefits'>;
+  delete (companyData as Partial<typeof payload>).socialLinks;
+  delete (companyData as Partial<typeof payload>).benefits;
 
   const result = await prisma.$transaction(async (transactor) => {
     const company = await transactor.company.update({
