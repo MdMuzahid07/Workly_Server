@@ -69,13 +69,17 @@ const oldCheckPremiumStatus = async (userId: string): Promise<boolean> => {
     const activeSub = await prisma.subscription.findUnique({
       where: { companyId: user.companyId },
     });
-    if (activeSub && activeSub.status === 'ACTIVE') {
+    if (activeSub && (activeSub.status === 'ACTIVE' || activeSub.status === 'TRIALING')) {
       isPremium = true;
     }
   }
   if (!isPremium && user.role === 'JOB_SEEKER') {
     const sub = user.userSubscription;
-    if (sub && sub.status === 'ACTIVE' && (!sub.endDate || new Date() < new Date(sub.endDate))) {
+    if (
+      sub &&
+      (sub.status === 'ACTIVE' || sub.status === 'TRIALING') &&
+      (!sub.endDate || new Date() < new Date(sub.endDate))
+    ) {
       isPremium = true;
     }
   }
@@ -175,7 +179,10 @@ async function runTests() {
         const activeSubs =
           employerCompanyIds.length > 0
             ? await prisma.subscription.findMany({
-                where: { companyId: { in: employerCompanyIds }, status: 'ACTIVE' },
+                where: {
+                  companyId: { in: employerCompanyIds },
+                  status: { in: ['ACTIVE', 'TRIALING'] },
+                },
                 select: { companyId: true },
               })
             : [];
@@ -195,7 +202,7 @@ async function runTests() {
             const sub = user.userSubscription;
             if (
               sub &&
-              sub.status === 'ACTIVE' &&
+              (sub.status === 'ACTIVE' || sub.status === 'TRIALING') &&
               (!sub.endDate || new Date() < new Date(sub.endDate))
             ) {
               isPremium = true;

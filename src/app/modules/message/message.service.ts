@@ -1,6 +1,7 @@
 import httpStatus from 'http-status';
 import prisma from '../../../utils/prismaClient.js';
 import AppError from '../../error/AppError.js';
+import notificationService from '../notification/notification.service.js';
 
 const checkPremiumStatus = async (userId: string) => {
   const user = await prisma.user.findUnique({
@@ -26,7 +27,7 @@ const checkPremiumStatus = async (userId: string) => {
     const activeSub = await prisma.subscription.findUnique({
       where: { companyId: user.companyId },
     });
-    if (activeSub && activeSub.status === 'ACTIVE') {
+    if (activeSub && (activeSub.status === 'ACTIVE' || activeSub.status === 'TRIALING')) {
       isPremium = true;
     }
   }
@@ -34,7 +35,11 @@ const checkPremiumStatus = async (userId: string) => {
   if (!isPremium && user.role === 'JOB_SEEKER') {
     // Job Seeker premium is derived from their personal userSubscription
     const sub = user.userSubscription;
-    if (sub && sub.status === 'ACTIVE' && (!sub.endDate || new Date() < new Date(sub.endDate))) {
+    if (
+      sub &&
+      (sub.status === 'ACTIVE' || sub.status === 'TRIALING') &&
+      (!sub.endDate || new Date() < new Date(sub.endDate))
+    ) {
       isPremium = true;
     }
   }
@@ -70,7 +75,10 @@ const checkPremiumStatusMultiple = async (userIds: string[]): Promise<Record<str
   const activeSubs =
     employerCompanyIds.length > 0
       ? await prisma.subscription.findMany({
-          where: { companyId: { in: employerCompanyIds }, status: 'ACTIVE' },
+          where: {
+            companyId: { in: employerCompanyIds },
+            status: { in: ['ACTIVE', 'TRIALING'] },
+          },
           select: { companyId: true },
         })
       : [];
@@ -95,7 +103,11 @@ const checkPremiumStatusMultiple = async (userIds: string[]): Promise<Record<str
 
     if (!isPremium && user.role === 'JOB_SEEKER') {
       const sub = user.userSubscription;
-      if (sub && sub.status === 'ACTIVE' && (!sub.endDate || new Date() < new Date(sub.endDate))) {
+      if (
+        sub &&
+        (sub.status === 'ACTIVE' || sub.status === 'TRIALING') &&
+        (!sub.endDate || new Date() < new Date(sub.endDate))
+      ) {
         isPremium = true;
       }
     }
@@ -270,6 +282,23 @@ const sendMessage = async (
 
     return message;
   });
+
+  if (otherParticipant) {
+    try {
+      await notificationService.createNotification({
+        userId: otherParticipant.userId,
+        type: 'MESSAGE_RECEIVED',
+        title: `New message from ${result.sender.fullName}`,
+        message: payload.content || 'Sent an attachment',
+        metadata: {
+          conversationId,
+          senderName: result.sender.fullName,
+        },
+      });
+    } catch (err) {
+      console.error('Failed to create database notification for message:', err);
+    }
+  }
 
   return result;
 };
