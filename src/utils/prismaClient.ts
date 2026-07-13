@@ -4,6 +4,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 import { PrismaClient } from '../generated/prisma/index.js';
 import { env } from '../config/index.js';
+import { logger } from './logger.js';
 
 const { Pool } = pg;
 
@@ -29,14 +30,14 @@ const pool = new Pool({
 // to protect against hanging transactions and stuck queries holding resources.
 pool.on('connect', (client) => {
   client.query(`SET statement_timeout = ${env.DB_STATEMENT_TIMEOUT_MS}`).catch((err) => {
-    console.error('[Database] Failed to set statement_timeout session parameter:', err);
+    logger.error({ err }, '[Database] Failed to set statement_timeout session parameter');
   });
   client
     .query(`SET idle_in_transaction_session_timeout = ${env.DB_IDLE_IN_TRANSACTION_TIMEOUT_MS}`)
     .catch((err) => {
-      console.error(
-        '[Database] Failed to set idle_in_transaction_session_timeout session parameter:',
-        err,
+      logger.error(
+        { err },
+        '[Database] Failed to set idle_in_transaction_session_timeout session parameter',
       );
     });
 });
@@ -45,11 +46,23 @@ const adapter = new PrismaPg(pool);
 
 const basePrisma = new PrismaClient({
   adapter,
+  log: [
+    { emit: 'event', level: 'error' },
+    { emit: 'event', level: 'warn' },
+  ],
   omit: {
     user: {
       passwordHash: true,
     },
   },
+});
+
+basePrisma.$on('error' as any, (e: any) => {
+  logger.error({ err: e }, '[Prisma Client Error]');
+});
+
+basePrisma.$on('warn' as any, (e: any) => {
+  logger.warn({ prismaWarn: e }, '[Prisma Client Warning]');
 });
 
 // ---------------------------------------------------------------------------
@@ -87,8 +100,10 @@ async function retryWithBackoff<T>(
 
       const jitter = Math.random() * 50;
       const backoffDelay = Math.min(delay * Math.pow(2, attempt) + jitter, maxDelay);
-      console.warn(
-        `[Database] Query failed (attempt ${attempt}/${retries}). Retrying in ${backoffDelay.toFixed(0)}ms. Error: ${error.message || error}`,
+      logger.warn(
+        { err: error, attempt, retries, backoffDelay },
+        '[Database] Query failed. Retrying in %sms.',
+        backoffDelay.toFixed(0),
       );
       await new Promise((resolve) => setTimeout(resolve, backoffDelay));
     }
@@ -106,15 +121,21 @@ const prisma = basePrisma.$extends({
         const result = await retryWithBackoff(() => query(args));
         const duration = Date.now() - start;
         if (duration >= env.SLOW_QUERY_THRESHOLD_MS) {
-          console.warn(
-            `[Prisma Slow Query] ${queryName} took ${duration}ms. Args: ${JSON.stringify(args)}`,
+          logger.warn(
+            { queryName, duration, args },
+            '[Prisma Slow Query] %s took %sms',
+            queryName,
+            duration,
           );
         }
         return result;
       } catch (error: any) {
         const duration = Date.now() - start;
-        console.error(
-          `[Prisma Error] ${queryName} failed after ${duration}ms. Args: ${JSON.stringify(args)}. Error: ${error.message || error}`,
+        logger.error(
+          { err: error, queryName, duration, args },
+          '[Prisma Error] %s failed after %sms',
+          queryName,
+          duration,
         );
         throw error;
       }
@@ -126,9 +147,9 @@ export const disconnectDb = async () => {
   try {
     await basePrisma.$disconnect();
     await pool.end();
-    console.log('[Database] Disconnected connection pool cleanly.');
+    logger.info('[Database] Disconnected connection pool cleanly.');
   } catch (error) {
-    console.error('[Database] Error disconnecting pool:', error);
+    logger.error({ err: error }, '[Database] Error disconnecting pool');
   }
 };
 

@@ -13,6 +13,7 @@ const envSchema = z.object({
   // Runtime
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().default(5000),
+  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 
   // Database
   DATABASE_URL: z.string().url(),

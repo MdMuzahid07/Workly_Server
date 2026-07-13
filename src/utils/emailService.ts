@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import nodemailer from 'nodemailer';
 import { env } from '../config/index.js';
+import { logger } from './logger.js';
 import { CircuitBreaker } from './circuitBreaker.js';
 import { getPasswordResetEmailTemplate } from '../templates/getPasswordResetEmailTemplate.js';
 import { getResendVerificationEmailTemplate } from '../templates/getResendVerificationEmailTemplate.js';
@@ -49,8 +50,8 @@ const sendVerificationEmail = async (to: string, userName: string, verificationU
     const info = await transporter.sendMail(mailOptions);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('Error sending verification email:', error);
-    throw new Error('Failed to send verification email');
+    logger.error({ err: error, to }, 'Error sending verification email');
+    throw new Error('Failed to send verification email', { cause: error });
   }
 };
 
@@ -72,8 +73,8 @@ const sendResendVerificationEmail = async (
     const info = await transporter.sendMail(mailOptions);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('Error sending resend verification email:', error);
-    throw new Error('Failed to send verification email');
+    logger.error({ err: error, to }, 'Error sending resend verification email');
+    throw new Error('Failed to send verification email', { cause: error });
   }
 };
 
@@ -91,8 +92,8 @@ const sendPasswordResetEmail = async (email: string, fullName: string, resetUrl:
     const info = await transporter.sendMail(mailOptions);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('Error sending password reset email:', error);
-    throw new Error('Failed to send password reset email');
+    logger.error({ err: error, email }, 'Error sending password reset email');
+    throw new Error('Failed to send password reset email', { cause: error });
   }
 };
 
@@ -127,8 +128,8 @@ const sendNewApplicationEmail = async (
     const info = await transporter.sendMail(mailOptions);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('Error sending new application premium email:', error);
-    throw new Error('Failed to send new application premium email');
+    logger.error({ err: error, toEmail }, 'Error sending new application premium email');
+    throw new Error('Failed to send new application premium email', { cause: error });
   }
 };
 
@@ -161,8 +162,8 @@ const sendApplicationStatusUpdateEmail = async (
     const info = await transporter.sendMail(mailOptions);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('Error sending application status update premium email:', error);
-    throw new Error('Failed to send application status update premium email');
+    logger.error({ err: error, toEmail }, 'Error sending application status update premium email');
+    throw new Error('Failed to send application status update premium email', { cause: error });
   }
 };
 
@@ -195,8 +196,8 @@ const sendInterviewScheduledEmail = async (
     const info = await transporter.sendMail(mailOptions);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('Error sending interview scheduled premium email:', error);
-    throw new Error('Failed to send interview scheduled premium email');
+    logger.error({ err: error, toEmail }, 'Error sending interview scheduled premium email');
+    throw new Error('Failed to send interview scheduled premium email', { cause: error });
   }
 };
 
@@ -227,8 +228,8 @@ const sendBroadcastEmail = async (
     const info = await transporter.sendMail(mailOptions);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('Error sending broadcast email:', error);
-    throw new Error('Failed to send broadcast email');
+    logger.error({ err: error, to }, 'Error sending broadcast email');
+    throw new Error('Failed to send broadcast email', { cause: error });
   }
 };
 

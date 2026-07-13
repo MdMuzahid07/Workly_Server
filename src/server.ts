@@ -1,10 +1,11 @@
 import http, { type Server } from 'http';
 import app from './app.js';
 import { env } from './config/index.js';
+import logger from './utils/logger.js';
 import { initRateLimiters } from './lib/rateLimiters.js';
 import { initSocket, getIO } from './socket/index.js';
 import prisma, { disconnectDb } from './utils/prismaClient.js';
-import bcrypt from 'bcrypt';
+import { hashPassword } from './utils/password.js';
 import { startPushReceiptJob } from './jobs/push.receipt.job.js';
 import { startSubscriptionReminderJob } from './jobs/subscription.reminder.job.js';
 import { startSubscriptionExpiryJob } from './jobs/subscription.expiry.job.js';
@@ -65,8 +66,8 @@ async function seedDevUsers() {
       });
 
       if (!exists) {
-        console.log(`[Seed] Creating dev user: ${u.email}`);
-        const passwordHash = await bcrypt.hash(u.password, env.BCRYPT_SALT_ROUNDS);
+        logger.info('[Seed] Creating dev user: %s', u.email);
+        const passwordHash = await hashPassword(u.password);
         await prisma.user.create({
           data: {
             email: u.email,
@@ -80,7 +81,7 @@ async function seedDevUsers() {
       } else {
         // Ensure they are verified & active
         if (!exists.isVerified || !exists.isActive) {
-          console.log(`[Seed] Ensuring dev user ${u.email} is active and verified`);
+          logger.info('[Seed] Ensuring dev user %s is active and verified', u.email);
           await prisma.user.update({
             where: { id: exists.id },
             data: { isVerified: true, isActive: true },
@@ -89,7 +90,7 @@ async function seedDevUsers() {
       }
     }
   } catch (error) {
-    console.error('[Seed] Failed to seed dev users:', error);
+    logger.error({ err: error }, '[Seed] Failed to seed dev users');
   }
 }
 
@@ -124,7 +125,7 @@ async function main() {
   // ── Graceful shutdown ─────────────────────────────────────────────────────
   // Stop cron tasks before the process exits so no job fires mid-drain.
   const shutdown = async (signal: string) => {
-    console.log(`[Server] ${signal} received — shutting down gracefully…`);
+    logger.info('[Server] %s received — shutting down gracefully…', signal);
     pushReceiptJob.stop();
     subscriptionReminderJob.stop();
     subscriptionExpiryJob.stop();
@@ -133,23 +134,23 @@ async function main() {
       const io = getIO();
       if (io) {
         io.close();
-        console.log('[Server] Socket.io server closed.');
+        logger.info('[Server] Socket.io server closed.');
       }
     } catch (err) {
-      console.error('[Server] Error closing Socket.io:', err);
+      logger.error({ err }, '[Server] Error closing Socket.io');
     }
 
     await disconnectDb();
 
     server.close(() => {
-      console.log('[Server] HTTP server closed.');
-      console.log('[Server] Shutdown complete.');
+      logger.info('[Server] HTTP server closed.');
+      logger.info('[Server] Shutdown complete.');
       process.exit(0);
     });
 
     // Force-exit after 5 s if graceful drain takes too long.
     setTimeout(() => {
-      console.error('[Server] Graceful shutdown timed out — forcing exit.');
+      logger.error('[Server] Graceful shutdown timed out — forcing exit.');
       process.exit(1);
     }, 5_000).unref();
   };
@@ -158,11 +159,11 @@ async function main() {
   process.once('SIGINT', () => shutdown('SIGINT'));
 
   server.listen(Number(port), '0.0.0.0', () => {
-    console.log(`Server running 🚀🚀 on => port  ${port}`);
+    logger.info('Server running 🚀🚀 on => port %s', port);
   });
 
   server.on('error', (error: Error) => {
-    console.log('Server error => ', error.message);
+    logger.fatal({ err: error }, 'Server error => %s', error.message);
     process.exit(1);
   });
 }

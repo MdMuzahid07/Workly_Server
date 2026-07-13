@@ -1,4 +1,5 @@
-import prisma from "./prismaClient.js";
+import prisma from './prismaClient.js';
+import { logger } from './logger.js';
 
 const cleanupExpiredTokens = async () => {
   try {
@@ -12,7 +13,7 @@ const cleanupExpiredTokens = async () => {
 
     return result.count;
   } catch (error) {
-    console.error("Error cleaning up expired tokens:", error);
+    logger.error({ err: error }, 'Error cleaning up expired tokens');
     throw error;
   }
 };

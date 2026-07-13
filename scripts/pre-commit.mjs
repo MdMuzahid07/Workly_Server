@@ -1,14 +1,14 @@
-import chalk from 'chalk';
+import { styleText } from 'node:util';
 import { execSync } from 'child_process';
 
-console.log(chalk.bold.cyan('\n🚀 WORKLY SERVER • PRE-COMMIT CHECKS'));
-console.log(chalk.dim('────────────────────────────────────────────────────────'));
+console.log(styleText(['cyan', 'bold'], '\n🚀 WORKLY SERVER • PRE-COMMIT CHECKS'));
+console.log(styleText('dim', '────────────────────────────────────────────────────────'));
 
 const startTime = Date.now();
 
 try {
-  console.log(`\n🔍 ${chalk.bold('Staged Files Linting & Formatting')}`);
-  console.log(chalk.dim('   Running lint-staged (eslint + prettier)...'));
+  console.log(`\n🔍 ${styleText('bold', 'Staged Files Linting & Formatting')}`);
+  console.log(styleText('dim', '   Running lint-staged (eslint + prettier)...'));
   console.log();
 
   process.env.FAST_LINT = 'true';
@@ -16,13 +16,16 @@ try {
 
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
   console.log(
-    chalk.green(
-      `\n✅ ${chalk.bold('Staged checks passed successfully!')} ${chalk.dim(`(${elapsed}s)`)}`,
+    styleText(
+      'green',
+      `\n✅ ${styleText('bold', 'Staged checks passed successfully!')} ${styleText('dim', `(${elapsed}s)`)}`,
     ),
   );
-  console.log(chalk.bold.green('🎉 Clean code! Ready to commit.\n'));
+  console.log(styleText(['green', 'bold'], '🎉 Clean code! Ready to commit.\n'));
 } catch {
-  console.error(chalk.red(`\n❌ ${chalk.bold('Pre-commit check failed!')}`));
-  console.error(chalk.dim('   Please resolve the ESLint or Prettier issues highlighted above.\n'));
+  console.error(styleText('red', `\n❌ ${styleText('bold', 'Pre-commit check failed!')}`));
+  console.error(
+    styleText('dim', '   Please resolve the ESLint or Prettier issues highlighted above.\n'),
+  );
   process.exit(1);
 }

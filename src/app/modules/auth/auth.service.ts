@@ -1,7 +1,8 @@
-import bcrypt from 'bcrypt';
 import httpStatus from 'http-status';
 import jwt from 'jsonwebtoken';
 import config, { env } from '../../../config/index.js';
+import { hashPassword, verifyPassword } from '../../../utils/password.js';
+import { logger } from '../../../utils/logger.js';
 import {
   sendPasswordResetEmail,
   sendResendVerificationEmail,
@@ -102,7 +103,7 @@ const register = async (payload: RegisterPayload) => {
     );
   }
 
-  const passwordHash = await bcrypt.hash(payload.password, Number(config.bcrypt_salt_rounds));
+  const passwordHash = await hashPassword(payload.password);
 
   const user = await prisma.user.create({
     data: {
@@ -205,7 +206,10 @@ const login = async (payload: LoginPayload) => {
     );
   }
 
-  const isPasswordMatch = await bcrypt.compare(payload.password, isExits.passwordHash);
+  const { isValid: isPasswordMatch, needsRehash } = await verifyPassword(
+    payload.password,
+    isExits.passwordHash,
+  );
 
   if (!isPasswordMatch) {
     // Increment failed attempt counter; lock after 5 failures for 15 minutes.
@@ -220,6 +224,24 @@ const login = async (payload: LoginPayload) => {
       },
     });
     throw new AppError(httpStatus.BAD_REQUEST, 'Invalid credentials');
+  }
+
+  // Lazy Hashing Upgrade / Parameter Check (Bulletproofed with proper catch block)
+  if (needsRehash) {
+    const plainTextPassword = payload.password;
+    const userId = isExits.id;
+    Promise.resolve()
+      .then(async () => {
+        const newHash = await hashPassword(plainTextPassword);
+        await prisma.user.update({
+          where: { id: userId },
+          data: { passwordHash: newHash },
+        });
+        logger.info({ userId }, 'Lazy migration/upgrade to Argon2id successful');
+      })
+      .catch((error) => {
+        logger.error({ userId, error }, 'Background Argon2id migration/upgrade failed');
+      });
   }
 
   // Reset lockout on successful login
@@ -481,12 +503,15 @@ const resetPassword = async (payload: ResetPasswordPayload) => {
     throw new AppError(httpStatus.BAD_REQUEST, 'Passwords do not match');
   }
 
-  const isSamePassword = await bcrypt.compare(newPassword, resetTokenRecord.user.passwordHash);
+  const { isValid: isSamePassword } = await verifyPassword(
+    newPassword,
+    resetTokenRecord.user.passwordHash,
+  );
   if (isSamePassword) {
     throw new AppError(httpStatus.BAD_REQUEST, 'New password must be different from your old one');
   }
 
-  const newPasswordHash = await bcrypt.hash(newPassword, Number(config.bcrypt_salt_rounds));
+  const newPasswordHash = await hashPassword(newPassword);
 
   const result = await prisma.$transaction(async (transactor) => {
     await transactor.user.update({
@@ -667,7 +692,7 @@ const googleOAuth = async (
 
     isNewUser = true;
     const randomPassword = generateVerificationToken();
-    const passwordHash = await bcrypt.hash(randomPassword, Number(config.bcrypt_salt_rounds));
+    const passwordHash = await hashPassword(randomPassword);
 
     user = await prisma.user.create({
       data: {
@@ -757,12 +782,12 @@ const changePassword = async (userId: string, payload: ChangePasswordPayload) =>
     throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
 
-  const isPasswordMatch = await bcrypt.compare(oldPassword, user.passwordHash);
+  const { isValid: isPasswordMatch } = await verifyPassword(oldPassword, user.passwordHash);
   if (!isPasswordMatch) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Incorrect old password');
   }
 
-  const newPasswordHash = await bcrypt.hash(newPassword, Number(config.bcrypt_salt_rounds));
+  const newPasswordHash = await hashPassword(newPassword);
 
   await prisma.user.update({
     where: { id: userId },
