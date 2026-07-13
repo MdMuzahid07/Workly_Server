@@ -17,4 +17,5 @@ coverage
 src/generated/
 .vercel
 .agent
-
+api/**/*.js
+api/**/*.js.map

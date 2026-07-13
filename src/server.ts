@@ -1,13 +1,13 @@
-import http, { type Server } from "http";
-import app from "./app.js";
-import { env } from "./config/index.js";
-import { initRateLimiters } from "./lib/rateLimiters.js";
-import { initSocket, getIO } from "./socket/index.js";
-import prisma, { disconnectDb } from "./utils/prismaClient.js";
-import bcrypt from "bcrypt";
-import { startPushReceiptJob } from "./jobs/push.receipt.job.js";
-import { startSubscriptionReminderJob } from "./jobs/subscription.reminder.job.js";
-import { startSubscriptionExpiryJob } from "./jobs/subscription.expiry.job.js";
+import http, { type Server } from 'http';
+import app from './app.js';
+import { env } from './config/index.js';
+import { initRateLimiters } from './lib/rateLimiters.js';
+import { initSocket, getIO } from './socket/index.js';
+import prisma, { disconnectDb } from './utils/prismaClient.js';
+import bcrypt from 'bcrypt';
+import { startPushReceiptJob } from './jobs/push.receipt.job.js';
+import { startSubscriptionReminderJob } from './jobs/subscription.reminder.job.js';
+import { startSubscriptionExpiryJob } from './jobs/subscription.expiry.job.js';
 
 const port = env.PORT;
 
@@ -33,29 +33,29 @@ async function seedDevUsers() {
   // P0.1 — Second independent guard: reject unconditionally in production.
   // This throws rather than returning silently so a misconfigured caller fails
   // loudly instead of silently doing nothing.
-  if (env.NODE_ENV === "production") {
-    throw new Error("[Seed] seedDevUsers() must never run with NODE_ENV=production. Aborting.");
+  if (env.NODE_ENV === 'production') {
+    throw new Error('[Seed] seedDevUsers() must never run with NODE_ENV=production. Aborting.');
   }
 
   try {
     const devUsers = [
       {
-        email: "mydevcafe@gmail.com",
-        password: "Admin#$12345@",
-        fullName: "Admin Dev",
-        role: "ADMIN" as const,
+        email: 'mydevcafe@gmail.com',
+        password: 'Admin#$12345@',
+        fullName: 'Admin Dev',
+        role: 'ADMIN' as const,
       },
       {
-        email: "mdmuzahid7396@gmail.com",
-        password: "HDiotuIDG85678%7%$#KjgDJG",
-        fullName: "Muzahid Employer",
-        role: "EMPLOYER" as const,
+        email: 'mdmuzahid7396@gmail.com',
+        password: 'HDiotuIDG85678%7%$#KjgDJG',
+        fullName: 'Muzahid Employer',
+        role: 'EMPLOYER' as const,
       },
       {
-        email: "mdmuzahid.dev@gmail.com",
-        password: "FKJhOFIt985^&54#$%#",
-        fullName: "Muzahid Seeker",
-        role: "JOB_SEEKER" as const,
+        email: 'mdmuzahid.dev@gmail.com',
+        password: 'FKJhOFIt985^&54#$%#',
+        fullName: 'Muzahid Seeker',
+        role: 'JOB_SEEKER' as const,
       },
     ];
 
@@ -89,7 +89,7 @@ async function seedDevUsers() {
       }
     }
   } catch (error) {
-    console.error("[Seed] Failed to seed dev users:", error);
+    console.error('[Seed] Failed to seed dev users:', error);
   }
 }
 
@@ -107,7 +107,7 @@ async function main() {
   // P0.1 + P0.2 fix: both guards now use env.NODE_ENV (the single zod-validated
   // source of truth). The old split between process.env.NODE_ENV and
   // config.environment (reading ENVIRONMENT) is closed.
-  if (env.NODE_ENV === "development") {
+  if (env.NODE_ENV === 'development') {
     await seedDevUsers();
   }
 
@@ -133,42 +133,42 @@ async function main() {
       const io = getIO();
       if (io) {
         io.close();
-        console.log("[Server] Socket.io server closed.");
+        console.log('[Server] Socket.io server closed.');
       }
     } catch (err) {
-      console.error("[Server] Error closing Socket.io:", err);
+      console.error('[Server] Error closing Socket.io:', err);
     }
 
     await disconnectDb();
 
     server.close(() => {
-      console.log("[Server] HTTP server closed.");
-      console.log("[Server] Shutdown complete.");
+      console.log('[Server] HTTP server closed.');
+      console.log('[Server] Shutdown complete.');
       process.exit(0);
     });
 
     // Force-exit after 5 s if graceful drain takes too long.
     setTimeout(() => {
-      console.error("[Server] Graceful shutdown timed out — forcing exit.");
+      console.error('[Server] Graceful shutdown timed out — forcing exit.');
       process.exit(1);
     }, 5_000).unref();
   };
 
-  process.once("SIGTERM", () => shutdown("SIGTERM"));
-  process.once("SIGINT", () => shutdown("SIGINT"));
+  process.once('SIGTERM', () => shutdown('SIGTERM'));
+  process.once('SIGINT', () => shutdown('SIGINT'));
 
-  server.listen(Number(port), "0.0.0.0", () => {
+  server.listen(Number(port), '0.0.0.0', () => {
     console.log(`Server running 🚀🚀 on => port  ${port}`);
   });
 
-  server.on("error", (error: Error) => {
-    console.log("Server error => ", error.message);
+  server.on('error', (error: Error) => {
+    console.log('Server error => ', error.message);
     process.exit(1);
   });
 }
 
-// P0.1 fix: was process.env.NODE_ENV — now uses env.NODE_ENV (zod-validated).
-if (env.NODE_ENV !== "production") {
+// Guard to prevent running server.listen() and background jobs inside Vercel's serverless environment.
+if (!process.env.VERCEL) {
   main();
 }
 
