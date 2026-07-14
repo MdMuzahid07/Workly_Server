@@ -25,15 +25,6 @@
     "test:equivalence": "tsx src/tests/queryEquivalence.test.ts"
   },
   "packageManager": "pnpm@11.11.0+sha512.4463f65fd80ed80d69bc1d4bf163ee94f605c7380fc318bb5b2ebe15f8cd12d49c51a4d59e951b401e764d3b6ca751cbf51bc50ed7001a6bcb4935e684c34882",
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@prisma/engines",
-      "argon2",
-      "bcrypt",
-      "esbuild",
-      "prisma"
-    ]
-  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/bcrypt": "^6.0.0",
@@ -66,6 +57,7 @@
     "@types/passport-google-oauth20": "^2.0.17",
     "argon2": "^0.44.0",
     "bcrypt": "^6.0.0",
+    "bullmq": "^5.41.3",
     "cloudinary": "^2.10.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",

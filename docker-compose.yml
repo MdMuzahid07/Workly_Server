@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: workly_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      # Exposed for host tools only (e.g., Prisma Studio, pgAdmin running on host).
+      # WARNING: Never expose this port to the public internet in a production environment.
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - workly_network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER} -d ${POSTGRES_DB}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    container_name: workly_valkey
+    restart: unless-stopped
+    ports:
+      # Exposed for host tools and debugging only.
+      # WARNING: Do not expose this port in production environment.
+      - '6379:6379'
+    networks:
+      - workly_network
+    healthcheck:
+      test: ['CMD-SHELL', 'valkey-cli ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: workly_app
+    restart: unless-stopped
+    ports:
+      - '5000:5000'
+    env_file:
+      - .env
+    environment:
+      # Override host environment URLs to target Docker internal bridge network services.
+      # sslmode=disable is safe for traffic isolated within the internal bridge network.
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      - REDIS_URL=valkey://valkey:6379
+      - QUEUE_REDIS_URL=valkey://valkey:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    networks:
+      - workly_network
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:5000/api/v1/public/status/health').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  workly_network:
+    driver: bridge

@@ -57,6 +57,10 @@ const envSchema = z.object({
 
   // Redis (optional now — P1's in-memory fallback is used until REDIS_URL is set)
   REDIS_URL: z.string().url().optional(),
+  QUEUE_REDIS_URL: z.string().url().optional(),
+  EMAIL_WORKER_CONCURRENCY: z.coerce.number().default(5),
+  NOTIFICATION_WORKER_CONCURRENCY: z.coerce.number().default(5),
+  ANALYTICS_WORKER_CONCURRENCY: z.coerce.number().default(5),
 
   // URLs
   BACKEND_URL: z.string().default('http://localhost:5000'),

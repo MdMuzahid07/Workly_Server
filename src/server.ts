@@ -1,14 +1,14 @@
 import http, { type Server } from 'http';
 import app from './app.js';
 import { env } from './config/index.js';
-import logger from './utils/logger.js';
-import { initRateLimiters } from './lib/rateLimiters.js';
-import { initSocket, getIO } from './socket/index.js';
-import prisma, { disconnectDb } from './utils/prismaClient.js';
-import { hashPassword } from './utils/password.js';
 import { startPushReceiptJob } from './jobs/push.receipt.job.js';
-import { startSubscriptionReminderJob } from './jobs/subscription.reminder.job.js';
 import { startSubscriptionExpiryJob } from './jobs/subscription.expiry.job.js';
+import { startSubscriptionReminderJob } from './jobs/subscription.reminder.job.js';
+import { initRateLimiters } from './lib/rateLimiters.js';
+import { getIO, initSocket } from './socket/index.js';
+import logger from './utils/logger.js';
+import { hashPassword } from './utils/password.js';
+import prisma, { disconnectDb } from './utils/prismaClient.js';
 
 const port = env.PORT;
 
@@ -140,6 +140,18 @@ async function main() {
       logger.error({ err }, '[Server] Error closing Socket.io');
     }
 
+    try {
+      const { shutdownQueuesAndWorkers } = await import('./lib/queue.js').catch(() => ({
+        shutdownQueuesAndWorkers: null,
+      }));
+      if (shutdownQueuesAndWorkers) {
+        await shutdownQueuesAndWorkers();
+        logger.info('[Server] Valkey queues and BullMQ workers closed.');
+      }
+    } catch (err) {
+      logger.error({ err }, '[Server] Error closing Valkey/BullMQ connections');
+    }
+
     await disconnectDb();
 
     server.close(() => {
@@ -168,9 +180,6 @@ async function main() {
   });
 }
 
-// Guard to prevent running server.listen() and background jobs inside Vercel's serverless environment.
-if (!process.env.VERCEL) {
-  main();
-}
+main();
 
 export default app;
