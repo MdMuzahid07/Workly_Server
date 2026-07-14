@@ -6,7 +6,8 @@ async function run() {
   // 1. Send test email job
   const emailJob = await emailQueue.add('sendVerificationEmail', {
     email: 'mydevcafe@gmail.com',
-    token: 'test-verification-token-999',
+    userName: 'Admin Dev',
+    verificationUrl: 'http://localhost:3000/verify-email?token=test-verification-token-999',
   });
   console.log(`✅ Queued email job: ${emailJob.id}`);
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Queue, Worker, type Job } from 'bullmq';
 import Redis from 'ioredis';
 import { env } from '../config/index.js';
@@ -39,41 +40,41 @@ const queueConnection = createConnection();
 // 1. Queues Definitions
 // ============================================================================
 export const emailQueue = new Queue('email', {
-  connection: queueConnection,
+  connection: queueConnection as any,
   defaultJobOptions: {
     attempts: 3,
     backoff: {
       type: 'exponential',
       delay: 1000,
     },
-    removeOnComplete: { maxCount: 100 },
-    removeOnFail: { maxCount: 500 },
+    removeOnComplete: { count: 100 },
+    removeOnFail: { count: 500 },
   },
 });
 
 export const notificationQueue = new Queue('notification', {
-  connection: queueConnection,
+  connection: queueConnection as any,
   defaultJobOptions: {
     attempts: 3,
     backoff: {
       type: 'exponential',
       delay: 1000,
     },
-    removeOnComplete: { maxCount: 100 },
-    removeOnFail: { maxCount: 500 },
+    removeOnComplete: { count: 100 },
+    removeOnFail: { count: 500 },
   },
 });
 
 export const analyticsQueue = new Queue('analytics', {
-  connection: queueConnection,
+  connection: queueConnection as any,
   defaultJobOptions: {
     attempts: 3,
     backoff: {
       type: 'exponential',
       delay: 1000,
     },
-    removeOnComplete: { maxCount: 100 },
-    removeOnFail: { maxCount: 500 },
+    removeOnComplete: { count: 100 },
+    removeOnFail: { count: 500 },
   },
 });
 
@@ -89,18 +90,18 @@ async function emailWorkerHandler(job: Job) {
 
   switch (job.name) {
     case 'sendVerificationEmail': {
-      const { email, token } = job.data;
-      await sendVerificationEmail(email, token);
+      const { email, userName, verificationUrl } = job.data;
+      await sendVerificationEmail(email, userName, verificationUrl);
       break;
     }
     case 'sendPasswordResetEmail': {
-      const { email, token } = job.data;
-      await sendPasswordResetEmail(email, token);
+      const { email, fullName, resetUrl } = job.data;
+      await sendPasswordResetEmail(email, fullName, resetUrl);
       break;
     }
     case 'sendResendVerificationEmail': {
-      const { email, token } = job.data;
-      await sendResendVerificationEmail(email, token);
+      const { email, userName, verificationUrl } = job.data;
+      await sendResendVerificationEmail(email, userName, verificationUrl);
       break;
     }
     case 'sendNewApplicationEmail': {
@@ -129,57 +130,46 @@ async function emailWorkerHandler(job: Job) {
     case 'sendApplicationStatusUpdateEmail': {
       const {
         email,
-        fullName,
+        candidateName,
         jobTitle,
         companyName,
-        status,
-        reason,
-        interviewScheduledAt,
-        interviewNotes,
+        newStatus,
+        rejectionReason,
+        applicationUrl,
       } = job.data;
       await sendApplicationStatusUpdateEmail(
         email,
-        fullName,
+        candidateName,
         jobTitle,
         companyName,
-        status,
-        reason,
-        interviewScheduledAt,
-        interviewNotes,
+        newStatus,
+        rejectionReason,
+        applicationUrl,
       );
       break;
     }
     case 'sendInterviewScheduledEmail': {
-      const {
-        email,
-        fullName,
-        candidateName,
-        jobTitle,
-        companyName,
-        scheduledAt,
-        interviewNotes,
-        joinUrl,
-      } = job.data;
+      const { email, candidateName, jobTitle, companyName, scheduledAt, notes, applicationUrl } =
+        job.data;
       await sendInterviewScheduledEmail(
         email,
-        fullName,
         candidateName,
         jobTitle,
         companyName,
         scheduledAt,
-        interviewNotes,
-        joinUrl,
+        notes,
+        applicationUrl,
       );
       break;
     }
     case 'sendSubscriptionRenewalEmail': {
-      const { email, fullName, planName, expiryDate, status } = job.data;
-      await sendSubscriptionRenewalEmail(email, fullName, planName, expiryDate, status);
+      // Expects single params object: { toEmail, userName, planName, expiryDate, renewalPrice, renewalUrl, daysLeft }
+      await sendSubscriptionRenewalEmail(job.data);
       break;
     }
     case 'sendBroadcastEmail': {
-      const { to, subject, html } = job.data;
-      await sendBroadcastEmail(to, subject, html);
+      const { to, userName, subject, bodyText } = job.data;
+      await sendBroadcastEmail(to, userName, subject, bodyText);
       break;
     }
     default:
@@ -224,17 +214,17 @@ async function analyticsWorkerHandler(job: Job) {
 
 // Each worker gets its own connection since they block waiting for new jobs.
 export const emailWorker = new Worker('email', emailWorkerHandler, {
-  connection: createConnection(),
+  connection: createConnection() as any,
   concurrency: env.EMAIL_WORKER_CONCURRENCY,
 });
 
 export const notificationWorker = new Worker('notification', notificationWorkerHandler, {
-  connection: createConnection(),
+  connection: createConnection() as any,
   concurrency: env.NOTIFICATION_WORKER_CONCURRENCY,
 });
 
 export const analyticsWorker = new Worker('analytics', analyticsWorkerHandler, {
-  connection: createConnection(),
+  connection: createConnection() as any,
   concurrency: env.ANALYTICS_WORKER_CONCURRENCY,
 });
 
