@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import fs from 'fs';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';

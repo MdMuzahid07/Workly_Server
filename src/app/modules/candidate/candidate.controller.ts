@@ -1,7 +1,7 @@
-import httpStatus from "http-status";
-import asyncHandler from "../../../utils/asyncHandler.js";
-import sendApiResponse from "../../../utils/sendApiResponse.js";
-import candidateService from "./candidate.service.js";
+import httpStatus from 'http-status';
+import asyncHandler from '../../../utils/asyncHandler.js';
+import sendApiResponse from '../../../utils/sendApiResponse.js';
+import candidateService from './candidate.service.js';
 
 const getAllCandidates = asyncHandler(async (req, res) => {
   const employerId = (req.user as any)?.userId;
@@ -9,7 +9,7 @@ const getAllCandidates = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Candidates fetched successfully",
+    message: 'Candidates fetched successfully',
     meta: result.meta,
     data: result.data,
   });
@@ -21,7 +21,7 @@ const getCandidateById = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Candidate details fetched successfully",
+    message: 'Candidate details fetched successfully',
     data: result,
   });
 });
@@ -44,9 +44,29 @@ const getSavedCandidates = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Saved candidates fetched successfully",
+    message: 'Saved candidates fetched successfully',
     meta: result.meta,
     data: result.data,
+  });
+});
+
+const getCandidateSkillFacets = asyncHandler(async (req, res) => {
+  const result = await candidateService.getCandidateSkillFacets(req.query);
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Candidate skill facets fetched successfully',
+    data: result,
+  });
+});
+
+const getCandidateLocationFacets = asyncHandler(async (req, res) => {
+  const result = await candidateService.getCandidateLocationFacets(req.query);
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Candidate location facets fetched successfully',
+    data: result,
   });
 });
 
@@ -55,6 +75,8 @@ const candidateController = {
   getCandidateById,
   toggleSaveCandidate,
   getSavedCandidates,
+  getCandidateSkillFacets,
+  getCandidateLocationFacets,
 };
 
 export default candidateController;

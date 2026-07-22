@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import prisma from '../../../utils/prismaClient.js';
 import { TTLCache } from '../../../utils/entitlement.cache.js';
 

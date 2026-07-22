@@ -1,75 +1,77 @@
-import express from "express";
-import { UserRole } from "../../../generated/prisma/index.js";
-import authValidator from "../../middleware/authValidator.js";
-import requestValidator from "../../middleware/requestValidator.js";
-import companyController from "./company.controller.js";
-import companyValidation from "./company.validation.js";
+import express from 'express';
+import { UserRole } from '../../../generated/prisma/index.js';
+import authValidator from '../../middleware/authValidator.js';
+import { requireEntitlement } from '../../middleware/requireEntitlement.js';
+import requestValidator from '../../middleware/requestValidator.js';
+import companyController from './company.controller.js';
+import companyValidation from './company.validation.js';
 
 const router = express.Router();
 
-router.get("/companies", companyController.getCompanies);
+router.get('/companies', companyController.getCompanies);
 
 router.post(
-  "/new-company",
+  '/new-company',
   authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
   requestValidator(companyValidation.createCompany),
   companyController.createCompany,
 );
 
-router.get("/company/:slug", companyController.getCompanyBySlug);
+router.get('/company/:slug', companyController.getCompanyBySlug);
 
 router.delete(
-  "/delete/:companyId",
+  '/delete/:companyId',
   authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
   companyController.deleteCompanyById,
 );
 
 router.patch(
-  "/update/:companyId",
+  '/update/:companyId',
   authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
   requestValidator(companyValidation.updateCompany),
   companyController.updateCompanyById,
 );
 
 router.post(
-  "/add-team-member/:companyId",
+  '/add-team-member/:companyId',
   authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
-  // requestValidator(companyValidation.addTeamMember),
+  requireEntitlement('maxUsers'),
   companyController.addTeamMember,
 );
 
 router.delete(
-  "/remove-team-member/:companyId/:memberId",
+  '/remove-team-member/:companyId/:memberId',
   authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
   companyController.removeTeamMember,
 );
 
 router.get(
-  "/overview-statistics",
+  '/overview-statistics',
   authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
   companyController.getCompanyOverviewStatistics,
 );
 
 router.get(
-  "/my-company",
+  '/my-company',
   authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
   companyController.getMyCompany,
 );
 
 router.get(
-  "/employer-analytics",
+  '/employer-analytics',
   authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  requireEntitlement('canViewAnalytics'),
   companyController.getEmployerAnalytics,
 );
 
 // Company settings routes
 router.get(
-  "/:companyId/settings",
+  '/:companyId/settings',
   authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
   companyController.getSettings,
 );
 router.patch(
-  "/:companyId/settings",
+  '/:companyId/settings',
   authValidator(UserRole.EMPLOYER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
   // requestValidator(companyValidation.updateSettings), // Uncomment if you add validation
   companyController.updateSettings,

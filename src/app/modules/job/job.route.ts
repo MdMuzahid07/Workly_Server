@@ -17,6 +17,8 @@ router
     jobController.createJob,
   )
   .get('/suggestions', jobController.getSearchSuggestions)
+  .get('/skills/facets', jobController.getSkillFacets)
+  .get('/locations/facets', jobController.getLocationFacets)
   .get('/jobs', jobController.getJobs);
 
 router.get(

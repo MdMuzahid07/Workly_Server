@@ -275,9 +275,25 @@ const getCompanies = async (query: GetCompaniesQuery) => {
       socialLinks: true,
       benefits: true,
       industry: true,
+      _count: {
+        select: {
+          jobs: {
+            where: {
+              status: 'ACTIVE',
+              deletedAt: null,
+            },
+          },
+        },
+      },
     },
   });
-  return { data: result, meta: pagination };
+
+  const formattedResult = result.map((company) => ({
+    ...company,
+    openJobs: company._count?.jobs ?? 0,
+  }));
+
+  return { data: formattedResult, meta: pagination };
 };
 
 const deleteCompanyById = async (userId: string, companyId: string) => {

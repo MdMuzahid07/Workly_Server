@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import prisma from '../utils/prismaClient.js';
 import { entitlementCache } from '../utils/entitlement.cache.js';
 import { PlanFeatureFlags } from '../types/subscription.types.js';
@@ -112,92 +111,70 @@ export class EntitlementService {
 
   static async getCurrentUsage(
     userId: string,
-  ): Promise<{ jobsPosted: number; applicationsSubmitted: number; resumesUploaded: number }> {
-    const period = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+  ): Promise<{
+    jobsPosted: number;
+    applicationsSubmitted: number;
+    resumesUploaded: number;
+    teamMembers: number;
+  }> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true, companyId: true },
+    });
 
-    const [user, usage, resumeCount] = await Promise.all([
-      prisma.user.findUnique({
-        where: { id: userId },
-        select: { role: true, companyId: true },
-      }),
-      prisma.usageCounter.findUnique({
-        where: {
-          userId_period: {
-            userId,
-            period,
-          },
-        },
-      }),
+    const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+    const [activeJobsCount, appsCount, resumeCount, teamMembersCount] = await Promise.all([
+      user?.role === 'EMPLOYER' && user.companyId
+        ? prisma.job.count({
+            where: {
+              companyId: user.companyId,
+              status: 'ACTIVE',
+              deletedAt: null,
+            },
+          })
+        : Promise.resolve(0),
+      user?.role === 'JOB_SEEKER'
+        ? prisma.application.count({
+            where: {
+              applicantId: userId,
+              deletedAt: null,
+              createdAt: {
+                gte: monthStart,
+              },
+            },
+          })
+        : Promise.resolve(0),
       prisma.resume.count({
         where: {
           userId,
           deletedAt: null,
         },
       }),
+      user?.companyId
+        ? prisma.user.count({
+            where: {
+              companyId: user.companyId,
+              deletedAt: null,
+            },
+          })
+        : Promise.resolve(1),
     ]);
-
-    let activeJobsCount = usage?.jobsPosted ?? 0;
-    if (user?.role === 'EMPLOYER' && user.companyId) {
-      activeJobsCount = await prisma.job.count({
-        where: {
-          companyId: user.companyId,
-          status: 'ACTIVE',
-          deletedAt: null,
-        },
-      });
-    }
-
-    let appsCount = usage?.applicationsSubmitted ?? 0;
-    if (user?.role === 'JOB_SEEKER') {
-      const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-      appsCount = await prisma.application.count({
-        where: {
-          applicantId: userId,
-          deletedAt: null,
-          createdAt: {
-            gte: monthStart,
-          },
-        },
-      });
-    }
 
     return {
       jobsPosted: activeJobsCount,
       applicationsSubmitted: appsCount,
       resumesUploaded: resumeCount,
+      teamMembers: teamMembersCount,
     };
   }
 
   static async incrementUsage(
-    userId: string,
-    field: 'jobsPosted' | 'applicationsSubmitted',
+    _userId: string,
+    _field: 'jobsPosted' | 'applicationsSubmitted',
   ): Promise<void> {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { companyId: true },
-    });
-
-    if (!user) return;
-
-    const period = new Date().toISOString().slice(0, 7); // "YYYY-MM"
-
-    await prisma.usageCounter.upsert({
-      where: {
-        userId_period: {
-          userId,
-          period,
-        },
-      },
-      update: {
-        [field]: { increment: 1 },
-      },
-      create: {
-        userId,
-        companyId: user.companyId,
-        period,
-        [field]: 1,
-      },
-    });
+    // Usage is tracked dynamically via live aggregate queries in getCurrentUsage().
+    // Dead-weight writes to usage_counters table removed to eliminate write overhead & race conditions.
   }
 
   static invalidateCache(userId: string): void {

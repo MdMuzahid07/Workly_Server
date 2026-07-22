@@ -1,4 +1,4 @@
-import { PlanType } from "../generated/prisma/index.js";
+import { PlanType } from '../generated/prisma/index.js';
 
 export interface PlanFeatureFlags {
   maxActiveJobs: number;
@@ -12,7 +12,7 @@ export interface PlanFeatureFlags {
   canMessageEmployer: boolean;
 }
 
-export type UsageLimitKey = "maxActiveJobs" | "maxUsers" | "maxMonthlyApplications" | "maxResumes";
+export type UsageLimitKey = 'maxActiveJobs' | 'maxUsers' | 'maxMonthlyApplications' | 'maxResumes';
 
 export interface MySubscriptionResponse {
   planName: string;
@@ -28,6 +28,7 @@ export interface MySubscriptionResponse {
     jobsPosted: number;
     applicationsSubmitted: number;
     resumesUploaded: number;
+    teamMembers?: number;
   };
 }
 
@@ -40,7 +41,7 @@ export interface EntitlementErrorResponse {
   statusCode: number;
   message: string;
   error: {
-    code: "LIMIT_EXCEEDED" | "FEATURE_LOCKED";
+    code: 'LIMIT_EXCEEDED' | 'FEATURE_LOCKED';
     feature: keyof PlanFeatureFlags;
     limit?: number;
     current?: number;
