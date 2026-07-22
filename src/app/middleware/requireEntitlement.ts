@@ -1,8 +1,7 @@
-import type { NextFunction, Request, Response } from "express";
-import httpStatus from "http-status";
-import { EntitlementService } from "../../services/entitlement.service.js";
-import { PlanFeatureFlags } from "../../types/subscription.types.js";
-import prisma from "../../utils/prismaClient.js";
+import type { NextFunction, Request, Response } from 'express';
+import httpStatus from 'http-status';
+import { EntitlementService } from '../../services/entitlement.service.js';
+import { PlanFeatureFlags } from '../../types/subscription.types.js';
 
 export const requireEntitlement = (feature: keyof PlanFeatureFlags) => {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -12,22 +11,32 @@ export const requireEntitlement = (feature: keyof PlanFeatureFlags) => {
         return res.status(httpStatus.UNAUTHORIZED).json({
           success: false,
           statusCode: httpStatus.UNAUTHORIZED,
-          message: "User not authenticated",
+          message: 'User not authenticated',
         });
       }
 
       const entitlements = await EntitlementService.getUserEntitlements(user.userId);
-      const isBooleanFeature = typeof entitlements[feature] === "boolean";
+      const isBooleanFeature = typeof entitlements[feature] === 'boolean';
 
       if (isBooleanFeature) {
-        const hasAccess = entitlements[feature] as boolean;
+        let hasAccess = entitlements[feature] as boolean;
+        if (feature === 'canMessage' || feature === 'canMessageEmployer') {
+          if (user.role === 'JOB_SEEKER') {
+            hasAccess = entitlements.canMessageEmployer || entitlements.canMessage;
+          } else {
+            hasAccess = entitlements.canMessage;
+          }
+        } else if (feature === 'canViewProfileAnalytics') {
+          hasAccess = entitlements.canViewProfileAnalytics || entitlements.canViewAnalytics;
+        }
+
         if (!hasAccess) {
           return res.status(httpStatus.PAYMENT_REQUIRED).json({
             success: false,
             statusCode: httpStatus.PAYMENT_REQUIRED,
             message: `Your current plan does not include access to the '${feature}' feature. Please upgrade.`,
             error: {
-              code: "FEATURE_LOCKED",
+              code: 'FEATURE_LOCKED',
               feature,
             },
           });
@@ -38,24 +47,14 @@ export const requireEntitlement = (feature: keyof PlanFeatureFlags) => {
         const usage = await EntitlementService.getCurrentUsage(user.userId);
 
         let currentUsage = 0;
-        if (feature === "maxActiveJobs") {
+        if (feature === 'maxActiveJobs') {
           currentUsage = usage.jobsPosted;
-        } else if (feature === "maxMonthlyApplications") {
+        } else if (feature === 'maxMonthlyApplications') {
           currentUsage = usage.applicationsSubmitted;
-        } else if (feature === "maxResumes") {
+        } else if (feature === 'maxResumes') {
           currentUsage = usage.resumesUploaded;
-        } else if (feature === "maxUsers") {
-          const dbUser = await prisma.user.findUnique({
-            where: { id: user.userId },
-            select: { companyId: true },
-          });
-          if (dbUser?.companyId) {
-            currentUsage = await prisma.user.count({
-              where: { companyId: dbUser.companyId },
-            });
-          } else {
-            currentUsage = 1;
-          }
+        } else if (feature === 'maxUsers') {
+          currentUsage = usage.teamMembers;
         }
 
         if (currentUsage >= limit) {
@@ -64,7 +63,7 @@ export const requireEntitlement = (feature: keyof PlanFeatureFlags) => {
             statusCode: httpStatus.PAYMENT_REQUIRED,
             message: `Limit exceeded for feature '${feature}'. Limit: ${limit}, Current: ${currentUsage}. Please upgrade.`,
             error: {
-              code: "LIMIT_EXCEEDED",
+              code: 'LIMIT_EXCEEDED',
               feature,
               limit,
               current: currentUsage,

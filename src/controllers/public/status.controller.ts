@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { NextFunction, Request, Response } from 'express';
 import httpStatus from 'http-status';
 import { checkRedisHealth } from '../../lib/rateLimitStore.js';

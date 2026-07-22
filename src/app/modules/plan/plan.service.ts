@@ -11,7 +11,7 @@ interface PlanQueryParams {
 
 interface CreatePlanPayload {
   name: string;
-  planType?: string;
+  planType: string;
   description?: string;
   price: number | string;
   currency?: string;
@@ -20,9 +20,85 @@ interface CreatePlanPayload {
   maxActiveJobs?: number | string | null;
   maxUsers?: number | string | null;
   isActive?: boolean;
-  isCustom?: boolean;
+  isCustom: boolean;
   createdByAdminId?: string | null;
 }
+
+const createPlan = async (data: CreatePlanPayload) => {
+  if (!data.planType) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'planType is required (EMPLOYER or JOB_SEEKER)');
+  }
+  if (data.isCustom === undefined || data.isCustom === null) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'isCustom is required as a boolean');
+  }
+
+  let rawFeatures = data.features;
+  if (typeof rawFeatures === 'string') {
+    try {
+      rawFeatures = JSON.parse(rawFeatures);
+    } catch {
+      rawFeatures = [];
+    }
+  }
+
+  let displayFeatures: string[] = [];
+  let baseFeaturesObject: Record<string, any> = {};
+
+  if (Array.isArray(rawFeatures)) {
+    displayFeatures = rawFeatures;
+  } else if (typeof rawFeatures === 'object' && rawFeatures !== null) {
+    baseFeaturesObject = { ...rawFeatures };
+    if (Array.isArray(baseFeaturesObject.displayFeatures)) {
+      displayFeatures = baseFeaturesObject.displayFeatures;
+    }
+  }
+
+  const isEmployer = data.planType === PlanType.EMPLOYER || data.planType === 'EMPLOYER';
+  const maxJobs =
+    data.maxActiveJobs !== undefined && data.maxActiveJobs !== null
+      ? Number(data.maxActiveJobs)
+      : isEmployer
+        ? 95
+        : 0;
+  const maxUsersCount =
+    data.maxUsers !== undefined && data.maxUsers !== null
+      ? Number(data.maxUsers)
+      : isEmployer
+        ? 20
+        : 0;
+
+  const formattedFeatures: Record<string, any> = {
+    maxActiveJobs: maxJobs,
+    maxUsers: maxUsersCount,
+    maxMonthlyApplications: baseFeaturesObject.maxMonthlyApplications ?? (isEmployer ? 0 : 9999),
+    maxResumes: baseFeaturesObject.maxResumes ?? (isEmployer ? 0 : 9999),
+    canMessage: baseFeaturesObject.canMessage ?? isEmployer,
+    canViewAnalytics: baseFeaturesObject.canViewAnalytics ?? isEmployer,
+    canViewProfileAnalytics: baseFeaturesObject.canViewProfileAnalytics ?? !isEmployer,
+    isFeaturedProfile: baseFeaturesObject.isFeaturedProfile ?? !isEmployer,
+    canMessageEmployer: baseFeaturesObject.canMessageEmployer ?? !isEmployer,
+    displayFeatures,
+    ...baseFeaturesObject,
+  };
+
+  const plan = await prisma.plan.create({
+    data: {
+      name: data.name,
+      planType: data.planType as PlanType,
+      description: data.description,
+      price: Number(data.price),
+      currency: data.currency || 'BDT',
+      interval: data.interval || 'month',
+      features: formattedFeatures as Prisma.InputJsonValue,
+      maxActiveJobs: maxJobs,
+      maxUsers: maxUsersCount,
+      isActive: data.isActive !== undefined ? data.isActive : true,
+      isCustom: Boolean(data.isCustom),
+      createdByAdminId: data.createdByAdminId || null,
+    },
+  });
+  return plan;
+};
 
 interface UpdatePlanPayload {
   name?: string;
@@ -48,12 +124,13 @@ const SEED_PLANS = [
   {
     name: 'Free',
     planType: PlanType.EMPLOYER,
+    isCustom: false,
     description: 'Standard local recruiting package at zero cost.',
     price: 0.0,
     currency: 'BDT',
     interval: 'month',
     features: {
-      maxActiveJobs: 1,
+      maxActiveJobs: 3,
       maxUsers: 1,
       maxMonthlyApplications: 0,
       maxResumes: 0,
@@ -63,22 +140,53 @@ const SEED_PLANS = [
       isFeaturedProfile: false,
       canMessageEmployer: false,
       durationMonths: 0,
-      displayFeatures: ['1 active job listing', '1 user account', 'Standard applicant tracking'],
+      displayFeatures: ['3 active job listings', '1 user account', 'Standard applicant tracking'],
     },
-    maxActiveJobs: 1,
+    maxActiveJobs: 3,
     maxUsers: 1,
+    isActive: true,
+  },
+  {
+    name: 'Starter',
+    planType: PlanType.EMPLOYER,
+    isCustom: false,
+    description: 'Essential recruiting tools for growing small businesses.',
+    price: 1999.0,
+    currency: 'BDT',
+    interval: 'month',
+    features: {
+      maxActiveJobs: 5,
+      maxUsers: 2,
+      maxMonthlyApplications: 0,
+      maxResumes: 0,
+      canMessage: true,
+      canViewAnalytics: false,
+      canViewProfileAnalytics: false,
+      isFeaturedProfile: false,
+      canMessageEmployer: false,
+      durationMonths: 1,
+      displayFeatures: [
+        '5 active job listings',
+        '2 user accounts',
+        'Direct candidate messaging',
+        'Standard applicant tracking',
+      ],
+    },
+    maxActiveJobs: 5,
+    maxUsers: 2,
     isActive: true,
   },
   {
     name: 'Growth',
     planType: PlanType.EMPLOYER,
-    description: 'Best for growing teams and active recruitment campaigns.',
-    price: 7999.0,
+    isCustom: false,
+    description: 'Best for active teams with regular recruitment campaigns.',
+    price: 6999.0,
     currency: 'BDT',
     interval: 'month',
     features: {
-      maxActiveJobs: 10,
-      maxUsers: 4,
+      maxActiveJobs: 15,
+      maxUsers: 5,
       maxMonthlyApplications: 0,
       maxResumes: 0,
       canMessage: true,
@@ -88,45 +196,77 @@ const SEED_PLANS = [
       canMessageEmployer: false,
       durationMonths: 1,
       displayFeatures: [
-        '10 active job listings',
-        '4 user accounts',
+        '15 active job listings',
+        '5 user accounts',
         'Direct candidate messaging',
         'Basic analytics dashboard',
       ],
     },
-    maxActiveJobs: 10,
-    maxUsers: 4,
+    maxActiveJobs: 15,
+    maxUsers: 5,
+    isActive: true,
+  },
+  {
+    name: 'Business',
+    planType: PlanType.EMPLOYER,
+    isCustom: false,
+    description: 'Advanced features for mid-size hiring teams & agencies.',
+    price: 14999.0,
+    currency: 'BDT',
+    interval: 'month',
+    features: {
+      maxActiveJobs: 30,
+      maxUsers: 10,
+      maxMonthlyApplications: 0,
+      maxResumes: 0,
+      canMessage: true,
+      canViewAnalytics: true,
+      canViewProfileAnalytics: false,
+      isFeaturedProfile: true,
+      canMessageEmployer: false,
+      durationMonths: 1,
+      displayFeatures: [
+        '30 active job listings',
+        '10 user accounts',
+        'Direct candidate messaging',
+        'Advanced analytics dashboard',
+        'Featured company profile',
+      ],
+    },
+    maxActiveJobs: 30,
+    maxUsers: 10,
     isActive: true,
   },
   {
     name: 'Enterprise',
     planType: PlanType.EMPLOYER,
-    description: 'Unlimited options and custom solutions for large corporate teams.',
+    isCustom: false,
+    description: 'Legacy enterprise tier. Replaced by Custom Enterprise Builder.',
     price: 24999.0,
     currency: 'BDT',
     interval: 'month',
     features: {
-      maxActiveJobs: 9999,
-      maxUsers: 9999,
+      maxActiveJobs: 95,
+      maxUsers: 20,
       maxMonthlyApplications: 0,
       maxResumes: 0,
       canMessage: true,
       canViewAnalytics: true,
       canViewProfileAnalytics: false,
-      isFeaturedProfile: false,
+      isFeaturedProfile: true,
       canMessageEmployer: false,
       durationMonths: 1,
       displayFeatures: [
-        'Unlimited active jobs',
-        'Unlimited user accounts',
+        '95+ active job listings',
+        '20+ user accounts',
         'Direct candidate messaging',
         'Advanced analytics dashboard',
         'Priority customer support',
       ],
     },
-    maxActiveJobs: 9999,
-    maxUsers: 9999,
-    isActive: true,
+    maxActiveJobs: 95,
+    maxUsers: 20,
+    isActive: false,
   },
 
   // ── Job Seeker plans ────────────────────────────────────────────────────────
@@ -354,31 +494,6 @@ const getPlans = async (query: PlanQueryParams) => {
       subscriberCount: activeSubCount,
     };
   });
-};
-
-const createPlan = async (data: CreatePlanPayload) => {
-  let features = data.features;
-  if (typeof features === 'string') {
-    features = JSON.parse(features);
-  }
-
-  const plan = await prisma.plan.create({
-    data: {
-      name: data.name,
-      planType: (data.planType as PlanType) || PlanType.JOB_SEEKER,
-      description: data.description,
-      price: Number(data.price),
-      currency: data.currency || 'BDT',
-      interval: data.interval || 'month',
-      features: features as Prisma.InputJsonValue,
-      maxActiveJobs: data.maxActiveJobs ? Number(data.maxActiveJobs) : null,
-      maxUsers: data.maxUsers ? Number(data.maxUsers) : null,
-      isActive: data.isActive !== undefined ? data.isActive : true,
-      isCustom: data.isCustom !== undefined ? data.isCustom : false,
-      createdByAdminId: data.createdByAdminId || null,
-    },
-  });
-  return plan;
 };
 
 const updatePlan = async (id: string, data: UpdatePlanPayload) => {

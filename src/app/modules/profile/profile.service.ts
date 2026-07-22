@@ -1,8 +1,8 @@
-import httpStatus from "http-status";
-import prisma from "../../../utils/prismaClient.js";
-import AppError from "../../error/AppError.js";
-import type { IProfile, ISkill } from "./profile.interface.js";
-import { env } from "../../../config/index.js";
+import httpStatus from 'http-status';
+import prisma from '../../../utils/prismaClient.js';
+import AppError from '../../error/AppError.js';
+import type { IProfile, ISkill } from './profile.interface.js';
+import { env } from '../../../config/index.js';
 
 const createProfile = async (userId: string, payload: IProfile) => {
   const isUserExits = await prisma.user.findUnique({
@@ -33,17 +33,17 @@ const createProfile = async (userId: string, payload: IProfile) => {
     const userProfile = await transactor.profile.create({
       data: {
         userId: userId,
-        bio: payload.bio || "",
-        location: payload.location || "",
-        avatarUrl: payload.avatarUrl || "",
-        coverUrl: payload.coverUrl || "",
-        resumeUrl: payload.resumeUrl || "",
-        videoResumeUrl: payload.videoResumeUrl || "",
-        linkedInUrl: payload.linkedInUrl || "",
-        websiteUrl: payload.websiteUrl || "",
-        githubUrl: payload.githubUrl || "",
-        twitterUrl: payload.twitterUrl || "",
-        facebookUrl: payload.facebookUrl || "",
+        bio: payload.bio || '',
+        location: payload.location || '',
+        avatarUrl: payload.avatarUrl || '',
+        coverUrl: payload.coverUrl || '',
+        resumeUrl: payload.resumeUrl || '',
+        videoResumeUrl: payload.videoResumeUrl || '',
+        linkedInUrl: payload.linkedInUrl || '',
+        websiteUrl: payload.websiteUrl || '',
+        githubUrl: payload.githubUrl || '',
+        twitterUrl: payload.twitterUrl || '',
+        facebookUrl: payload.facebookUrl || '',
       },
     });
 
@@ -70,12 +70,12 @@ const createProfile = async (userId: string, payload: IProfile) => {
       await transactor.preference.create({
         data: {
           profileId: userProfile.id,
-          jobType: payload.preference.jobType || "FULL_TIME",
+          jobType: payload.preference.jobType || 'FULL_TIME',
           expectedSalary: payload.preference.expectedSalary || 0,
-          preferredLocation: payload.preference.preferredLocation || "",
+          preferredLocation: payload.preference.preferredLocation || '',
           remoteWork: payload.preference.remoteWork || false,
-          industry: payload.preference.industry || "",
-          workExperience: payload.preference.workExperience || "",
+          industry: payload.preference.industry || '',
+          workExperience: payload.preference.workExperience || '',
         },
       });
     }
@@ -88,7 +88,7 @@ const createProfile = async (userId: string, payload: IProfile) => {
 
 const myProfile = async (userId: string) => {
   if (!userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Not authorized');
   }
 
   const result = await prisma.user.findUnique({
@@ -128,24 +128,24 @@ const myProfile = async (userId: string) => {
   });
 
   if (!result) {
-    throw new AppError(httpStatus.NOT_FOUND, "Profile not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'Profile not found');
   }
 
   const rest = result;
 
   let isPremium = rest.isPremium;
-  if (!isPremium && rest.role === "EMPLOYER" && rest.companyId) {
+  if (!isPremium && rest.role === 'EMPLOYER' && rest.companyId) {
     const activeSub = await prisma.subscription.findUnique({
       where: { companyId: rest.companyId },
     });
-    if (activeSub && activeSub.status === "ACTIVE") {
+    if (activeSub && activeSub.status === 'ACTIVE') {
       isPremium = true;
     }
   }
 
   return {
     ...rest,
-    isPremium: env.NODE_ENV !== "production" ? true : isPremium,
+    isPremium: env.NODE_ENV !== 'production' ? true : isPremium,
   };
 };
 
@@ -153,9 +153,9 @@ const updateMyProfile = async (
   userId: string,
   payload: Partial<IProfile> & { phone?: string; fullName?: string },
 ) => {
-  console.log("Updating profile for user:", userId, "Payload keys:", Object.keys(payload));
+  console.log('Updating profile for user:', userId, 'Payload keys:', Object.keys(payload));
   if (!userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Not authorized');
   }
 
   const isUserExits = await prisma.user.findUnique({
@@ -195,7 +195,7 @@ const updateMyProfile = async (
     if (payload.resumeUrl !== undefined) profileUpdateData.resumeUrl = payload.resumeUrl;
     if (payload.videoResumeUrl !== undefined) {
       if (payload.videoResumeUrl && !isUserExits.isPremium) {
-        throw new AppError(httpStatus.FORBIDDEN, "Only premium users can upload a video resume.");
+        throw new AppError(httpStatus.FORBIDDEN, 'Only premium users can upload a video resume.');
       }
       profileUpdateData.videoResumeUrl = payload.videoResumeUrl;
     }
@@ -224,7 +224,13 @@ const updateMyProfile = async (
 
     // --- Helper function to strip extra fields ---
     const stripFields = (data: any) => {
-      const { id, profileId, createdAt, updatedAt, ...rest } = data;
+      const {
+        id: _id,
+        profileId: _profileId,
+        createdAt: _createdAt,
+        updatedAt: _updatedAt,
+        ...rest
+      } = data;
       return rest;
     };
 
@@ -257,7 +263,7 @@ const updateMyProfile = async (
 
       for (const skill of payload.skills) {
         const skillData = {
-          skillName: skill.skillName || (skill as any).skill || "",
+          skillName: skill.skillName || (skill as any).skill || '',
           experienceYears: skill.experienceYears ? Number(skill.experienceYears) : 0,
         };
         if (skill.id) {
@@ -588,7 +594,7 @@ const updateMyProfile = async (
 
 const saveJobs = async (userId: string, jobId: string) => {
   if (!userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Not authorized');
   }
 
   const isUserExits = await prisma.user.findUnique({
@@ -614,7 +620,7 @@ const saveJobs = async (userId: string, jobId: string) => {
   });
 
   if (!jobExists) {
-    throw new AppError(httpStatus.NOT_FOUND, "Job not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'Job not found');
   }
 
   const existingSavedJob = await prisma.savedJob.findUnique({
@@ -637,8 +643,8 @@ const saveJobs = async (userId: string, jobId: string) => {
     });
 
     return {
-      action: "unsaved",
-      message: "Job removed from saved jobs",
+      action: 'unsaved',
+      message: 'Job removed from saved jobs',
       savedJob: null,
     };
   } else {
@@ -658,8 +664,8 @@ const saveJobs = async (userId: string, jobId: string) => {
     });
 
     return {
-      action: "saved",
-      message: "Job saved successfully",
+      action: 'saved',
+      message: 'Job saved successfully',
       savedJob: result,
     };
   }
@@ -667,7 +673,7 @@ const saveJobs = async (userId: string, jobId: string) => {
 
 const getSavedJobs = async (userId: string, query: any = {}) => {
   if (!userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Not authorized');
   }
 
   const isUserExits = await prisma.user.findUnique({
@@ -694,9 +700,9 @@ const getSavedJobs = async (userId: string, query: any = {}) => {
     whereClause.folderName = folderName;
   }
 
-  if (status && status !== "all") {
-    if (status === "ACTIVE") {
-      whereClause.job.status = { in: ["ACTIVE", "DRAFT"] };
+  if (status && status !== 'all') {
+    if (status === 'ACTIVE') {
+      whereClause.job.status = { in: ['ACTIVE', 'DRAFT'] };
     } else {
       whereClause.job.status = status;
     }
@@ -704,12 +710,12 @@ const getSavedJobs = async (userId: string, query: any = {}) => {
 
   if (searchTerm) {
     whereClause.job.OR = [
-      { title: { contains: searchTerm, mode: "insensitive" } },
-      { company: { name: { contains: searchTerm, mode: "insensitive" } } },
+      { title: { contains: searchTerm, mode: 'insensitive' } },
+      { company: { name: { contains: searchTerm, mode: 'insensitive' } } },
     ];
   }
 
-  if (company && company !== "all") {
+  if (company && company !== 'all') {
     whereClause.job.company = { name: company };
   }
 
@@ -738,7 +744,7 @@ const getSavedJobs = async (userId: string, query: any = {}) => {
       skip,
       take: Number(limit),
       orderBy: {
-        createdAt: "desc",
+        createdAt: 'desc',
       },
     }),
     prisma.savedJob.count({
@@ -749,7 +755,7 @@ const getSavedJobs = async (userId: string, query: any = {}) => {
         userId,
         job: {
           deletedAt: null,
-          status: "ACTIVE",
+          status: 'ACTIVE',
           applicationDeadline: {
             gt: now,
             lte: sevenDaysLater,
@@ -806,11 +812,11 @@ const updateSavedJob = async (
   payload: { folderName?: string; notes?: string },
 ) => {
   if (!userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Not authorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Not authorized');
   }
 
   if (!jobId) {
-    throw new Error("Job ID is required");
+    throw new Error('Job ID is required');
   }
 
   const isUserExits = await prisma.user.findUnique({
@@ -833,7 +839,7 @@ const updateSavedJob = async (
   });
 
   if (!savedJob) {
-    throw new AppError(httpStatus.NOT_FOUND, "Saved job not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'Saved job not found');
   }
 
   const updateData: any = {};

@@ -45,7 +45,6 @@ export async function initRateLimiters(): Promise<void> {
   if (store) {
     // @ts-expect-error — express-rate-limit allows store to be set after construction
     globalLimiter.store = store;
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-expect-error
     authLimiter.store = store;
   }

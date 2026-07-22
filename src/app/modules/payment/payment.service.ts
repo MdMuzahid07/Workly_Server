@@ -1,18 +1,18 @@
-import crypto from "crypto";
-import httpStatus from "http-status";
-import SSLCommerzPayment from "sslcommerz-lts";
-import prisma from "../../../utils/prismaClient.js";
-import AppError from "../../error/AppError.js";
-import config from "../../../config/index.js";
+import crypto from 'crypto';
+import httpStatus from 'http-status';
+import SSLCommerzPayment from 'sslcommerz-lts';
+import prisma from '../../../utils/prismaClient.js';
+import AppError from '../../error/AppError.js';
+import config from '../../../config/index.js';
 import {
   PaymentCategory,
   PaymentStatus,
   SubscriptionStatus,
   PlanType,
-} from "../../../generated/prisma/index.js";
-import { InitiatePaymentPayload } from "./payment.interface.js";
-import notificationService from "../notification/notification.service.js";
-import { EntitlementService } from "../../../services/entitlement.service.js";
+} from '../../../generated/prisma/index.js';
+import { InitiatePaymentPayload } from './payment.interface.js';
+import notificationService from '../notification/notification.service.js';
+import { EntitlementService } from '../../../services/entitlement.service.js';
 
 // Initialize SSLCommerz instance
 const sslcz = new SSLCommerzPayment(
@@ -30,8 +30,8 @@ const initiatePayment = async (
   companyId?: string,
 ) => {
   // Generate transaction ID: strictly <= 30 chars
-  // TXN-[13 char epoch]-[4 char random] => 22 chars
-  const tranId = `TXN-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+  // TXN-[13 char epoch]-[6 hex chars] => 24 chars, 16.7M unique values per ms
+  const tranId = `TXN-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
 
   // Find user details to ensure accuracy
   const user = await prisma.user.findUnique({
@@ -40,25 +40,25 @@ const initiatePayment = async (
   });
 
   if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
 
   // ── First-time package discount calculated 100% from backend ────────────────
   // Lookup target plan configuration in database to obtain price & discount configs
   const mappedPlanId =
-    payload.planId === "cand_starter"
-      ? "Starter"
-      : payload.planId === "cand_pro"
-        ? "Pro"
-        : payload.planId === "cand_elite" || payload.planId === "cand_job_seeker_max"
-          ? "Premium"
+    payload.planId === 'cand_starter'
+      ? 'Starter'
+      : payload.planId === 'cand_pro'
+        ? 'Pro'
+        : payload.planId === 'cand_elite' || payload.planId === 'cand_job_seeker_max'
+          ? 'Premium'
           : payload.planId;
 
   const dbPlan = await prisma.plan.findFirst({
     where: {
       name: {
         equals: mappedPlanId,
-        mode: "insensitive",
+        mode: 'insensitive',
       },
       planType:
         payload.category === PaymentCategory.EMPLOYER_PLAN
@@ -72,15 +72,22 @@ const initiatePayment = async (
     if (!companyId) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        "Company identification is required to purchase subscriptions.",
+        'Company identification is required to purchase subscriptions.',
       );
     }
   }
 
-  let finalAmount =
-    typeof payload.amount === "string" ? parseFloat(payload.amount) : payload.amount;
+  // SECURITY: Never trust client-supplied amount. Always derive from DB plan price.
+  if (!dbPlan) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `Plan '${mappedPlanId}' not found. Cannot initiate payment.`,
+    );
+  }
 
-  if (dbPlan && payload.category === PaymentCategory.SEEKER_PREMIUM) {
+  let finalAmount = dbPlan.price;
+
+  if (payload.category === PaymentCategory.SEEKER_PREMIUM) {
     const planFeatures = dbPlan.features as any;
     const discountPercent = Number(planFeatures?.firstTimeDiscountPercent || 0);
 
@@ -106,7 +113,7 @@ const initiatePayment = async (
   }
 
   // Pre-check plan or subscription info based on category
-  let productName = "Premium Upgrade";
+  let productName = 'Premium Upgrade';
   if (payload.category === PaymentCategory.EMPLOYER_PLAN) {
     productName = `Employer ${payload.planId} Subscription`;
   } else {
@@ -120,7 +127,7 @@ const initiatePayment = async (
       userId,
       companyId: payload.category === PaymentCategory.EMPLOYER_PLAN ? companyId || null : null,
       amount: finalAmount,
-      currency: payload.currency || "BDT",
+      currency: payload.currency || 'BDT',
       status: PaymentStatus.PENDING,
       category: payload.category,
       planId: payload.planId,
@@ -138,36 +145,36 @@ const initiatePayment = async (
   // SSLCommerz payment data structure
   const basePaymentData = {
     total_amount: finalAmount,
-    currency: payload.currency || "BDT",
+    currency: payload.currency || 'BDT',
     tran_id: tranId,
     success_url: successUrl,
     fail_url: failUrl,
     cancel_url: cancelUrl,
     ipn_url: ipnUrl,
     // mandatory digital product attributes
-    shipping_method: "NO",
-    product_profile: "non-physical-goods",
+    shipping_method: 'NO',
+    product_profile: 'non-physical-goods',
     product_name: productName,
-    product_category: "Digital Service",
+    product_category: 'Digital Service',
     num_of_item: 1,
     // customer details
     cus_name: payload.cusName || user.fullName,
     cus_email: payload.cusEmail || user.email,
-    cus_phone: payload.cusPhone || user.phone || "01700000000",
-    cus_add1: payload.cusAdd1 || user.profile?.location || "Dhaka",
-    cus_city: payload.cusCity || "Dhaka",
-    cus_postcode: payload.cusPostcode || "1000",
-    cus_country: payload.cusCountry || "Bangladesh",
+    cus_phone: payload.cusPhone || user.phone || '01700000000',
+    cus_add1: payload.cusAdd1 || user.profile?.location || 'Dhaka',
+    cus_city: payload.cusCity || 'Dhaka',
+    cus_postcode: payload.cusPostcode || '1000',
+    cus_country: payload.cusCountry || 'Bangladesh',
   };
 
   // Map frontend selected channel to SSLCommerz card parameters for direct landing bypass
   let sslCardName: string | undefined = undefined;
   if (payload.paymentChannel) {
     const ch = payload.paymentChannel.toLowerCase();
-    if (ch === "bkash") sslCardName = "bkash";
-    else if (ch === "nagad") sslCardName = "nagad";
-    else if (ch === "rocket") sslCardName = "dbblrocket";
-    else if (ch === "cards") sslCardName = "visa,mastercard,dbblnexus,amex";
+    if (ch === 'bkash') sslCardName = 'bkash';
+    else if (ch === 'nagad') sslCardName = 'nagad';
+    else if (ch === 'rocket') sslCardName = 'dbblrocket';
+    else if (ch === 'cards') sslCardName = 'visa,mastercard,dbblnexus,amex';
   }
 
   const paymentData = {
@@ -178,7 +185,7 @@ const initiatePayment = async (
   try {
     const apiResponse = await sslcz.init(paymentData);
 
-    if (apiResponse?.status === "SUCCESS" && apiResponse?.GatewayPageURL) {
+    if (apiResponse?.status === 'SUCCESS' && apiResponse?.GatewayPageURL) {
       // Save sessionKey to database for independent query recoveries
       await prisma.paymentTransaction.update({
         where: { id: transaction.id },
@@ -206,7 +213,7 @@ const initiatePayment = async (
       }
 
       console.info(
-        `[Payment] Initiated payment session: channel: ${payload.paymentChannel || "DEFAULT"} | directUrl: ${finalGatewayUrl}`,
+        `[Payment] Initiated payment session: channel: ${payload.paymentChannel || 'DEFAULT'} | directUrl: ${finalGatewayUrl}`,
       );
 
       return {
@@ -214,14 +221,17 @@ const initiatePayment = async (
         tranId,
       };
     } else {
-      console.error("SSLCommerz Init Error response:", apiResponse);
-      const failedReason = apiResponse?.failedreason || "";
-      let errorMessage = failedReason || "Failed to initialize secure payment session";
+      console.error('SSLCommerz Init Error:', {
+        status: apiResponse?.status,
+        failedreason: apiResponse?.failedreason,
+      });
+      const failedReason = apiResponse?.failedreason || '';
+      let errorMessage = failedReason || 'Failed to initialize secure payment session';
 
       if (
-        failedReason.toLowerCase().includes("credential") ||
-        failedReason.toLowerCase().includes("de-active") ||
-        config.sslcommerz.store_id === "testbox"
+        failedReason.toLowerCase().includes('credential') ||
+        failedReason.toLowerCase().includes('de-active') ||
+        config.sslcommerz.store_id === 'testbox'
       ) {
         errorMessage =
           "SSLCommerz Sandbox credentials are not configured or have expired. Please register for a free sandbox account at https://developer.sslcommerz.com/registration/ and set your SSLCOMMERZ_STORE_ID and SSLCOMMERZ_STORE_PASSWD in the server's .env file.";
@@ -230,10 +240,10 @@ const initiatePayment = async (
       throw new AppError(httpStatus.BAD_REQUEST, errorMessage);
     }
   } catch (error: any) {
-    console.error("SSLCommerz Integration Exception:", error);
+    console.error('SSLCommerz Integration Exception:', error);
     throw new AppError(
       httpStatus.INTERNAL_SERVER_ERROR,
-      error?.message || "Failed to contact payment gateway provider",
+      error?.message || 'Failed to contact payment gateway provider',
     );
   }
 };
@@ -250,32 +260,32 @@ const verifyCallbackSignature = (payload: any): boolean => {
 
   try {
     // 1. Split keys specified by verify_key
-    const keys = verify_key.split(",");
+    const keys = verify_key.split(',');
 
     // 2. Sort the keys alphabetically
     keys.sort();
 
     // 3. Build a query string of key=value pairs
     const queryParts = keys.map((key: string) => {
-      return `${key}=${payload[key] || ""}`;
+      return `${key}=${payload[key] || ''}`;
     });
 
     // 4. Calculate MD5 hash of our store password
     const storePasswdHash = crypto
-      .createHash("md5")
+      .createHash('md5')
       .update(config.sslcommerz.store_passwd)
-      .digest("hex");
+      .digest('hex');
 
     // 5. Append the password MD5 hash to the end of the parameters query string
-    const stringToVerify = queryParts.join("&") + `&store_passwd=${storePasswdHash}`;
+    const stringToVerify = queryParts.join('&') + `&store_passwd=${storePasswdHash}`;
 
     // 6. Calculate MD5 of the final string
-    const computedSignature = crypto.createHash("md5").update(stringToVerify).digest("hex");
+    const computedSignature = crypto.createHash('md5').update(stringToVerify).digest('hex');
 
     // 7. Match against the verify_sign from callback
     return computedSignature.toLowerCase() === verify_sign.toLowerCase();
   } catch (error) {
-    console.error("Signature Validation Error:", error);
+    console.error('Signature Validation Error:', error);
     return false;
   }
 };
@@ -291,7 +301,7 @@ const validatePayment = async (tranId: string, valId: string, payload: any) => {
   });
 
   if (!transaction) {
-    throw new AppError(httpStatus.NOT_FOUND, "Transaction record not found in system");
+    throw new AppError(httpStatus.NOT_FOUND, 'Transaction record not found in system');
   }
 
   // If already validated, bypass to avoid double upgrades
@@ -302,7 +312,7 @@ const validatePayment = async (tranId: string, valId: string, payload: any) => {
   // 2. Signature verification (Enforced in production; warnings only in sandbox)
   const isSignatureValid = verifyCallbackSignature(payload);
   if (!isSignatureValid) {
-    console.warn("Callback signature mismatch detected!");
+    console.warn('Callback signature mismatch detected!');
     if (config.sslcommerz.is_live) {
       await prisma.paymentTransaction.update({
         where: { id: transaction.id },
@@ -310,24 +320,24 @@ const validatePayment = async (tranId: string, valId: string, payload: any) => {
       });
       throw new AppError(
         httpStatus.UNAUTHORIZED,
-        "Security Violation: Callback signature mismatch!",
+        'Security Violation: Callback signature mismatch!',
       );
     } else {
-      console.warn("Sandbox Mode: Bypassing signature mismatch for local testing.");
+      console.warn('Sandbox Mode: Bypassing signature mismatch for local testing.');
     }
   }
 
   // 3. Server-to-server transaction validation query
   const validationResult = await sslcz.validate({ val_id: valId });
 
-  if (validationResult?.status !== "VALID" && validationResult?.status !== "VALIDATED") {
+  if (validationResult?.status !== 'VALID' && validationResult?.status !== 'VALIDATED') {
     await prisma.paymentTransaction.update({
       where: { id: transaction.id },
       data: { status: PaymentStatus.FAILED },
     });
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "Transaction is invalid according to gateway validation",
+      'Transaction is invalid according to gateway validation',
     );
   }
 
@@ -340,7 +350,7 @@ const validatePayment = async (tranId: string, valId: string, payload: any) => {
       where: { id: transaction.id },
       data: { status: PaymentStatus.FAILED },
     });
-    throw new AppError(httpStatus.BAD_REQUEST, "Security Violation: Amount or Currency mismatch!");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Security Violation: Amount or Currency mismatch!');
   }
 
   // 5. Check risk level
@@ -384,17 +394,21 @@ const validatePayment = async (tranId: string, valId: string, payload: any) => {
       if (!transaction.companyId) {
         throw new AppError(
           httpStatus.BAD_REQUEST,
-          "Company identification missing for corporate upgrade",
+          'Company identification missing for corporate upgrade',
         );
       }
 
       // Ensure Plan exists in database
       const mappedPlanName =
-        transaction.planId === "emp_starter" || transaction.planId === "emp_pro"
-          ? "Growth"
-          : transaction.planId === "emp_enterprise" || transaction.planId === "emp_ultimate"
-            ? "Enterprise"
-            : transaction.planId;
+        transaction.planId === 'emp_starter'
+          ? 'Starter'
+          : transaction.planId === 'emp_growth' || transaction.planId === 'emp_pro'
+            ? 'Growth'
+            : transaction.planId === 'emp_business'
+              ? 'Business'
+              : transaction.planId === 'emp_enterprise' || transaction.planId === 'emp_ultimate'
+                ? 'Enterprise'
+                : transaction.planId;
       let dbPlan = await tx.plan.findUnique({
         where: {
           name_planType: {
@@ -466,7 +480,7 @@ const validatePayment = async (tranId: string, valId: string, payload: any) => {
           invoiceNumber: `INV-${transaction.tranId}`,
           amount: transaction.amount,
           currency: transaction.currency,
-          status: "PAID",
+          status: 'PAID',
           paidAt: new Date(),
         },
       });
@@ -480,12 +494,12 @@ const validatePayment = async (tranId: string, valId: string, payload: any) => {
       // Ensure Plan exists in database
       // Map legacy planIds and current direct plan names through to DB name
       const mappedPlanName =
-        transaction.planId === "cand_starter"
-          ? "Starter"
-          : transaction.planId === "cand_pro"
-            ? "Pro"
-            : transaction.planId === "cand_elite" || transaction.planId === "cand_job_seeker_max"
-              ? "Premium"
+        transaction.planId === 'cand_starter'
+          ? 'Starter'
+          : transaction.planId === 'cand_pro'
+            ? 'Pro'
+            : transaction.planId === 'cand_elite' || transaction.planId === 'cand_job_seeker_max'
+              ? 'Premium'
               : transaction.planId; // Direct names (Starter/Pro/Premium) pass through
       let dbPlan = await tx.plan.findUnique({
         where: {
@@ -503,7 +517,7 @@ const validatePayment = async (tranId: string, valId: string, payload: any) => {
       // Use durationMonths from plan features to set the correct subscription period
       const planFeatures = dbPlan.features as any;
       const durationMonths =
-        typeof planFeatures?.durationMonths === "number" && planFeatures.durationMonths > 0
+        typeof planFeatures?.durationMonths === 'number' && planFeatures.durationMonths > 0
           ? planFeatures.durationMonths
           : 1;
 
@@ -564,7 +578,7 @@ const validatePayment = async (tranId: string, valId: string, payload: any) => {
           invoiceNumber: `INV-SEEKER-${transaction.tranId}`,
           amount: transaction.amount,
           currency: transaction.currency,
-          status: "PAID",
+          status: 'PAID',
           paidAt: new Date(),
         },
       });
@@ -581,25 +595,28 @@ const validatePayment = async (tranId: string, valId: string, payload: any) => {
 
   // Trigger Notifications after transaction commits successfully
   if (updatedTransaction.status === PaymentStatus.VALIDATED) {
-    try {
-      if (updatedTransaction.category === PaymentCategory.EMPLOYER_PLAN) {
-        await notificationService.createNotification({
-          userId: updatedTransaction.userId,
-          type: "SYSTEM_ANNOUNCEMENT",
-          title: "Business Subscription Activated! 🚀",
-          message: `Congratulations! Your company's subscription has been activated successfully. Transaction: ${updatedTransaction.tranId}`,
-        });
-      } else if (updatedTransaction.category === PaymentCategory.SEEKER_PREMIUM) {
-        await notificationService.createNotification({
-          userId: updatedTransaction.userId,
-          type: "SYSTEM_ANNOUNCEMENT",
-          title: "Premium Subscription Activated! 👑",
-          message: `Congratulations! Your Pro Candidate subscription has been activated successfully. Transaction: ${updatedTransaction.tranId}`,
-        });
+    // Fire-and-forget: dispatch asynchronously so IPN response speed is not impacted
+    (async () => {
+      try {
+        if (updatedTransaction.category === PaymentCategory.EMPLOYER_PLAN) {
+          await notificationService.createNotification({
+            userId: updatedTransaction.userId,
+            type: 'SYSTEM_ANNOUNCEMENT',
+            title: 'Business Subscription Activated! 🚀',
+            message: `Congratulations! Your company's subscription has been activated successfully. Transaction: ${updatedTransaction.tranId}`,
+          });
+        } else if (updatedTransaction.category === PaymentCategory.SEEKER_PREMIUM) {
+          await notificationService.createNotification({
+            userId: updatedTransaction.userId,
+            type: 'SYSTEM_ANNOUNCEMENT',
+            title: 'Premium Subscription Activated! 👑',
+            message: `Congratulations! Your Pro Candidate subscription has been activated successfully. Transaction: ${updatedTransaction.tranId}`,
+          });
+        }
+      } catch (error) {
+        console.error('Failed to send post-payment notification:', error);
       }
-    } catch (error) {
-      console.error("Failed to send post-payment notification:", error);
-    }
+    })();
   }
 
   // Invalidate entitlement cache
@@ -666,12 +683,12 @@ const getTransactions = async (
   search?: string,
   status?: string,
 ) => {
-  const isAdmin = role === "ADMIN" || role === "SUPER_ADMIN";
+  const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN';
 
   // Fire-and-forget stale expiry for admin requests only.
   // No await — never blocks the response.
   if (isAdmin) {
-    expireStaleTransactions(24).catch((err) => console.error("[payment] stale expiry error:", err));
+    expireStaleTransactions(24).catch((err) => console.error('[payment] stale expiry error:', err));
   }
 
   const skip = (page - 1) * limit;
@@ -682,16 +699,16 @@ const getTransactions = async (
   }
 
   if (status) {
-    if (status === "PAID") {
+    if (status === 'PAID') {
       whereQuery.status = PaymentStatus.VALIDATED;
-    } else if (status === "ABANDONED") {
+    } else if (status === 'ABANDONED') {
       // Abandoned = user started checkout but never completed it
       whereQuery.status = PaymentStatus.PENDING;
-    } else if (status === "OVERDUE") {
+    } else if (status === 'OVERDUE') {
       whereQuery.status = PaymentStatus.PENDING_REVIEW;
-    } else if (status === "REFUNDED") {
+    } else if (status === 'REFUNDED') {
       whereQuery.status = PaymentStatus.FAILED;
-    } else if (status === "CANCELLED") {
+    } else if (status === 'CANCELLED') {
       whereQuery.status = PaymentStatus.CANCELLED;
     } else {
       // Direct DB enum pass-through (for non-admin user history queries)
@@ -710,14 +727,14 @@ const getTransactions = async (
       {
         tranId: {
           contains: search,
-          mode: "insensitive",
+          mode: 'insensitive',
         },
       },
       {
         user: {
           fullName: {
             contains: search,
-            mode: "insensitive",
+            mode: 'insensitive',
           },
         },
       },
@@ -725,7 +742,7 @@ const getTransactions = async (
         user: {
           email: {
             contains: search,
-            mode: "insensitive",
+            mode: 'insensitive',
           },
         },
       },
@@ -733,7 +750,7 @@ const getTransactions = async (
         company: {
           name: {
             contains: search,
-            mode: "insensitive",
+            mode: 'insensitive',
           },
         },
       },
@@ -744,7 +761,7 @@ const getTransactions = async (
     where: whereQuery,
     skip,
     take: limit,
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: 'desc' },
     include: {
       user: {
         select: { fullName: true, email: true },
@@ -815,13 +832,13 @@ const getPaymentStats = async () => {
     }),
     // Revenue by payment category
     prisma.paymentTransaction.groupBy({
-      by: ["category"],
+      by: ['category'],
       where: { status: PaymentStatus.VALIDATED },
       _sum: { amount: true },
     }),
     // Payment method breakdown (card types)
     prisma.paymentTransaction.groupBy({
-      by: ["cardType"],
+      by: ['cardType'],
       where: { status: PaymentStatus.VALIDATED, cardType: { not: null } },
       _count: { id: true },
     }),

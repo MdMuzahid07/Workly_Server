@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import prisma from '../utils/prismaClient.js';
 import applicationService from '../app/modules/application/application.service.js';
 import adminService from '../app/modules/admin/admin.service.js';

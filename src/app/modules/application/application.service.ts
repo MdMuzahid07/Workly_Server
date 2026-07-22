@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Response } from 'express';
 import httpStatus from 'http-status';
 import { type Job } from '../../../generated/prisma/index.js';

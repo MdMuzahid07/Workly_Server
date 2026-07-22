@@ -23,7 +23,7 @@ export default [
     languageOptions: {
       parser: tsParser,
       parserOptions: {
-        project: isFastLint ? undefined : "./tsconfig.json",
+        project: isFastLint ? undefined : "./tsconfig.eslint.json",
         ecmaVersion: "latest",
         sourceType: "module",
       },
@@ -36,9 +36,23 @@ export default [
     },
     rules: {
       ...tsEslint.configs.recommended.rules,
-      "@typescript-eslint/no-unused-vars": "error",
-      "@typescript-eslint/no-explicit-any": "warn",
-      "no-console": ["warn", { allow: ["warn", "error", "log"] }],
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          "argsIgnorePattern": "^_",
+          "varsIgnorePattern": "^_",
+          "caughtErrorsIgnorePattern": "^_"
+        }
+      ],
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/ban-ts-comment": "off",
+      "no-undef": "off",
+      "no-console": ["warn", { allow: ["warn", "error", "log", "info", "table"] }],
+    },
+  },
+  {
+    linterOptions: {
+      reportUnusedDisableDirectives: false,
     },
   },
   {

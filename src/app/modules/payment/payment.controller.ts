@@ -1,15 +1,15 @@
-import { Request, Response } from "express";
-import httpStatus from "http-status";
-import asyncHandler from "../../../utils/asyncHandler.js";
-import sendApiResponse from "../../../utils/sendApiResponse.js";
-import paymentService from "./payment.service.js";
-import prisma from "../../../utils/prismaClient.js";
-import config from "../../../config/index.js";
-import AppError from "../../error/AppError.js";
+import { Request, Response } from 'express';
+import httpStatus from 'http-status';
+import asyncHandler from '../../../utils/asyncHandler.js';
+import sendApiResponse from '../../../utils/sendApiResponse.js';
+import paymentService from './payment.service.js';
+import prisma from '../../../utils/prismaClient.js';
+import config from '../../../config/index.js';
+import AppError from '../../error/AppError.js';
 
 // Validate and sanitize frontend redirect URLs to prevent Open Redirect attacks
 const getSafeRedirectUrl = (urlParam: unknown): string => {
-  if (!urlParam || typeof urlParam !== "string") {
+  if (!urlParam || typeof urlParam !== 'string') {
     return config.frontend_url;
   }
   try {
@@ -33,8 +33,8 @@ const getSafeRedirectUrl = (urlParam: unknown): string => {
     if (isAllowed) {
       return targetOrigin;
     }
-  } catch (error) {
-    // Fall back for parsing errors
+  } catch {
+    return config.frontend_url;
   }
   return config.frontend_url;
 };
@@ -45,7 +45,6 @@ const initiatePayment = asyncHandler(async (req: Request, res: Response) => {
   const {
     planId,
     category,
-    amount,
     currency,
     cusName,
     cusEmail,
@@ -60,7 +59,7 @@ const initiatePayment = asyncHandler(async (req: Request, res: Response) => {
   let companyId: string | undefined;
 
   // If Employer, retrieve company ID dynamically
-  if (role === "EMPLOYER") {
+  if (role === 'EMPLOYER') {
     const employerProfile = await prisma.user.findUnique({
       where: { id: userId },
       select: { companyId: true },
@@ -69,7 +68,7 @@ const initiatePayment = asyncHandler(async (req: Request, res: Response) => {
     if (!employerProfile?.companyId) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        "Company profile must be set up before initiating subscription purchase.",
+        'Company profile must be set up before initiating subscription purchase.',
       );
     }
     companyId = employerProfile.companyId;
@@ -80,7 +79,7 @@ const initiatePayment = asyncHandler(async (req: Request, res: Response) => {
   if (!frontendUrl && req.headers.referer) {
     try {
       frontendUrl = new URL(req.headers.referer).origin;
-    } catch (e) {
+    } catch {
       // ignore invalid URL referers
     }
   }
@@ -89,15 +88,14 @@ const initiatePayment = asyncHandler(async (req: Request, res: Response) => {
   }
 
   // Get backendUrl dynamically from host headers
-  const protocol = req.headers["x-forwarded-proto"] || req.protocol || "http";
-  const host = req.get("host");
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+  const host = req.get('host');
   const backendUrl = `${protocol}://${host}`;
 
   const result = await paymentService.initiatePayment(
     {
       planId,
       category,
-      amount,
       currency,
       cusName,
       cusEmail,
@@ -117,7 +115,7 @@ const initiatePayment = asyncHandler(async (req: Request, res: Response) => {
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Payment session initialized successfully",
+    message: 'Payment session initialized successfully',
     data: result,
   });
 });
@@ -133,10 +131,10 @@ const paymentSuccess = asyncHandler(async (req: Request, res: Response) => {
     // HTTP 302 Redirect to Client Success Route
     return res.redirect(`${frontendUrl}/payment/success?tranId=${tran_id}&amount=${amount}`);
   } catch (error: any) {
-    console.error("Success Callback Error:", error);
+    console.error('Success Callback Error:', error);
     return res.redirect(
-      `${frontendUrl}/payment/fail?tranId=${tran_id || ""}&reason=${encodeURIComponent(
-        error?.message || "Verification Failed",
+      `${frontendUrl}/payment/fail?tranId=${tran_id || ''}&reason=${encodeURIComponent(
+        error?.message || 'Verification Failed',
       )}`,
     );
   }
@@ -148,7 +146,7 @@ const paymentFail = asyncHandler(async (req: Request, res: Response) => {
   await paymentService.failPayment(tran_id);
   const frontendUrl = getSafeRedirectUrl(req.query.frontend_url);
 
-  return res.redirect(`${frontendUrl}/payment/fail?tranId=${tran_id || ""}`);
+  return res.redirect(`${frontendUrl}/payment/fail?tranId=${tran_id || ''}`);
 });
 
 // Cancel redirect called by SSLCommerz
@@ -157,7 +155,7 @@ const paymentCancel = asyncHandler(async (req: Request, res: Response) => {
   await paymentService.cancelPayment(tran_id);
   const frontendUrl = getSafeRedirectUrl(req.query.frontend_url);
 
-  return res.redirect(`${frontendUrl}/payment/cancel?tranId=${tran_id || ""}`);
+  return res.redirect(`${frontendUrl}/payment/cancel?tranId=${tran_id || ''}`);
 });
 
 // IPN background handler called directly by SSLCommerz
@@ -171,13 +169,13 @@ const paymentIpn = asyncHandler(async (req: Request, res: Response) => {
 
     return res.status(httpStatus.OK).json({
       success: true,
-      message: "IPN verified and transaction completed successfully",
+      message: 'IPN verified and transaction completed successfully',
     });
   } catch (error: any) {
-    console.error("IPN Process Exception:", error);
+    console.error('IPN Process Exception:', error);
     return res.status(httpStatus.BAD_REQUEST).json({
       success: false,
-      message: error?.message || "Failed to process IPN hook",
+      message: error?.message || 'Failed to process IPN hook',
     });
   }
 });
@@ -185,8 +183,8 @@ const paymentIpn = asyncHandler(async (req: Request, res: Response) => {
 // Fetch user order history
 const getTransactionsList = asyncHandler(async (req: Request, res: Response) => {
   const { userId, role } = (req as any).user;
-  const page = parseInt((req.query.page as string) || "1");
-  const limit = parseInt((req.query.limit as string) || "10");
+  const page = parseInt((req.query.page as string) || '1');
+  const limit = parseInt((req.query.limit as string) || '10');
   const search = req.query.search as string;
   const status = req.query.status as string;
 
@@ -195,7 +193,7 @@ const getTransactionsList = asyncHandler(async (req: Request, res: Response) => 
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Transaction history retrieved successfully",
+    message: 'Transaction history retrieved successfully',
     data: result.transactions,
     meta: result.meta,
   });
@@ -208,7 +206,7 @@ const getPaymentStatsOverview = asyncHandler(async (_req: Request, res: Response
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Payment statistics overview retrieved successfully",
+    message: 'Payment statistics overview retrieved successfully',
     data: result,
   });
 });
