@@ -291,11 +291,138 @@ const getSavedCandidates = async (employerId: string, query: any) => {
   }
 };
 
+const getCandidateSkillFacets = async (query: {
+  location?: string;
+  industry?: string;
+  search?: string;
+  limit?: string | number;
+}) => {
+  const { location, industry, search, limit } = query;
+
+  const profileWhere: any = {
+    user: {
+      role: 'JOB_SEEKER',
+      isActive: true,
+      deletedAt: null,
+    },
+  };
+
+  if (location && location.trim()) {
+    profileWhere.location = { contains: location.trim(), mode: 'insensitive' };
+  }
+
+  if (industry && industry.trim()) {
+    profileWhere.preference = { industry: { contains: industry.trim(), mode: 'insensitive' } };
+  }
+
+  if (search && search.trim()) {
+    profileWhere.user = {
+      role: 'JOB_SEEKER',
+      isActive: true,
+      deletedAt: null,
+      OR: [
+        { fullName: { contains: search.trim(), mode: 'insensitive' } },
+        { email: { contains: search.trim(), mode: 'insensitive' } },
+      ],
+    };
+  }
+
+  const facets = await prisma.skill.groupBy({
+    by: ['skillName'],
+    where: {
+      profile: profileWhere,
+    },
+    _count: {
+      skillName: true,
+    },
+    orderBy: {
+      _count: {
+        skillName: 'desc',
+      },
+    },
+    take: limit ? parseInt(String(limit)) : 50,
+  });
+
+  return facets.map((f) => ({
+    skillName: f.skillName,
+    count: f._count.skillName,
+  }));
+};
+
+const getCandidateLocationFacets = async (query: {
+  skills?: string;
+  industry?: string;
+  search?: string;
+  limit?: string | number;
+}) => {
+  const { skills, industry, search, limit } = query;
+
+  const profileWhere: any = {
+    user: {
+      role: 'JOB_SEEKER',
+      isActive: true,
+      deletedAt: null,
+    },
+    location: { not: null },
+  };
+
+  if (industry && industry.trim()) {
+    profileWhere.preference = { industry: { contains: industry.trim(), mode: 'insensitive' } };
+  }
+
+  if (skills && skills.trim()) {
+    const skillsList = skills
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (skillsList.length > 0) {
+      profileWhere.skills = {
+        some: { skillName: { in: skillsList, mode: 'insensitive' } },
+      };
+    }
+  }
+
+  if (search && search.trim()) {
+    profileWhere.user = {
+      role: 'JOB_SEEKER',
+      isActive: true,
+      deletedAt: null,
+      OR: [
+        { fullName: { contains: search.trim(), mode: 'insensitive' } },
+        { email: { contains: search.trim(), mode: 'insensitive' } },
+      ],
+    };
+  }
+
+  const facets = await prisma.profile.groupBy({
+    by: ['location'],
+    where: profileWhere,
+    _count: {
+      location: true,
+    },
+    orderBy: {
+      _count: {
+        location: 'desc',
+      },
+    },
+    take: limit ? parseInt(String(limit)) : 50,
+  });
+
+  return facets
+    .filter((f) => f.location && f.location.trim().length > 0)
+    .map((f) => ({
+      location: f.location as string,
+      count: f._count.location,
+    }));
+};
+
 const candidateService = {
   getAllCandidates,
   getCandidateById,
   toggleSaveCandidate,
   getSavedCandidates,
+  getCandidateSkillFacets,
+  getCandidateLocationFacets,
 };
 
 export default candidateService;
