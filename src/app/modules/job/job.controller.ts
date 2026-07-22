@@ -143,6 +143,28 @@ const reportJob = asyncHandler(async (req, res) => {
   });
 });
 
+const getSkillFacets = asyncHandler(async (req, res) => {
+  const result = await jobService.getSkillFacets(req.query);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Skill facets fetched successfully',
+    data: result,
+  });
+});
+
+const getLocationFacets = asyncHandler(async (req, res) => {
+  const result = await jobService.getLocationFacets(req.query);
+
+  sendApiResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Location facets fetched successfully',
+    data: result,
+  });
+});
+
 const jobController = {
   createJob,
   getJobs,
@@ -153,6 +175,8 @@ const jobController = {
   getRecommendedJobs,
   getSearchSuggestions,
   reportJob,
+  getSkillFacets,
+  getLocationFacets,
 };
 
 export default jobController;
