@@ -176,7 +176,6 @@ async function runCustomPlanVerificationTests() {
     const entitlements = await EntitlementService.getUserEntitlements(testUser.id);
 
     console.log('Resolved Entitlements for Custom Enterprise Tier User:', {
-      planName: entitlements.planName,
       maxActiveJobs: entitlements.maxActiveJobs,
       maxUsers: entitlements.maxUsers,
       canMessage: entitlements.canMessage,

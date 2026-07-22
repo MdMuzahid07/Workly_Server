@@ -1,5 +1,3 @@
-import axios from 'axios';
-
 const BASE_URL = 'http://localhost:4000/api/v1';
 
 async function testPaymentWebhook() {
@@ -14,7 +12,7 @@ async function testPaymentWebhook() {
     for (const test of testCases) {
       console.log(`\nTesting IPN Callback for Plan Code: ${test.planId}`);
 
-      const payload = {
+      const payload = new URLSearchParams({
         status: 'VALID',
         tran_id: test.tranId,
         val_id: 'VALIDATION-ID-12345',
@@ -24,30 +22,30 @@ async function testPaymentWebhook() {
         currency: 'BDT',
         bank_tran_id: 'BANK-TRAN-123456',
         tran_date: new Date().toISOString(),
-        // Extra payload properties to simulate SSLCommerz
         value_a: 'TEST_COMPANY_ID',
         value_b: test.planId,
         value_c: 'EMPLOYER_PLAN',
-      };
+      });
 
-      // In real scenario we'd create a pending transaction first to simulate the DB state before IPN.
-      // Assuming the backend has a way to handle IPN if we seed the transaction, or we test the endpoint directly.
       console.log(`Sending IPN Payload for ${test.planId}...`);
 
-      const res = await axios.post(`${BASE_URL}/payments/ipn`, payload, {
+      const res = await fetch(`${BASE_URL}/payments/ipn`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        validateStatus: () => true,
+        body: payload.toString(),
       });
 
       console.log(`Status Code: ${res.status}`);
       if (res.status === 302 || res.status === 200) {
         console.log(`✅ IPN Endpoint Responded Successfully.`);
       } else {
-        console.log(`❌ IPN Endpoint Failed: ${JSON.stringify(res.data)}`);
+        const text = await res.text().catch(() => '');
+        console.log(`❌ IPN Endpoint Failed: ${text}`);
       }
     }
-  } catch (err: any) {
-    console.error('Error during webhook testing:', err.message);
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error('Error during webhook testing:', errorMsg);
   }
 }
 
