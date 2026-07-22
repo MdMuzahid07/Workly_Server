@@ -1,9 +1,8 @@
-import { PaymentCategory } from "../../../generated/prisma/index.js";
+import { PaymentCategory } from '../../../generated/prisma/index.js';
 
 export interface InitiatePaymentPayload {
   planId: string;
   category: PaymentCategory;
-  amount: number;
   currency: string;
   cusName: string;
   cusEmail: string;

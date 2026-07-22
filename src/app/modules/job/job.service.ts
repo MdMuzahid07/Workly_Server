@@ -349,6 +349,14 @@ const getJobs = async (
     });
   }
 
+  // Recalculate count & pagination since custom filters (location, skills, industry) were added after FilterEngine
+  if ((location && (location as string).trim()) || skillsList?.length || industries?.length) {
+    const total = await prisma.job.count({ where });
+    const pageLimit = filterQuery.limit ? parseInt(String(filterQuery.limit)) : 10;
+    pagination.total = total;
+    pagination.pages = Math.ceil(total / pageLimit) || 0;
+  }
+
   const result = await prisma.job.findMany({
     where,
     orderBy,
@@ -961,6 +969,140 @@ const reportJob = async (
   return result;
 };
 
+const getSkillFacets = async (query: {
+  industry?: string;
+  location?: string;
+  search?: string;
+  limit?: string | number;
+}) => {
+  const { industry, location, search, limit } = query;
+
+  // Build the job-level where clause so facets reflect the current filter context
+  const jobWhere: Prisma.JobWhereInput = {
+    status: 'ACTIVE',
+    deletedAt: null,
+    AND: [
+      {
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      },
+    ],
+  };
+
+  if (location && location.trim()) {
+    jobWhere.location = { contains: location.trim(), mode: 'insensitive' };
+  }
+
+  if (search && search.trim()) {
+    (jobWhere.AND as Prisma.JobWhereInput[]).push({
+      OR: [
+        { title: { contains: search.trim(), mode: 'insensitive' } },
+        { discipline: { contains: search.trim(), mode: 'insensitive' } },
+      ],
+    });
+  }
+
+  const industries = parseArray(industry as string | undefined);
+  if (industries?.length) {
+    if (!jobWhere.AND) jobWhere.AND = [];
+    (jobWhere.AND as Prisma.JobWhereInput[]).push({
+      OR: [
+        { industry: { name: { in: industries, mode: 'insensitive' } } },
+        { company: { industry: { name: { in: industries, mode: 'insensitive' } } } },
+      ],
+    });
+  }
+
+  // Use groupBy on JobSkill, filtered by active jobs
+  const facets = await prisma.jobSkill.groupBy({
+    by: ['skillName'],
+    where: {
+      job: jobWhere,
+    },
+    _count: {
+      skillName: true,
+    },
+    orderBy: {
+      _count: {
+        skillName: 'desc',
+      },
+    },
+    take: limit ? parseInt(String(limit)) : 50,
+  });
+
+  return facets.map((f) => ({
+    skillName: f.skillName,
+    count: f._count.skillName,
+  }));
+};
+
+const getLocationFacets = async (query: {
+  industry?: string;
+  skills?: string;
+  search?: string;
+  limit?: string | number;
+}) => {
+  const { industry, skills, search, limit } = query;
+
+  const jobWhere: Prisma.JobWhereInput = {
+    status: 'ACTIVE',
+    deletedAt: null,
+    AND: [
+      {
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      },
+    ],
+  };
+
+  if (search && search.trim()) {
+    (jobWhere.AND as Prisma.JobWhereInput[]).push({
+      OR: [
+        { title: { contains: search.trim(), mode: 'insensitive' } },
+        { discipline: { contains: search.trim(), mode: 'insensitive' } },
+      ],
+    });
+  }
+
+  const skillsList = parseArray(skills as string | undefined);
+  if (skillsList?.length) {
+    (jobWhere.AND as Prisma.JobWhereInput[]).push({
+      JobSkill: {
+        some: { skillName: { in: skillsList, mode: 'insensitive' } },
+      },
+    });
+  }
+
+  const industries = parseArray(industry as string | undefined);
+  if (industries?.length) {
+    (jobWhere.AND as Prisma.JobWhereInput[]).push({
+      OR: [
+        { industry: { name: { in: industries, mode: 'insensitive' } } },
+        { company: { industry: { name: { in: industries, mode: 'insensitive' } } } },
+      ],
+    });
+  }
+
+  const facets = await prisma.job.groupBy({
+    by: ['location'],
+    where: jobWhere,
+    _count: {
+      location: true,
+    },
+    orderBy: {
+      _count: {
+        location: 'desc',
+      },
+    },
+    take: limit ? parseInt(String(limit)) : 50,
+  });
+
+  return facets
+    .filter((f) => f.location && f.location.trim().length > 0)
+    .map((f) => ({
+      location: f.location,
+      count: f._count.location,
+    }));
+};
+
 const jobService = {
   createJob,
   getJobs,
@@ -971,6 +1113,8 @@ const jobService = {
   getRecommendedJobs,
   getSearchSuggestions,
   reportJob,
+  getSkillFacets,
+  getLocationFacets,
 };
 
 export default jobService;

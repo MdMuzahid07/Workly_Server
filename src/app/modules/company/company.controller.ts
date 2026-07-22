@@ -1,8 +1,8 @@
-import httpStatus from "http-status";
-import asyncHandler from "../../../utils/asyncHandler.js";
-import sendApiResponse from "../../../utils/sendApiResponse.js";
-import companyService from "./company.service.js";
-import { employerAnalyticsQuery } from "./company.validation.js";
+import httpStatus from 'http-status';
+import asyncHandler from '../../../utils/asyncHandler.js';
+import sendApiResponse from '../../../utils/sendApiResponse.js';
+import companyService from './company.service.js';
+import { employerAnalyticsQuery } from './company.validation.js';
 
 const getCompanies = asyncHandler(async (req, res) => {
   const query = req.query;
@@ -12,7 +12,7 @@ const getCompanies = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Companies fetched successfully",
+    message: 'Companies fetched successfully',
     data,
     meta,
   });
@@ -28,7 +28,7 @@ const createCompany = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,
-    message: "Company created successfully",
+    message: 'Company created successfully',
     data: result,
   });
 });
@@ -41,7 +41,7 @@ const getCompanyBySlug = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Company fetched successfully",
+    message: 'Company fetched successfully',
     data: result,
   });
 });
@@ -56,7 +56,7 @@ const deleteCompanyById = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Company deleted successfully, including jobs posted by the company",
+    message: 'Company deleted successfully, including jobs posted by the company',
     data: result,
   });
 });
@@ -72,7 +72,7 @@ const updateCompanyById = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Company updated successfully",
+    message: 'Company updated successfully',
     data: result,
   });
 });
@@ -89,7 +89,7 @@ const addTeamMember = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Team member added successfully",
+    message: 'Team member added successfully',
     data: result,
   });
 });
@@ -107,7 +107,7 @@ const removeTeamMember = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Team member removed successfully",
+    message: 'Team member removed successfully',
     data: result,
   });
 });
@@ -121,7 +121,7 @@ const getCompanyOverviewStatistics = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Company overview statistics fetched successfully",
+    message: 'Company overview statistics fetched successfully',
     data: result,
   });
 });
@@ -133,12 +133,12 @@ const getEmployerAnalytics = asyncHandler(async (req, res) => {
   const data = parsed.success
     ? parsed.data
     : {
-        period: "30d" as const,
-        jobSortBy: "applications" as const,
-        jobSortOrder: "desc" as const,
+        period: '30d' as const,
+        jobSortBy: 'applications' as const,
+        jobSortOrder: 'desc' as const,
         jobSearch: undefined,
-        jobPage: "1",
-        jobLimit: "10",
+        jobPage: '1',
+        jobLimit: '10',
       };
 
   const result = await companyService.getEmployerAnalytics(
@@ -154,7 +154,7 @@ const getEmployerAnalytics = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Employer analytics fetched successfully",
+    message: 'Employer analytics fetched successfully',
     data: result,
   });
 });
@@ -168,35 +168,31 @@ const getMyCompany = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Company fetched successfully",
+    message: 'Company fetched successfully',
     data: result,
   });
 });
 
 // Get company settings
 const getSettings = asyncHandler(async (req, res) => {
-  //@ts-ignore
-  const userId = req.user.userId;
   // Only allow access to own company settings
   const result = await companyService.getSettings(req.params.companyId as string);
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Company settings fetched successfully",
+    message: 'Company settings fetched successfully',
     data: result,
   });
 });
 
 // Update company settings
 const updateSettings = asyncHandler(async (req, res) => {
-  //@ts-ignore
-  const userId = req.user.userId;
   // Only allow access to own company settings
   const result = await companyService.updateSettings(req.params.companyId as string, req.body);
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Company settings updated successfully",
+    message: 'Company settings updated successfully',
     data: result,
   });
 });

@@ -91,7 +91,7 @@ const seedDatabase = async () => {
         currency: "BDT",
         interval: "month",
         features: {
-          maxActiveJobs: 1,
+          maxActiveJobs: 3,
           maxUsers: 1,
           maxMonthlyApplications: 0,
           maxResumes: 0,
@@ -102,25 +102,54 @@ const seedDatabase = async () => {
           canMessageEmployer: false,
           durationMonths: 0,
           displayFeatures: [
-            "1 active job listing",
+            "3 active job listings",
             "1 user account",
             "Standard applicant tracking",
           ],
         },
-        maxActiveJobs: 1,
+        maxActiveJobs: 3,
         maxUsers: 1,
+        isActive: true,
+      },
+      {
+        name: "Starter",
+        planType: "EMPLOYER" as const,
+        description: "Essential recruiting tools for growing small businesses.",
+        price: 1999.0,
+        currency: "BDT",
+        interval: "month",
+        features: {
+          maxActiveJobs: 5,
+          maxUsers: 2,
+          maxMonthlyApplications: 0,
+          maxResumes: 0,
+          canMessage: true,
+          canViewAnalytics: false,
+          canViewProfileAnalytics: false,
+          isFeaturedProfile: false,
+          canMessageEmployer: false,
+          durationMonths: 1,
+          displayFeatures: [
+            "5 active job listings",
+            "2 user accounts",
+            "Direct candidate messaging",
+            "Standard applicant tracking",
+          ],
+        },
+        maxActiveJobs: 5,
+        maxUsers: 2,
         isActive: true,
       },
       {
         name: "Growth",
         planType: "EMPLOYER" as const,
-        description: "Best for growing teams and active recruitment campaigns.",
-        price: 7999.0,
+        description: "Best for active teams with regular recruitment campaigns.",
+        price: 6999.0,
         currency: "BDT",
         interval: "month",
         features: {
-          maxActiveJobs: 10,
-          maxUsers: 4,
+          maxActiveJobs: 15,
+          maxUsers: 5,
           maxMonthlyApplications: 0,
           maxResumes: 0,
           canMessage: true,
@@ -130,45 +159,75 @@ const seedDatabase = async () => {
           canMessageEmployer: false,
           durationMonths: 1,
           displayFeatures: [
-            "10 active job listings",
-            "4 user accounts",
+            "15 active job listings",
+            "5 user accounts",
             "Direct candidate messaging",
             "Basic analytics dashboard",
           ],
         },
-        maxActiveJobs: 10,
-        maxUsers: 4,
+        maxActiveJobs: 15,
+        maxUsers: 5,
+        isActive: true,
+      },
+      {
+        name: "Business",
+        planType: "EMPLOYER" as const,
+        description: "Advanced features for mid-size hiring teams & agencies.",
+        price: 14999.0,
+        currency: "BDT",
+        interval: "month",
+        features: {
+          maxActiveJobs: 30,
+          maxUsers: 10,
+          maxMonthlyApplications: 0,
+          maxResumes: 0,
+          canMessage: true,
+          canViewAnalytics: true,
+          canViewProfileAnalytics: false,
+          isFeaturedProfile: true,
+          canMessageEmployer: false,
+          durationMonths: 1,
+          displayFeatures: [
+            "30 active job listings",
+            "10 user accounts",
+            "Direct candidate messaging",
+            "Advanced analytics dashboard",
+            "Featured company profile",
+          ],
+        },
+        maxActiveJobs: 30,
+        maxUsers: 10,
         isActive: true,
       },
       {
         name: "Enterprise",
         planType: "EMPLOYER" as const,
-        description: "Unlimited options and custom solutions for large corporate teams.",
+        description: "Legacy enterprise tier. Replaced by Custom Enterprise Builder.",
         price: 24999.0,
         currency: "BDT",
         interval: "month",
         features: {
-          maxActiveJobs: 9999,
-          maxUsers: 9999,
+          maxActiveJobs: 95,
+          maxUsers: 20,
           maxMonthlyApplications: 0,
           maxResumes: 0,
           canMessage: true,
           canViewAnalytics: true,
           canViewProfileAnalytics: false,
-          isFeaturedProfile: false,
+          isFeaturedProfile: true,
           canMessageEmployer: false,
           durationMonths: 1,
           displayFeatures: [
-            "Unlimited active jobs",
-            "Unlimited user accounts",
+            "95+ active job listings",
+            "20+ user accounts",
             "Direct candidate messaging",
             "Advanced analytics dashboard",
             "Priority customer support",
           ],
         },
-        maxActiveJobs: 9999,
-        maxUsers: 9999,
-        isActive: true,
+        maxActiveJobs: 95,
+        maxUsers: 20,
+        isActive: false,
       },
       // Job Seeker plans
       {
@@ -1259,6 +1318,24 @@ const seedDatabase = async () => {
       "https://images.unsplash.com/photo-1548247416-ec66f4900b2e?q=80&w=256&h=256&auto=format&fit=crop",
     ];
 
+    const seekerHeadlines = [
+      "Senior Full Stack Architect | Next.js, Node.js & AWS",
+      "Lead UI/UX Product Designer | Design Systems & Motion",
+      "DevOps & Infrastructure Lead | Kubernetes & Terraform",
+      "Senior Frontend Specialist | React & TypeScript",
+      "Backend Systems Engineer | Microservices & PostgreSQL",
+      "AI & Machine Learning Researcher | Python & PyTorch",
+      "Mobile Engineering Lead | Flutter & iOS/Android",
+      "Cybersecurity Specialist | Penetration Testing & SOC",
+      "Data Science Lead | Predictive Analytics & SQL",
+      "QA Automation Lead | Cypress, Playwright & Selenium",
+      "Growth Marketing Manager | SEO & Performance Media",
+      "Cloud Solutions Architect | Azure, Docker & CI/CD",
+      "Product Operations Lead | Agile & Team Strategy",
+      "Senior Android Developer | Kotlin & Clean Architecture",
+      "Technical Content Creator & Developer Advocate",
+    ];
+
     const natureCovers = [
       "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?q=80&w=800&h=300&auto=format&fit=crop",
       "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?q=80&w=800&h=300&auto=format&fit=crop",
@@ -1284,6 +1361,7 @@ const seedDatabase = async () => {
         ? catAvatars[userIdx % catAvatars.length]
         : maleAvatars[userIdx % maleAvatars.length];
       const coverUrl = natureCovers[userIdx % natureCovers.length];
+      const currentIdx = userIdx;
       userIdx++;
 
       const profile = await prisma.profile.create({
@@ -1294,9 +1372,10 @@ const seedDatabase = async () => {
           coverUrl,
           headline:
             role === "JOB_SEEKER"
-              ? "Senior Software Engineer | React & Node.js Expert"
+              ? seekerHeadlines[currentIdx % seekerHeadlines.length]
               : "HR Recruiting Specialist",
-          totalExperienceYears: role === "JOB_SEEKER" ? 4.5 : 8.0,
+          totalExperienceYears:
+            role === "JOB_SEEKER" ? Number((2.0 + (currentIdx % 8) * 1.5).toFixed(1)) : 8.0,
           userId: "TEMP_UUID",
           resumeUrl: "https://workly.com/resumes/sample-resume.pdf",
           videoResumeUrl: "https://workly.com/video-resumes/sample-video.mp4",
@@ -1940,11 +2019,12 @@ const seedDatabase = async () => {
     const companies: Record<string, any> = {};
     const planMapping: Record<string, string> = {
       emp_free: "Free",
-      emp_starter: "Growth",
+      emp_starter: "Starter",
       emp_growth: "Growth",
-      emp_pro: "Growth",
+      emp_business: "Business",
       emp_enterprise: "Enterprise",
       emp_ultimate: "Enterprise",
+      emp_pro: "Growth",
     };
 
     for (let idx = 0; idx < companiesData.length; idx++) {
@@ -2138,16 +2218,51 @@ const seedDatabase = async () => {
       const seeker = activeSeekers[idx];
       const p = profiles[seeker.email];
 
+      const institutions = [
+        "University of Dhaka (DU)",
+        "Bangladesh University of Engineering and Technology (BUET)",
+        "North South University (NSU)",
+        "BRAC University",
+        "Islamic University of Technology (IUT)",
+        "Shahjalal University of Science & Technology (SUST)",
+      ];
+      const degrees = [
+        "B.Sc. in Computer Science & Engineering",
+        "B.Sc. in Software Engineering",
+        "B.Sc. in Electrical & Electronic Engineering",
+        "Bachelor of Business Administration (BBA)",
+        "M.Sc. in Computer Science",
+      ];
+      const candidateTitles = [
+        "Software Developer",
+        "Full Stack Developer",
+        "UI/UX Designer",
+        "DevOps Engineer",
+        "Frontend Specialist",
+        "Backend Specialist",
+        "QA Automation Engineer",
+        "Data Analyst",
+      ];
+      const companiesList = [
+        "Pathao Ltd",
+        "BrainStation IT",
+        "Grameenphone",
+        "Daraz Bangladesh",
+        "Chaldal Grocery",
+        "Sheba Platform",
+        "Beximco IT",
+      ];
+
       // Educations
       await prisma.education.create({
         data: {
           profileId: p.id,
-          institution: "University of Dhaka (DU)",
-          degree: "B.Sc. in Software Engineering",
-          fieldOfStudy: "Computer Science",
-          startDate: new Date(2018, 1, 1),
-          endDate: new Date(2022, 5, 1),
-          grade: "3.72",
+          institution: institutions[idx % institutions.length],
+          degree: degrees[idx % degrees.length],
+          fieldOfStudy: "Computer Science & Engineering",
+          startDate: new Date(2016 + (idx % 4), 1, 1),
+          endDate: new Date(2020 + (idx % 4), 5, 1),
+          grade: (3.4 + (idx % 6) * 0.1).toFixed(2),
         },
       });
 
@@ -2155,12 +2270,11 @@ const seedDatabase = async () => {
       await prisma.workExperience.create({
         data: {
           profileId: p.id,
-          jobTitle: "Software Developer",
-          company: "Pathao Ltd",
-          startDate: new Date(2022, 6, 1),
-          endDate: new Date(2024, 1, 1),
-          description:
-            "Responsible for full stack JavaScript development and API endpoints integration.",
+          jobTitle: candidateTitles[idx % candidateTitles.length],
+          company: companiesList[idx % companiesList.length],
+          startDate: new Date(2020 + (idx % 3), 6, 1),
+          endDate: new Date(2023 + (idx % 2), 1, 1),
+          description: `Responsible for feature development, performance optimization, and API integration at ${companiesList[idx % companiesList.length]}.`,
         },
       });
 
@@ -3784,7 +3898,7 @@ const seedDatabase = async () => {
           salaryMax: jConf.salaryMax || 80000 + idx * 7000,
           currency: jConf.currency || "BDT",
           status: "ACTIVE",
-          isFeatured: idx % 2 === 0,
+          isFeatured: idx % 5 === 0,
           companyId: comp.id,
           postedById: poster.id,
           industryId: comp.industryId,
@@ -4046,7 +4160,7 @@ const seedDatabase = async () => {
           }
         } else {
           // Standard 3 messages
-          const msg1 = await prisma.message.create({
+          const _msg1 = await prisma.message.create({
             data: {
               conversationId: conversation.id,
               senderId: app.applicantId,
@@ -4054,7 +4168,7 @@ const seedDatabase = async () => {
               messageType: "TEXT" as const,
             },
           });
-          const msg2 = await prisma.message.create({
+          const _msg2 = await prisma.message.create({
             data: {
               conversationId: conversation.id,
               senderId: job.postedById,

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import cron, { type ScheduledTask } from 'node-cron';
 import { Expo } from 'expo-server-sdk';
 import prisma from '../utils/prismaClient.js';

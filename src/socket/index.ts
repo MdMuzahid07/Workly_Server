@@ -1,10 +1,10 @@
-import type { Server as HttpServer } from "http";
-import jwt, { type JwtPayload, type Secret } from "jsonwebtoken";
-import { Server } from "socket.io";
-import { z } from "zod";
-import { env } from "../config/index.js";
-import prisma from "../utils/prismaClient.js";
-import messageService from "../app/modules/message/message.service.js";
+import type { Server as HttpServer } from 'http';
+import jwt, { type JwtPayload, type Secret } from 'jsonwebtoken';
+import { Server } from 'socket.io';
+import { z } from 'zod';
+import { env } from '../config/index.js';
+import prisma from '../utils/prismaClient.js';
+import messageService from '../app/modules/message/message.service.js';
 
 type SocketAuthPayload = JwtPayload & {
   userId: string;
@@ -25,18 +25,18 @@ function extractToken(handshake: {
   headers?: Record<string, unknown>;
 }): string | null {
   const authToken =
-    typeof handshake.auth?.token === "string" ? (handshake.auth.token as string) : null;
+    typeof handshake.auth?.token === 'string' ? (handshake.auth.token as string) : null;
 
   const rawToken = authToken || (handshake.headers?.authorization as string);
   if (!rawToken) return null;
 
-  return rawToken.startsWith("Bearer ") ? (rawToken.split(" ")[1] ?? null) : rawToken;
+  return rawToken.startsWith('Bearer ') ? (rawToken.split(' ')[1] ?? null) : rawToken;
 }
 
 // P5 — Zod schemas for incoming Socket.io event payloads.
 // Never trust client-supplied data without validation; event payloads can be
 // crafted to inject arbitrary values into room joins or broadcasts.
-const conversationIdSchema = z.string().uuid({ message: "conversationId must be a valid UUID" });
+const conversationIdSchema = z.string().uuid({ message: 'conversationId must be a valid UUID' });
 
 const typingPayloadSchema = z.object({
   conversationId: z.string().uuid(),
@@ -45,9 +45,9 @@ const typingPayloadSchema = z.object({
 });
 
 const sendMessagePayloadSchema = z.object({
-  conversationId: z.string().uuid({ message: "conversationId must be a valid UUID" }),
-  content: z.string().min(1, { message: "Message content cannot be empty" }),
-  messageType: z.enum(["TEXT", "IMAGE", "FILE", "LINK"]).optional(),
+  conversationId: z.string().uuid({ message: 'conversationId must be a valid UUID' }),
+  content: z.string().min(1, { message: 'Message content cannot be empty' }),
+  messageType: z.enum(['TEXT', 'IMAGE', 'FILE', 'LINK']).optional(),
   fileUrl: z.string().url().optional().or(z.string().length(0)).or(z.null()),
   fileName: z.string().optional().or(z.null()),
   fileSize: z.number().int().optional().or(z.null()),
@@ -58,7 +58,7 @@ export const initSocket = (server: HttpServer) => {
   // B5 fix — CORS: replace `origin: true` (accepts all origins) with the exact
   // same allowlist used by the Express CORS config. Socket.io does NOT inherit
   // Express CORS configuration — it must be set independently.
-  const allowedOrigins = env.ALLOWED_ORIGINS.split(",")
+  const allowedOrigins = env.ALLOWED_ORIGINS.split(',')
     .map((o) => o.trim())
     .filter(Boolean);
 
@@ -77,23 +77,23 @@ export const initSocket = (server: HttpServer) => {
   io.use((socket, next) => {
     try {
       const token = extractToken(socket.handshake);
-      if (!token) return next(new Error("Unauthorized"));
+      if (!token) return next(new Error('Unauthorized'));
 
       // B6 fix — algorithm pinning (same algorithm as authValidator and auth.service)
       const verified = jwt.verify(token, env.JWT_SECRET as Secret, {
         algorithms: [env.JWT_ALGORITHM as jwt.Algorithm],
       }) as SocketAuthPayload;
 
-      if (!verified?.userId) return next(new Error("Unauthorized"));
+      if (!verified?.userId) return next(new Error('Unauthorized'));
 
       socket.data.user = { userId: verified.userId, role: verified.role };
       next();
     } catch {
-      next(new Error("Unauthorized"));
+      next(new Error('Unauthorized'));
     }
   });
 
-  io.on("connection", (socket) => {
+  io.on('connection', (socket) => {
     const userId = socket.data?.user?.userId as string | undefined;
     if (userId) {
       socket.join(`user:${userId}`);
@@ -103,12 +103,12 @@ export const initSocket = (server: HttpServer) => {
     // P5 — Join a conversation room with ownership check.
     // A user must be a ConversationParticipant to join the room; otherwise an
     // unauthenticated or wrong-account socket could eavesdrop on messages.
-    socket.on("join_conversation", async (rawConversationId: unknown) => {
+    socket.on('join_conversation', async (rawConversationId: unknown) => {
       try {
         const conversationId = conversationIdSchema.parse(rawConversationId);
 
         if (!userId) {
-          socket.emit("error", { message: "Unauthorized" });
+          socket.emit('error', { message: 'Unauthorized' });
           return;
         }
 
@@ -118,38 +118,38 @@ export const initSocket = (server: HttpServer) => {
         });
 
         if (!participant) {
-          socket.emit("error", {
-            message: "Forbidden: you are not a participant in this conversation",
+          socket.emit('error', {
+            message: 'Forbidden: you are not a participant in this conversation',
           });
           return;
         }
 
         socket.join(`conversation:${conversationId}`);
         console.log(`Socket ${socket.id} joined conversation: ${conversationId}`);
-      } catch (err) {
-        socket.emit("error", { message: "Invalid conversationId" });
+      } catch (_err) {
+        socket.emit('error', { message: 'Invalid conversationId' });
       }
     });
 
     // Leave a conversation room
-    socket.on("leave_conversation", (rawConversationId: unknown) => {
+    socket.on('leave_conversation', (rawConversationId: unknown) => {
       try {
         const conversationId = conversationIdSchema.parse(rawConversationId);
         socket.leave(`conversation:${conversationId}`);
         console.log(`Socket ${socket.id} left conversation: ${conversationId}`);
       } catch {
-        socket.emit("error", { message: "Invalid conversationId" });
+        socket.emit('error', { message: 'Invalid conversationId' });
       }
     });
 
     // Handle sending a message in real-time with database saving, validation and acknowledgement
-    socket.on("send_message", async (rawData: unknown, callback: unknown) => {
+    socket.on('send_message', async (rawData: unknown, callback: unknown) => {
       try {
         if (!userId) {
-          if (typeof callback === "function") {
-            callback({ success: false, error: "Unauthorized" });
+          if (typeof callback === 'function') {
+            callback({ success: false, error: 'Unauthorized' });
           } else {
-            socket.emit("error", { message: "Unauthorized" });
+            socket.emit('error', { message: 'Unauthorized' });
           }
           return;
         }
@@ -166,42 +166,42 @@ export const initSocket = (server: HttpServer) => {
         });
 
         // 1. Broadcast new message to the conversation room (includes all participants)
-        io?.to(`conversation:${data.conversationId}`).emit("new_message", result);
+        io?.to(`conversation:${data.conversationId}`).emit('new_message', result);
 
         // 2. Notify recipient's personal room for real-time sidebar/badge updates
         if (data.recipientId) {
-          io?.to(`user:${data.recipientId}`).emit("new_conversation_message", {
+          io?.to(`user:${data.recipientId}`).emit('new_conversation_message', {
             conversationId: data.conversationId,
             message: result,
           });
         }
 
         // 3. Send success acknowledgement to the sender socket
-        if (typeof callback === "function") {
+        if (typeof callback === 'function') {
           callback({ success: true, data: result });
         }
       } catch (err: any) {
-        console.error("Socket send_message error:", err);
-        const errMsg = err.message || "Failed to send message";
-        if (typeof callback === "function") {
+        console.error('Socket send_message error:', err);
+        const errMsg = err.message || 'Failed to send message';
+        if (typeof callback === 'function') {
           callback({ success: false, error: errMsg });
         } else {
-          socket.emit("error", { message: errMsg });
+          socket.emit('error', { message: errMsg });
         }
       }
     });
 
     // Handle typing status — validate the full payload
-    socket.on("typing", (rawData: unknown) => {
+    socket.on('typing', (rawData: unknown) => {
       try {
         const data = typingPayloadSchema.parse(rawData);
-        socket.to(`conversation:${data.conversationId}`).emit("user_typing", data);
+        socket.to(`conversation:${data.conversationId}`).emit('user_typing', data);
       } catch {
-        socket.emit("error", { message: "Invalid typing payload" });
+        socket.emit('error', { message: 'Invalid typing payload' });
       }
     });
 
-    socket.on("disconnect", () => {
+    socket.on('disconnect', () => {
       console.log(`User disconnected: ${userId}`);
     });
   });

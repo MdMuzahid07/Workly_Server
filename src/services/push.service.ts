@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Expo, type ExpoPushMessage, type ExpoPushTicket } from 'expo-server-sdk';
 import prisma from '../utils/prismaClient.js';
 import { NotificationType } from '../generated/prisma/index.js';

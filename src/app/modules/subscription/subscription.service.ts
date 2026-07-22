@@ -1,14 +1,14 @@
-import prisma from "../../../utils/prismaClient.js";
+import prisma from '../../../utils/prismaClient.js';
 import {
   EntitlementService,
   ADMIN_FLAGS,
   FREE_EMPLOYER_FLAGS,
   FREE_SEEKER_FLAGS,
-} from "../../../services/entitlement.service.js";
-import AppError from "../../error/AppError.js";
-import httpStatus from "http-status";
-import { PlanType, SubscriptionStatus } from "../../../generated/prisma/index.js";
-import { MySubscriptionResponse, PlanFeatureFlags } from "../../../types/subscription.types.js";
+} from '../../../services/entitlement.service.js';
+import AppError from '../../error/AppError.js';
+import httpStatus from 'http-status';
+import { PlanType, SubscriptionStatus } from '../../../generated/prisma/index.js';
+import { MySubscriptionResponse, PlanFeatureFlags } from '../../../types/subscription.types.js';
 
 const getMySubscription = async (userId: string): Promise<MySubscriptionResponse> => {
   const user = await prisma.user.findUnique({
@@ -32,20 +32,20 @@ const getMySubscription = async (userId: string): Promise<MySubscriptionResponse
   });
 
   if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
 
   const usage = await EntitlementService.getCurrentUsage(userId);
 
   // 1. Admin bypass
-  if (user.role === "ADMIN" || user.role === "SUPER_ADMIN") {
+  if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
     return {
-      planName: "Admin Access",
+      planName: 'Admin Access',
       planType: PlanType.EMPLOYER,
       price: 0,
       startDate: user.createdAt,
       endDate: null,
-      status: "ACTIVE",
+      status: 'ACTIVE',
       autoRenew: true,
       cancelAtPeriodEnd: false,
       features: ADMIN_FLAGS,
@@ -58,10 +58,10 @@ const getMySubscription = async (userId: string): Promise<MySubscriptionResponse
   }
 
   // 2. Employer subscription
-  if (user.role === "EMPLOYER") {
+  if (user.role === 'EMPLOYER') {
     const sub = user.company?.subscription;
     const isSubActive =
-      sub && sub.status === "ACTIVE" && (!sub.endDate || new Date() < new Date(sub.endDate));
+      sub && sub.status === 'ACTIVE' && (!sub.endDate || new Date() < new Date(sub.endDate));
 
     if (sub && isSubActive) {
       return {
@@ -78,16 +78,17 @@ const getMySubscription = async (userId: string): Promise<MySubscriptionResponse
           jobsPosted: usage.jobsPosted,
           applicationsSubmitted: 0,
           resumesUploaded: 0,
+          teamMembers: usage.teamMembers,
         },
       };
     } else {
       return {
-        planName: "Free",
+        planName: 'Free',
         planType: PlanType.EMPLOYER,
         price: 0,
         startDate: user.createdAt,
         endDate: null,
-        status: "ACTIVE",
+        status: 'ACTIVE',
         autoRenew: false,
         cancelAtPeriodEnd: false,
         features: FREE_EMPLOYER_FLAGS,
@@ -95,6 +96,7 @@ const getMySubscription = async (userId: string): Promise<MySubscriptionResponse
           jobsPosted: usage.jobsPosted,
           applicationsSubmitted: 0,
           resumesUploaded: 0,
+          teamMembers: usage.teamMembers,
         },
       };
     }
@@ -103,7 +105,7 @@ const getMySubscription = async (userId: string): Promise<MySubscriptionResponse
   // 3. Job Seeker subscription
   const sub = user.userSubscription;
   const isSubActive =
-    sub && sub.status === "ACTIVE" && (!sub.endDate || new Date() < new Date(sub.endDate));
+    sub && sub.status === 'ACTIVE' && (!sub.endDate || new Date() < new Date(sub.endDate));
 
   if (sub && isSubActive) {
     return {
@@ -124,12 +126,12 @@ const getMySubscription = async (userId: string): Promise<MySubscriptionResponse
     };
   } else {
     return {
-      planName: "Free",
+      planName: 'Free',
       planType: PlanType.JOB_SEEKER,
       price: 0,
       startDate: user.createdAt,
       endDate: null,
-      status: "ACTIVE",
+      status: 'ACTIVE',
       autoRenew: false,
       cancelAtPeriodEnd: false,
       features: FREE_SEEKER_FLAGS,
@@ -152,36 +154,36 @@ const cancelSubscription = async (userId: string): Promise<void> => {
   });
 
   if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
 
-  if (user.role === "EMPLOYER") {
+  if (user.role === 'EMPLOYER') {
     if (!user.companyId) {
-      throw new AppError(httpStatus.BAD_REQUEST, "Company profile not found");
+      throw new AppError(httpStatus.BAD_REQUEST, 'Company profile not found');
     }
     const sub = await prisma.subscription.findUnique({
       where: { companyId: user.companyId },
     });
-    if (!sub || sub.status !== "ACTIVE") {
-      throw new AppError(httpStatus.BAD_REQUEST, "No active subscription to cancel");
+    if (!sub || sub.status !== 'ACTIVE') {
+      throw new AppError(httpStatus.BAD_REQUEST, 'No active subscription to cancel');
     }
     await prisma.subscription.update({
       where: { companyId: user.companyId },
       data: { cancelAtPeriodEnd: true },
     });
-  } else if (user.role === "JOB_SEEKER") {
+  } else if (user.role === 'JOB_SEEKER') {
     const sub = await prisma.userSubscription.findUnique({
       where: { userId },
     });
-    if (!sub || sub.status !== "ACTIVE") {
-      throw new AppError(httpStatus.BAD_REQUEST, "No active subscription to cancel");
+    if (!sub || sub.status !== 'ACTIVE') {
+      throw new AppError(httpStatus.BAD_REQUEST, 'No active subscription to cancel');
     }
     await prisma.userSubscription.update({
       where: { userId },
       data: { cancelAtPeriodEnd: true },
     });
   } else {
-    throw new AppError(httpStatus.BAD_REQUEST, "This role cannot have a subscription");
+    throw new AppError(httpStatus.BAD_REQUEST, 'This role cannot have a subscription');
   }
 
   EntitlementService.invalidateCache(userId);
@@ -197,18 +199,18 @@ const adminAssignPlan = async (targetUserId: string, planId: string): Promise<vo
   ]);
 
   if (!targetUser) {
-    throw new AppError(httpStatus.NOT_FOUND, "Target user not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'Target user not found');
   }
   if (!plan) {
-    throw new AppError(httpStatus.NOT_FOUND, "Plan not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'Plan not found');
   }
 
-  if (targetUser.role === "EMPLOYER") {
+  if (targetUser.role === 'EMPLOYER') {
     if (plan.planType !== PlanType.EMPLOYER) {
-      throw new AppError(httpStatus.BAD_REQUEST, "Cannot assign a job seeker plan to an employer");
+      throw new AppError(httpStatus.BAD_REQUEST, 'Cannot assign a job seeker plan to an employer');
     }
     if (!targetUser.companyId) {
-      throw new AppError(httpStatus.BAD_REQUEST, "Target employer does not have a company profile");
+      throw new AppError(httpStatus.BAD_REQUEST, 'Target employer does not have a company profile');
     }
 
     await prisma.subscription.upsert({
@@ -229,9 +231,9 @@ const adminAssignPlan = async (targetUserId: string, planId: string): Promise<vo
         cancelAtPeriodEnd: false,
       },
     });
-  } else if (targetUser.role === "JOB_SEEKER") {
+  } else if (targetUser.role === 'JOB_SEEKER') {
     if (plan.planType !== PlanType.JOB_SEEKER) {
-      throw new AppError(httpStatus.BAD_REQUEST, "Cannot assign an employer plan to a job seeker");
+      throw new AppError(httpStatus.BAD_REQUEST, 'Cannot assign an employer plan to a job seeker');
     }
 
     await prisma.userSubscription.upsert({
@@ -253,7 +255,7 @@ const adminAssignPlan = async (targetUserId: string, planId: string): Promise<vo
       },
     });
   } else {
-    throw new AppError(httpStatus.BAD_REQUEST, "Cannot assign subscription to an administrator");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Cannot assign subscription to an administrator');
   }
 
   EntitlementService.invalidateCache(targetUserId);
@@ -266,42 +268,42 @@ const reactivateSubscription = async (userId: string): Promise<void> => {
   });
 
   if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
 
-  if (user.role === "EMPLOYER") {
+  if (user.role === 'EMPLOYER') {
     if (!user.companyId) {
-      throw new AppError(httpStatus.BAD_REQUEST, "Company profile not found");
+      throw new AppError(httpStatus.BAD_REQUEST, 'Company profile not found');
     }
     const sub = await prisma.subscription.findUnique({
       where: { companyId: user.companyId },
     });
-    if (!sub || sub.status !== "ACTIVE") {
-      throw new AppError(httpStatus.BAD_REQUEST, "No active subscription to reactivate");
+    if (!sub || sub.status !== 'ACTIVE') {
+      throw new AppError(httpStatus.BAD_REQUEST, 'No active subscription to reactivate');
     }
     if (!sub.cancelAtPeriodEnd) {
-      throw new AppError(httpStatus.BAD_REQUEST, "Subscription is not scheduled for cancellation");
+      throw new AppError(httpStatus.BAD_REQUEST, 'Subscription is not scheduled for cancellation');
     }
     await prisma.subscription.update({
       where: { companyId: user.companyId },
       data: { cancelAtPeriodEnd: false },
     });
-  } else if (user.role === "JOB_SEEKER") {
+  } else if (user.role === 'JOB_SEEKER') {
     const sub = await prisma.userSubscription.findUnique({
       where: { userId },
     });
-    if (!sub || sub.status !== "ACTIVE") {
-      throw new AppError(httpStatus.BAD_REQUEST, "No active subscription to reactivate");
+    if (!sub || sub.status !== 'ACTIVE') {
+      throw new AppError(httpStatus.BAD_REQUEST, 'No active subscription to reactivate');
     }
     if (!sub.cancelAtPeriodEnd) {
-      throw new AppError(httpStatus.BAD_REQUEST, "Subscription is not scheduled for cancellation");
+      throw new AppError(httpStatus.BAD_REQUEST, 'Subscription is not scheduled for cancellation');
     }
     await prisma.userSubscription.update({
       where: { userId },
       data: { cancelAtPeriodEnd: false },
     });
   } else {
-    throw new AppError(httpStatus.BAD_REQUEST, "This role cannot have a subscription");
+    throw new AppError(httpStatus.BAD_REQUEST, 'This role cannot have a subscription');
   }
 
   EntitlementService.invalidateCache(userId);

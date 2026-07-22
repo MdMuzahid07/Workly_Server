@@ -1,25 +1,28 @@
-import express from "express";
-import { UserRole } from "../../../generated/prisma/index.js";
-import authValidator from "../../middleware/authValidator.js";
-import { profileViewController } from "./profileView.controller.js";
+import express from 'express';
+import { UserRole } from '../../../generated/prisma/index.js';
+import authValidator from '../../middleware/authValidator.js';
+import { requireEntitlement } from '../../middleware/requireEntitlement.js';
+import { profileViewController } from './profileView.controller.js';
 
 const router = express.Router();
 
 router.post(
-  "/log/:viewedUserId",
+  '/log/:viewedUserId',
   authValidator(UserRole.JOB_SEEKER, UserRole.EMPLOYER, UserRole.ADMIN),
   profileViewController.logProfileView,
 );
 
 router.get(
-  "/stats",
+  '/stats',
   authValidator(UserRole.JOB_SEEKER, UserRole.EMPLOYER),
+  requireEntitlement('canViewProfileAnalytics'),
   profileViewController.getProfileViewStats,
 );
 
 router.get(
-  "/recent-visitors",
+  '/recent-visitors',
   authValidator(UserRole.JOB_SEEKER, UserRole.EMPLOYER),
+  requireEntitlement('canViewProfileAnalytics'),
   profileViewController.getRecentVisitors,
 );
 

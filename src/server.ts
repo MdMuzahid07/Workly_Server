@@ -8,6 +8,7 @@ import bcrypt from 'bcrypt';
 import { startPushReceiptJob } from './jobs/push.receipt.job.js';
 import { startSubscriptionReminderJob } from './jobs/subscription.reminder.job.js';
 import { startSubscriptionExpiryJob } from './jobs/subscription.expiry.job.js';
+import { startPaymentReconciliationJob } from './jobs/payment.reconciliation.job.js';
 
 const port = env.PORT;
 
@@ -121,6 +122,9 @@ async function main() {
   // Subscription expiry sweeper (daily at 02:00)
   const subscriptionExpiryJob = startSubscriptionExpiryJob();
 
+  // Payment reconciliation sweeper (every 6 hours)
+  const paymentReconciliationJob = startPaymentReconciliationJob();
+
   // ── Graceful shutdown ─────────────────────────────────────────────────────
   // Stop cron tasks before the process exits so no job fires mid-drain.
   const shutdown = async (signal: string) => {
@@ -128,6 +132,7 @@ async function main() {
     pushReceiptJob.stop();
     subscriptionReminderJob.stop();
     subscriptionExpiryJob.stop();
+    paymentReconciliationJob.stop();
 
     try {
       const io = getIO();

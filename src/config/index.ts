@@ -105,6 +105,36 @@ if (
 }
 
 // ---------------------------------------------------------------------------
+// Docker vs Local Dev Hostname Validation (fail-fast)
+// Detects if local non-Docker dev server is trying to connect to Docker hostnames
+// ---------------------------------------------------------------------------
+if (!process.env.IS_DOCKER && !process.env.DOCKER_CONTAINER) {
+  const dbUrl = env.DATABASE_URL;
+  if (dbUrl.includes('@postgres:') || dbUrl.includes('@db:')) {
+    console.error(
+      '❌  Invalid DATABASE_URL configuration — host "postgres" is unreachable in local dev:\n' +
+        `    Current DATABASE_URL: ${dbUrl}\n` +
+        '    Did you mean "localhost"? (e.g. postgresql://workly_admin:workly_strong_password_2026@localhost:5432/workly)\n' +
+        '    If running outside Docker via "pnpm dev", update Workly_Server/.env to use localhost.',
+    );
+    process.exit(1);
+  }
+
+  if (
+    env.REDIS_URL &&
+    (env.REDIS_URL.includes('//valkey:') || env.REDIS_URL.includes('//redis:'))
+  ) {
+    console.error(
+      '❌  Invalid REDIS_URL configuration — host "valkey/redis" is unreachable in local dev:\n' +
+        `    Current REDIS_URL: ${env.REDIS_URL}\n` +
+        '    Did you mean "localhost"? (e.g. redis://localhost:6379)\n' +
+        '    If running outside Docker via "pnpm dev", update Workly_Server/.env to use localhost.',
+    );
+    process.exit(1);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Backward-compat alias — existing callers use `config.X`; migrate to `env.X`
 // over time. The `environment` key now reads NODE_ENV (P0.2 — ENVIRONMENT var
 // removed; both guards now use the same source of truth).

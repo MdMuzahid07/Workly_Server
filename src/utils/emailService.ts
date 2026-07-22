@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import nodemailer from 'nodemailer';
 import { env } from '../config/index.js';
 import { CircuitBreaker } from './circuitBreaker.js';
