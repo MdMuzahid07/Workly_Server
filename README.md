@@ -1,470 +1,389 @@
-# WorklyJob Enterprise Backend Core Engine
+# 🏢 WorklyJob Enterprise Backend Core Engine
 
-Welcome to the **WorklyJob Enterprise Core Engine**—a robust, highly scalable, and production-grade backend ecosystem designed to power next-generation recruitment networks. This server is meticulously architected using a modular TypeScript design pattern, integrating **Express**, **Prisma ORM**, **PostgreSQL**, **Socket.IO**, and enterprise billing gateways (**SSLCommerz**).
+[![Node.js](https://img.shields.io/badge/Node.js-v24.0%2B-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Express](https://img.shields.io/badge/Express-v5.1%2B-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-v17-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Prisma](https://img.shields.io/badge/Prisma_ORM-v7.9%2B-2D3748?style=for-the-badge&logo=prisma&logoColor=white)](https://www.prisma.io/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-v5.9%2B-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Socket.IO](https://img.shields.io/badge/Socket.IO-v4.8%2B-010101?style=for-the-badge&logo=socket.io&logoColor=white)](https://socket.io/)
+[![pnpm](https://img.shields.io/badge/pnpm-v11.11%2B-F69220?style=for-the-badge&logo=pnpm&logoColor=white)](https://pnpm.io/)
+[![Postman](https://img.shields.io/badge/Postman_Newman-v6.2%2B-FF6C37?style=for-the-badge&logo=postman&logoColor=white)](https://www.postman.com/)
+[![GitHub Actions](https://img.shields.io/badge/CI%2FCD-GitHub_Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)](https://github.com/features/actions)
+
+Welcome to the **WorklyJob Enterprise Core Engine** — a production-grade, highly scalable backend ecosystem designed to power next-generation recruitment networks, Applicant Tracking Systems (ATS), real-time candidate communications, and automated subscription billing.
+
+Architected with a clean, modular TypeScript design pattern, the server integrates **Express 5**, **Prisma ORM 7**, **PostgreSQL 17**, **Socket.IO 4**, and enterprise payment gateways (**SSLCommerz**).
 
 ---
 
-## 🏗️ System Architecture
+## =============================================================================
 
-The core server adopts a clean, layered architectural pattern, enforcing strict separation of concerns:
+## 🏗️ System Architecture & Engineering Patterns
+
+## =============================================================================
+
+The server adopts a strict **Layered Modular Architecture** with decoupled domain logic:
 
 ```mermaid
 graph TD
-    Client[Web Client] <-->|HTTP / REST| Router[Express Router]
-    Client <-->|WebSockets| SocketServer[Socket.IO Server]
+    Client[Client Applications - Web / Mobile] <-->|HTTP / REST JSON| Router[Express Router Gateway]
+    Client <-->|WebSockets / Socket.IO| SocketServer[Socket.IO Gateway]
 
-    subgraph Express Application Layer
-        Router --> Middleware[Security & Auth Validation Middleware]
-        Middleware --> Controller[Module Controllers]
+    subgraph Express Application Core
+        Router --> Security[Helmet / CORS / Rate Limiter]
+        Security --> Auth[JWT & RBAC Middleware]
+        Auth --> Validation[Zod Schema Validator]
+        Validation --> Controller[Module Controllers]
         Controller --> Service[Business Logic Services]
+      end
+
+    subgraph Data & Integration Infrastructure
+        Service --> Prisma[Prisma ORM 7 Client]
+        Prisma --> DB[(PostgreSQL 17 Database)]
+        Service --> SMTP[Nodemailer / SMTP Email Engine]
+        Service --> Cloudinary[Cloudinary CDN / Local File System]
+        Service --> SSLCommerz[SSLCommerz IPN & Payment Gateway]
+        Service --> PushSDK[Expo Push Notification SDK]
     end
 
-    subgraph Data & Integration Layer
-        Service --> Prisma[Prisma Client ORM]
-        Prisma --> DB[(PostgreSQL Database)]
-        Service --> SMTP[Nodemailer / SMTP]
-        Service --> Cloudinary[Cloudinary CDN]
-        Service --> SSLCommerz[SSLCommerz API]
+    subgraph Background Automation
+        CronEngine[Node-Cron Scheduler] --> ExpiryJob[Subscription Expiry Sweeper]
+        CronEngine --> ReminderJob[Subscription Renewal Reminders]
+        CronEngine --> ReconcileJob[Payment Reconciliation Sweeper]
+        CronEngine --> PushJob[Push Notification Receipt Checker]
     end
 ```
 
-### Module Layering Structure
+### Module Design Pattern
 
-Every domain entity (e.g., `auth`, `job`, `application`, `payment`) is self-contained within its own feature module inside `src/app/modules/`:
+Every domain feature (e.g. `auth`, `job`, `application`, `payment`, `subscription`) is completely self-contained within its feature module in `src/app/modules/`:
 
-1. **`<entity>.route.ts`**: Maps HTTP methods to controllers, defining schema-based validation middlewares and role protection scopes.
-2. **`<entity>.controller.ts`**: Orchestrates incoming requests, formats data, and handles outbound HTTP responses using a unified payload interface.
-3. **`<entity>.service.ts`**: Implements transactional queries, database operations via Prisma, third-party integrations, and core business models.
-4. **`<entity>.validation.ts`**: Declares rigorous Zod schemas to reject invalid payloads at the gateway layer.
+1. **`*.route.ts`**: Defines HTTP route handlers, schema-based request validation middlewares, and Role-Based Access Control (RBAC) scopes (`JOB_SEEKER`, `EMPLOYER`, `ADMIN`, `SUPER_ADMIN`).
+2. **`*.controller.ts`**: Decouples HTTP request/response parsing from business logic, utilizing a unified payload envelope (`sendResponse`).
+3. **`*.service.ts`**: Contains pure core business logic, transactional Prisma database queries, external payment gateway calls, and background event triggers.
+4. **`*.validation.ts`**: Enforces strict compile-time and runtime Zod validation schemas to reject invalid payloads at the gateway layer before execution.
 
 ---
 
-## 🗄️ Database Architecture (43 Models)
+## =============================================================================
 
-The system manages **43 database entities** and **17 custom enums** inside PostgreSQL via Prisma. Here is an overview of the relational structure:
+## 🗄️ Database Schema & Entity Map (43 Models, 17 Enums)
 
-### 1. Enums Directory
+## =============================================================================
 
-- `UserRole`: `JOB_SEEKER`, `EMPLOYER`, `ADMIN`, `SUPER_ADMIN`
-- `ProfileVisibility`: `PUBLIC`, `PRIVATE`
-- `JobType`: `FULL_TIME`, `PART_TIME`, `CONTRACT`, `INTERNSHIP`, `FREELANCE`, `REMOTE`
-- `JobStatus`: `DRAFT`, `ACTIVE`, `CLOSED`, `EXPIRED`
-- `JobSkillPriority`: `HIGH`, `MEDIUM`, `LOW`, `GOOD_TO_HAVE`
-- `ApplicationStatus`: `SUBMITTED`, `REVIEWING`, `SHORTLISTED`, `INTERVIEWED`, `REJECTED`, `OFFERED`, `ACCEPTED`, `WITHDRAWN`
-- `PreferredContactMethod`: `EMAIL`, `PHONE`, `BOTH`
-- `TokenType`: `EMAIL_VERIFICATION`, `PASSWORD_RESET`, `TWO_FACTOR_AUTH`, `LOGIN_MAGIC_LINK`
-- `SubscriptionStatus`: `ACTIVE`, `PAST_DUE`, `CANCELED`, `EXPIRED`, `TRIALING`
-- `InvoiceStatus`: `PAID`, `UNPAID`, `OVERDUE`, `REFUNDED`
-- `MessageStatus`: `SENT`, `DELIVERED`, `READ`, `FAILED`, `DELETED`
-- `MessageType`: `TEXT`, `IMAGE`, `FILE`, `LINK`
-- `ReportSeverity`: `LOW`, `MEDIUM`, `HIGH`, `CRITICAL`
-- `ReportStatus`: `OPEN`, `PENDING`, `RESOLVED`, `DISMISSED`
-- `PaymentStatus`: `PENDING`, `VALIDATED`, `PENDING_REVIEW`, `FAILED`, `CANCELLED`
-- `PaymentCategory`: `EMPLOYER_PLAN`, `SEEKER_PREMIUM`
+The data access layer manages **43 database entities** and **17 custom enums** in PostgreSQL via Prisma ORM:
+
+### 1. Database Enum Directory
+
+- **`UserRole`**: `JOB_SEEKER`, `EMPLOYER`, `ADMIN`, `SUPER_ADMIN`
+- **`ProfileVisibility`**: `PUBLIC`, `PRIVATE`
+- **`JobType`**: `FULL_TIME`, `PART_TIME`, `CONTRACT`, `INTERNSHIP`, `FREELANCE`, `REMOTE`
+- **`JobStatus`**: `DRAFT`, `ACTIVE`, `CLOSED`, `EXPIRED`
+- **`JobSkillPriority`**: `HIGH`, `MEDIUM`, `LOW`, `GOOD_TO_HAVE`
+- **`ApplicationStatus`**: `SUBMITTED`, `REVIEWING`, `SHORTLISTED`, `INTERVIEWED`, `REJECTED`, `OFFERED`, `ACCEPTED`, `WITHDRAWN`
+- **`PreferredContactMethod`**: `EMAIL`, `PHONE`, `BOTH`
+- **`TokenType`**: `EMAIL_VERIFICATION`, `PASSWORD_RESET`, `TWO_FACTOR_AUTH`, `LOGIN_MAGIC_LINK`
+- **`SubscriptionStatus`**: `ACTIVE`, `PAST_DUE`, `CANCELED`, `EXPIRED`, `TRIALING`
+- **`InvoiceStatus`**: `PAID`, `UNPAID`, `OVERDUE`, `REFUNDED`
+- **`MessageStatus`**: `SENT`, `DELIVERED`, `READ`, `FAILED`, `DELETED`
+- **`MessageType`**: `TEXT`, `IMAGE`, `FILE`, `LINK`
+- **`ReportSeverity`**: `LOW`, `MEDIUM`, `HIGH`, `CRITICAL`
+- **`ReportStatus`**: `OPEN`, `PENDING`, `RESOLVED`, `DISMISSED`
+- **`PaymentStatus`**: `PENDING`, `VALIDATED`, `PENDING_REVIEW`, `FAILED`, `CANCELLED`
+- **`PaymentCategory`**: `EMPLOYER_PLAN`, `SEEKER_PREMIUM`
 
 ---
 
 ### 2. Entity Model Schema Map
 
-| Category                     | Model Name                | Primary Responsibility                                                | Core Relations                                         |
-| :--------------------------- | :------------------------ | :-------------------------------------------------------------------- | :----------------------------------------------------- |
-| **Identity & Access**        | `User`                    | Stores credentials, verification states, and connects active roles.   | `Profile`, `Company`, `Applications`, `Resumes`        |
-|                              | `UserSettings`            | Manages seeker notifications, profile visibility and privacy toggles. | `User`                                                 |
-|                              | `VerificationToken`       | Tracks verification and password reset credentials.                   | `User`                                                 |
-| **Seeker Professional Data** | `Profile`                 | Main professional portfolio profile for Seekers.                      | `User`, `Education`, `WorkExperience`, `Skills`        |
-|                              | `Education`               | Seeker educational degree and year details.                           | `Profile`                                              |
-|                              | `WorkExperience`          | Candidate professional employment registry.                           | `Profile`                                              |
-|                              | `Certification`           | Certifications, licenses, and validity metrics.                       | `Profile`                                              |
-|                              | `Skill`                   | Specialized skills linked to Candidate profile.                       | `Profile`                                              |
-|                              | `Project`                 | Personal projects, links, and repositories.                           | `Profile`                                              |
-|                              | `Preference`              | Seeker location targets, salary goals, and roles.                     | `Profile`                                              |
-|                              | `Resume`                  | Uploaded PDF resumes stored in Cloudinary.                            | `User`                                                 |
-|                              | `Address`                 | Core physical location details.                                       | `Profile`                                              |
-|                              | `Volunteer`               | Seeker volunteering experience logs.                                  | `Profile`                                              |
-|                              | `Award`                   | Honors, grants, and award registries.                                 | `Profile`                                              |
-|                              | `Publication`             | Academic and editorial publications.                                  | `Profile`                                              |
-|                              | `Reference`               | Candidate professional references.                                    | `Profile`                                              |
-|                              | `Language`                | Spoken and written language proficiencies.                            | `Profile`                                              |
-| **Enterprise & Vacancy**     | `Company`                 | Registered business profile, size, and branding.                      | `User`, `Jobs`, `Subscription`, `Invoices`             |
-|                              | `Benefits`                | Employer-provided perks linked to company or job.                     | `Company`, `Job`                                       |
-|                              | `SocialLink`              | Corporate social link directories.                                    | `Company`                                              |
-|                              | `Industry`                | Industry/Category tags with unique slugs.                             | `Company`, `Job`                                       |
-|                              | `CompanySettings`         | Notification and direct messaging configuration.                      | `Company`                                              |
-|                              | `Job`                     | Vacancy listings, location limits, and requirements.                  | `Company`, `User` (poster), `Applications`, `JobSkill` |
-|                              | `JobSkill`                | Target competencies prioritized for a job.                            | `Job`                                                  |
-| **Recruitment Funnel**       | `Application`             | Pipeline application connecting Candidate and Job.                    | `User`, `Job`, `Notification`, `Conversation`          |
-|                              | `SavedJob`                | Seeker job bookmarks.                                                 | `User`, `Job`                                          |
-|                              | `SavedCandidate`          | Employer candidate bookmarks.                                         | `User` (employer), `User` (candidate)                  |
-| **Live Chat**                | `Conversation`            | Messaging thread container.                                           | `Message`, `ConversationParticipant`, `Application`    |
-|                              | `ConversationParticipant` | Links user participants to conversations.                             | `Conversation`, `User`                                 |
-|                              | `Message`                 | Text, image, or document message nodes.                               | `Conversation`, `User` (sender)                        |
-| **Billing & Payments**       | `Plan`                    | Price tier plans, feature matrices, limits.                           | `Subscription`                                         |
-|                              | `Subscription`            | Subscriptions assigned to Companies.                                  | `Company`, `Plan`, `Invoice`                           |
-|                              | `Invoice`                 | Core subscription invoice receipts.                                   | `Company`, `Subscription`                              |
-|                              | `PaymentTransaction`      | SSLCommerz billing checkouts.                                         | `User`, `Company`                                      |
-| **Analytics & Platform**     | `Notification`            | System and push notifications.                                        | `User`, `Job`, `Application`                           |
-|                              | `ProfileView`             | Job seeker profile click analytics.                                   | `User` (viewer), `User` (viewed)                       |
-|                              | `JobView`                 | Job listing views and traffic tracking.                               | `Job`, `User`                                          |
-|                              | `Follow`                  | Seeker-to-company followers registry.                                 | `User`, `Company`                                      |
-|                              | `AuditLog`                | Platform-wide operational logs.                                       | `User`                                                 |
-|                              | `RateLimit`               | API endpoint throttling and security logs.                            | -                                                      |
-|                              | `LegalDocument`           | Markdown privacy policies and terms of service.                       | -                                                      |
-|                              | `JobReport`               | Abuse flag registries for jobs.                                       | `Job`, `User` (reporter)                               |
-|                              | `SystemSettings`          | Control maintenance mode, AI logic toggles.                           | -                                                      |
+| Module Category         | Model Name                | Primary Purpose & Responsibilities                             | Core Relations                                      |
+| :---------------------- | :------------------------ | :------------------------------------------------------------- | :-------------------------------------------------- |
+| **Identity & Security** | `User`                    | User credentials, account state, and role bindings             | `Profile`, `Company`, `Applications`, `Resumes`     |
+|                         | `UserSettings`            | Notification preferences, privacy & profile visibility toggles | `User`                                              |
+|                         | `VerificationToken`       | Verification tokens, password resets, and magic links          | `User`                                              |
+| **Seeker Profiles**     | `Profile`                 | Comprehensive candidate profile & portfolio repository         | `User`, `Education`, `WorkExperience`, `Skills`     |
+|                         | `Education`               | Degree records, institutions, and graduation metrics           | `Profile`                                           |
+|                         | `WorkExperience`          | Employment history, positions, and achievements                | `Profile`                                           |
+|                         | `Certification`           | Professional credentials, licenses, and expiration             | `Profile`                                           |
+|                         | `Skill`                   | Candidate competencies and proficiency levels                  | `Profile`                                           |
+|                         | `Project`                 | Personal projects, links, and code repositories                | `Profile`                                           |
+|                         | `Preference`              | Target job locations, salary ranges, and job types             | `Profile`                                           |
+|                         | `Resume`                  | PDF resume management (Cloudinary / local fallback)            | `User`                                              |
+|                         | `Address`                 | Physical location details for candidates and companies         | `Profile`                                           |
+|                         | `Volunteer`               | Community leadership and volunteering logs                     | `Profile`                                           |
+|                         | `Award`                   | Professional honors, grants, and awards                        | `Profile`                                           |
+|                         | `Publication`             | Academic journals and editorial publications                   | `Profile`                                           |
+|                         | `Reference`               | Professional reference contacts                                | `Profile`                                           |
+|                         | `Language`                | Spoken and written language proficiencies                      | `Profile`                                           |
+| **Enterprise & Jobs**   | `Company`                 | Business profiles, corporate branding, and size                | `User`, `Jobs`, `Subscription`, `Invoices`          |
+|                         | `Benefits`                | Perks offered by employers or tied to specific jobs            | `Company`, `Job`                                    |
+|                         | `SocialLink`              | Corporate social media channels                                | `Company`                                           |
+|                         | `Industry`                | Industry/Category tags with unique slugs                       | `Company`, `Job`                                    |
+|                         | `CompanySettings`         | Notification & direct message preferences                      | `Company`                                           |
+|                         | `Job`                     | Job vacancy listings, requirements, and constraints            | `Company`, `User`, `Applications`, `JobSkill`       |
+|                         | `JobSkill`                | Target competencies prioritized for a job                      | `Job`                                               |
+| **ATS Recruitment**     | `Application`             | Pipeline application linking Candidate to Job                  | `User`, `Job`, `Notification`, `Conversation`       |
+|                         | `SavedJob`                | Job seeker bookmarks                                           | `User`, `Job`                                       |
+|                         | `SavedCandidate`          | Employer candidate bookmarks                                   | `User` (Employer), `User` (Candidate)               |
+| **Live Chat**           | `Conversation`            | Messaging thread container                                     | `Message`, `ConversationParticipant`, `Application` |
+|                         | `ConversationParticipant` | Links user participants to active conversations                | `Conversation`, `User`                              |
+|                         | `Message`                 | Text, image, or document message nodes                         | `Conversation`, `User`                              |
+| **Billing & Payments**  | `Plan`                    | Price tier plans, features, limits                             | `Subscription`                                      |
+|                         | `Subscription`            | Subscriptions assigned to Companies or Seekers                 | `Company`, `Plan`, `Invoice`                        |
+|                         | `Invoice`                 | Core subscription invoice receipts                             | `Company`, `Subscription`                           |
+|                         | `PaymentTransaction`      | SSLCommerz checkout transactions                               | `User`, `Company`                                   |
+| **Analytics & System**  | `Notification`            | System notifications and push payload records                  | `User`, `Job`, `Application`                        |
+|                         | `ProfileView`             | Analytics tracking profile views                               | `User` (Viewer), `User` (Viewed)                    |
+|                         | `JobView`                 | Analytics tracking job vacancy traffic                         | `Job`, `User`                                       |
+|                         | `Follow`                  | Company followers registry                                     | `User`, `Company`                                   |
+|                         | `AuditLog`                | Platform operational logs                                      | `User`                                              |
+|                         | `RateLimit`               | API throttling security logs                                   | -                                                   |
+|                         | `LegalDocument`           | Privacy policies and terms of service                          | -                                                   |
+|                         | `JobReport`               | Abuse flag registries for jobs                                 | `Job`, `User`                                       |
+|                         | `SystemSettings`          | Control maintenance mode & system toggles                      | -                                                   |
 
 ---
 
-## ⚡ REST API Endpoint Specification
+## =============================================================================
 
-All endpoints reside under the base path `/api/v1`.
+## ⚙️ Background Automation Jobs (Cron Sweepers)
 
-### 1. Authentication (`/auth`)
+## =============================================================================
 
-#### `POST /auth/register`
+The server runs 4 automated background cron tasks via `node-cron` to maintain system state:
 
-- **Access**: Public
-- **Request Body**:
-  ```json
-  {
-    "email": "seeker@worklyjob.com",
-    "password": "SecurePassword123!",
-    "fullName": "Muzahid Islam",
-    "role": "JOB_SEEKER"
-  }
-  ```
-- **Success Response (201 Created)**:
-  ```json
-  {
-    "success": true,
-    "statusCode": 201,
-    "message": "User registered successfully! Verification email sent.",
-    "data": {
-      "id": "u4f9b8c0-82a1-432d-9df9-34b86cf01822",
-      "email": "seeker@worklyjob.com",
-      "fullName": "Muzahid Islam",
-      "role": "JOB_SEEKER",
-      "isVerified": false
-    }
-  }
-  ```
-
-#### `POST /auth/login`
-
-- **Access**: Public
-- **Request Body**:
-  ```json
-  {
-    "email": "seeker@worklyjob.com",
-    "password": "SecurePassword123!"
-  }
-  ```
-- **Success Response (200 OK)**:
-  ```json
-  {
-    "success": true,
-    "statusCode": 200,
-    "message": "Login successful",
-    "data": {
-      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-      "user": {
-        "id": "u4f9b8c0-82a1-432d-9df9-34b86cf01822",
-        "email": "seeker@worklyjob.com",
-        "role": "JOB_SEEKER",
-        "fullName": "Muzahid Islam"
-      }
-    }
-  }
-  ```
-
-#### `GET /auth/me`
-
-- **Access**: Authenticated User (Bearer Token)
-- **Success Response (200 OK)**:
-  ```json
-  {
-    "success": true,
-    "statusCode": 200,
-    "message": "User details fetched successfully",
-    "data": {
-      "id": "u4f9b8c0-82a1-432d-9df9-34b86cf01822",
-      "email": "seeker@worklyjob.com",
-      "fullName": "Muzahid Islam",
-      "role": "JOB_SEEKER",
-      "isVerified": true,
-      "profile": {
-        "id": "p1a2b3c4-d5e6-7f8g-9h0i-j1k2l3m4n5o6",
-        "bio": "Software Developer specialized in PERN stacks",
-        "location": "Dhaka, Bangladesh"
-      }
-    }
-  }
-  ```
+| Job Name                           | Schedule          | Purpose & Action                                                                                 |
+| :--------------------------------- | :---------------- | :----------------------------------------------------------------------------------------------- |
+| **Push Receipt Checker**           | Every 20 minutes  | Validates Expo push notification receipts and flags inactive device push tokens.                 |
+| **Subscription Expiry Sweeper**    | Daily at 02:00 AM | Sweeps expired subscriptions, shifts state to `EXPIRED`, and downgrades account tiers.           |
+| **Subscription Renewal Reminder**  | Daily at 08:00 AM | Sends transactional email notifications to users whose plans expire within 3 days.               |
+| **Payment Reconciliation Sweeper** | Every 6 hours     | Reconciles unconfirmed SSLCommerz transactions via IPN/API query to prevent orphan transactions. |
 
 ---
 
-### 2. Jobs (`/job`)
+## =============================================================================
 
-#### `POST /job/create`
+## 🔌 Real-Time Communications (Socket.IO Engine)
 
-- **Access**: Employer / Admin
-- **Request Body**:
-  ```json
-  {
-    "title": "Senior React Engineer",
-    "discipline": "Software Engineering",
-    "description": "We are seeking a senior React engineer...",
-    "jobType": "FULL_TIME",
-    "location": "Dhaka, Bangladesh",
-    "experienceLevel": "Senior-level",
-    "isRemote": true,
-    "salaryMin": 120000,
-    "salaryMax": 160000,
-    "currency": "BDT",
-    "requirements": ["5+ years React experience", "Knowledge of Tailwind v4"],
-    "companyId": "c9a0b1c2-d3e4-5f6g-7h8i-9j0k1l2m3n4o",
-    "skills": [
-      { "skillName": "React", "experienceYears": 5, "priority": "HIGH" },
-      { "skillName": "TypeScript", "experienceYears": 3, "priority": "MEDIUM" }
-    ]
-  }
-  ```
-- **Success Response (201 Created)**:
-  ```json
-  {
-    "success": true,
-    "statusCode": 201,
-    "message": "Job vacancy listed successfully!",
-    "data": {
-      "id": "j9a2b3c4-d5e6-7f8g-9h0i-j1k2l3m4n5o6",
-      "title": "Senior React Engineer",
-      "slug": "senior-react-engineer-178013",
-      "status": "ACTIVE",
-      "createdAt": "2026-05-30T10:14:00.000Z"
-    }
-  }
-  ```
+## =============================================================================
 
-#### `GET /job/jobs`
+The server mounts a full-duplex **Socket.IO** server on top of HTTP to handle live chat messaging and instant notifications.
 
-- **Access**: Public
-- **Query Parameters**: `page`, `limit`, `search`, `jobType`, `location`, `isRemote`, `industry`, `experienceLevel`, `salaryMin`
-- **Success Response (200 OK)**:
-  ```json
-  {
-    "success": true,
-    "statusCode": 200,
-    "message": "Jobs retrieved successfully",
-    "meta": {
-      "page": 1,
-      "limit": 10,
-      "total": 48
-    },
-    "data": [
-      {
-        "id": "j9a2b3c4-d5e6-7f8g-9h0i-j1k2l3m4n5o6",
-        "title": "Senior React Engineer",
-        "jobType": "FULL_TIME",
-        "location": "Remote",
-        "salaryMin": 120000,
-        "salaryMax": 160000,
-        "company": {
-          "name": "Workly Enterprise Ltd",
-          "logoUrl": "https://res.cloudinary.com/workly/..."
-        }
-      }
-    ]
-  }
-  ```
+### Authentication & Connection
 
----
+- **Handshake Protocol**: Requires a valid JWT access token passed via query parameter or authorization headers: `io('http://localhost:5000', { query: { token: 'ACCESS_TOKEN' } })`.
 
-### 3. Applications (`/application`)
+### Supported Event Schema
 
-#### `POST /application/create`
+```json
+// Emitted by Client to Join Conversation Room
+"join_room": { "conversationId": "uuid-string" }
 
-- **Access**: Job Seeker
-- **Request Body**:
-  ```json
-  {
-    "jobId": "j9a2b3c4-d5e6-7f8g-9h0i-j1k2l3m4n5o6",
-    "fullName": "Muzahid Islam",
-    "email": "seeker@worklyjob.com",
-    "phone": "+8801700000000",
-    "coverLetter": "I am highly excited to apply for this vacancy...",
-    "resumeUrl": "https://res.cloudinary.com/workly/resumes/my-resume.pdf",
-    "yearsOfExperience": 4,
-    "currentLocation": "Dhaka, Bangladesh"
-  }
-  ```
-- **Success Response (201 Created)**:
-  ```json
-  {
-    "success": true,
-    "statusCode": 201,
-    "message": "Application submitted successfully!",
-    "data": {
-      "id": "a9a2b3c4-d5e6-7f8g-9h0i-j1k2l3m4n5o6",
-      "status": "SUBMITTED",
-      "createdAt": "2026-05-30T10:30:00.000Z"
-    }
-  }
-  ```
+// Emitted by Client to Send Message
+"send_message": {
+  "conversationId": "uuid-string",
+  "content": "Hello, I am ready for the interview!",
+  "messageType": "TEXT"
+}
 
-#### `PATCH /application/:id/status`
+// Broadcasted by Server to Room Members
+"new_message": {
+  "id": "uuid-string",
+  "senderId": "uuid-string",
+  "content": "Hello, I am ready for the interview!",
+  "createdAt": "2026-07-23T12:00:00.000Z"
+}
 
-- **Access**: Employer (Owner of the vacancy)
-- **Request Body**:
-  ```json
-  {
-    "status": "SHORTLISTED",
-    "rejectionReason": null
-  }
-  ```
-- **Success Response (200 OK)**:
-  ```json
-  {
-    "success": true,
-    "statusCode": 200,
-    "message": "Application pipeline status updated successfully",
-    "data": {
-      "id": "a9a2b3c4-d5e6-7f8g-9h0i-j1k2l3m4n5o6",
-      "status": "SHORTLISTED"
-    }
-  }
-  ```
-
----
-
-### 4. Billing & Payments (`/payments`)
-
-#### `POST /payments/initiate`
-
-- **Access**: Authenticated Employer / Seeker
-- **Request Body**:
-  ```json
-  {
-    "planId": "gold-employer-plan-monthly",
-    "amount": 2500,
-    "category": "EMPLOYER_PLAN",
-    "companyId": "c9a0b1c2-d3e4-5f6g-7h8i-9j0k1l2m3n4o"
-  }
-  ```
-- **Success Response (200 OK)**:
-  ```json
-  {
-    "success": true,
-    "statusCode": 200,
-    "message": "Payment checkout transaction initiated",
-    "data": {
-      "gatewayUrl": "https://sandbox.sslcommerz.com/gwprocess/v4/api.php?sessionKey=...",
-      "tranId": "TXN_178013110903"
-    }
-  }
-  ```
-
-#### `POST /payments/success`
-
-- **Access**: Public / SSLCommerz IPN
-- **Request Body**: (Form-data posted by SSLCommerz server containing `tran_id`, `val_id`, `amount`, `card_type`, etc.)
-- **Success Response**: Redirects candidate/employer safely to frontend payment success confirmation route (`/payment/success?id=tran_id`).
-
----
-
-## 🔌 Socket.IO Real-Time Channels
-
-Live full-duplex communication coordinates chat messages and notifications immediately.
-
-### Emitted Events (Client to Server)
-
-1. **`connection`**: Initiates handshake. Payload: `query: { token: 'JWT_ACCESS_TOKEN' }`.
-2. **`join_room`**: Mounts a socket in a private room for conversations. Payload: `{ conversationId: "uuid" }`.
-3. **`send_message`**: Sends a live message node. Payload:
-   ```json
-   {
-     "conversationId": "uuid",
-     "content": "Hey! Are we still scheduled for the interview tomorrow?",
-     "messageType": "TEXT"
-   }
-   ```
-4. **`typing`**: Signals that a user is actively typing. Payload: `{ conversationId: "uuid", isTyping: true }`.
-
-### Listened Events (Server to Client)
-
-1. **`new_message`**: Dispatched to room members when a message is saved. Payload matches `Message` schema.
-2. **`user_typing`**: Broadcasts active typing states to other conversation participants.
-3. **`notification_received`**: Broadcasts real-time action triggers (e.g. applications status shift, profile views) directly to the specific user's system channel.
-
----
-
-## 🛠️ Environment Configuration
-
-Create a `.env` file at the root of `Web/Workly_Server/`:
-
-```env
-PORT=5000
-NODE_ENV=development
-
-# Database Connection
-DATABASE_URL="postgresql://postgres:root@localhost:5432/workly_db?schema=public"
-
-# Cryptography Tokens
-JWT_ACCESS_SECRET="enterprise_access_secret_token_123!"
-JWT_ACCESS_EXPIRES_IN="1d"
-JWT_REFRESH_SECRET="enterprise_refresh_secret_token_123!"
-JWT_REFRESH_EXPIRES_IN="30d"
-
-# Google OAuth Integration
-GOOGLE_CLIENT_ID="google_client_id_key"
-GOOGLE_CLIENT_SECRET="google_client_secret_key"
-GOOGLE_CALLBACK_URL="http://localhost:5000/api/v1/auth/google/callback"
-
-# SMTP Gateway Configuration
-SMTP_HOST="smtp.mailtrap.io"
-SMTP_PORT=2525
-SMTP_USER="smtp_username"
-SMTP_PASS="smtp_password"
-SMTP_FROM="no-reply@worklyjob.com"
-
-# Cloud CDN Configuration
-CLOUDINARY_CLOUD_NAME="cloudinary_name"
-CLOUDINARY_API_KEY="api_key_number"
-CLOUDINARY_API_SECRET="api_secret_hash"
-
-# SSLCommerz Payment Configuration
-SSL_STORE_ID="store_id_number"
-SSL_STORE_PASS="store_password_hash"
-SSL_IS_SANDBOX=true
+// Broadcasted by Server for Real-Time System Alerts
+"notification_received": {
+  "id": "uuid-string",
+  "title": "Application Shortlisted",
+  "type": "APPLICATION_STATUS_CHANGE"
+}
 ```
 
 ---
 
-## 🚀 Getting Started
+## =============================================================================
 
-1. **Install dependencies**:
+## 🧪 Quality Assurance & E2E Automated Testing
+
+## =============================================================================
+
+The backend includes a production-grade automated Postman test suite covering **170+ REST endpoints** across **17 feature modules**:
+
+```
+Web/Workly_Server/
+├── postman/
+│   ├── workly-job.postman_collection.json  # 170+ requests with pre-request token automation
+│   ├── workly-job.postman_environment.json # Environment configuration (base_url, tokens)
+│   ├── run-tests.js                         # Headless Newman runner script
+│   └── reports/                             # Auto-generated dark-theme HTML & JSON reports
+```
+
+### Running Tests Locally
+
+Ensure the local backend server is running, then execute:
+
+```bash
+cd Web/Workly_Server
+pnpm test:api
+```
+
+The runner will:
+
+1. Poll `http://localhost:5000/api/v1/public/status/health` with backoff retry (up to 30s) until healthy.
+2. Execute the entire Postman collection programmatically via Newman.
+3. Automatically populate JWT `access_token` and `refresh_token` across requests.
+4. Output a summary table to the console and export an interactive dark-theme HTML report to `postman/reports/workly-report-<timestamp>.html`.
+
+---
+
+## =============================================================================
+
+## 🚀 CI/CD Pipeline (GitHub Actions)
+
+## =============================================================================
+
+Continuous Integration is implemented via [`.github/workflows/api-tests.yml`](.github/workflows/api-tests.yml) located inside the server repository:
+
+### CI Workflow Pipeline Steps:
+
+1. **Trigger**: Automatically runs on `push` or `pull_request` to `main`, `master`, or `develop` branches.
+2. **Service Container**: Spins up a fresh **PostgreSQL 17** Docker service container.
+3. **Security Hardening**: All GitHub Actions are pinned to full 40-character commit SHAs.
+4. **Build Verification**: Runs `pnpm prisma generate`, `pnpm prisma db push`, `pnpm db:seed`, and `pnpm build`.
+5. **Headless Execution**: Starts the backend server, polls health status, and executes `pnpm test:api`.
+6. **Artifact Storage**: Uploads HTML/JSON test reports as build artifacts (retained for 14 days).
+
+---
+
+## =============================================================================
+
+## 🛠️ Environment Variables Reference
+
+## =============================================================================
+
+Create a `.env` file inside `Web/Workly_Server/` (validated at startup via Zod):
+
+```env
+# Server Runtime Configuration
+NODE_ENV="development"
+PORT=5000
+BACKEND_URL="http://localhost:5000"
+FRONTEND_URL="http://localhost:3000"
+ALLOWED_ORIGINS="http://localhost:3000,http://localhost:8081"
+
+# Database Connection (PostgreSQL 17)
+DATABASE_URL="postgresql://postgres:postgrespassword@localhost:5432/workly_db?schema=public"
+
+# Cryptography & JWT (Min 32 chars required)
+JWT_SECRET="supersecretjwtkeyforworklytesting2026"
+JWT_REFRESH_SECRET="supersecretrefreshjwtkeyforworklytesting2026"
+JWT_EXPIRES_IN="1d"
+JWT_REFRESH_EXPIRES_IN="7d"
+COOKIE_SECRET="workly-dev-cookie-secret-REPLACE-BEFORE-PRODUCTION!"
+
+# Password Hashing
+BCRYPT_SALT_ROUNDS=13
+
+# SSLCommerz Payment Gateway Configuration
+SSLCOMMERZ_STORE_ID="testbox"
+SSLCOMMERZ_STORE_PASSWD="qwerty"
+SSLCOMMERZ_IS_LIVE=false
+
+# Optional Integrations
+REDIS_URL="redis://localhost:6379"            # Optional: In-memory fallback used if absent
+CLOUDINARY_CLOUD_NAME="your_cloud_name"       # Optional: Local fallback used if absent
+CLOUDINARY_API_KEY="your_api_key"
+CLOUDINARY_API_SECRET="your_api_secret"
+SMTP_HOST="smtp.gmail.com"                    # Optional: Mailer logging fallback used if absent
+SMTP_PORT=587
+SMTP_USER="your_email@gmail.com"
+SMTP_PASS="your_app_password"
+GOOGLE_CLIENT_ID="your_google_client_id"       # Optional: Disabled if absent
+GOOGLE_CLIENT_SECRET="your_google_client_secret"
+```
+
+---
+
+## =============================================================================
+
+## 💻 Local Setup & Development Guide
+
+## =============================================================================
+
+### Prerequisites
+
+- **Node.js**: v24.0.0 or higher
+- **pnpm**: v11.11.0 or higher
+- **PostgreSQL**: v17 (Self-hosted or Docker)
+
+### Installation Steps
+
+1. **Clone the Repository**:
 
    ```bash
-   yarn install
+   git clone https://github.com/your-username/Workly_Server.git
+   cd Workly_Server
    ```
 
-2. **Run database migrations**:
+2. **Install Dependencies**:
 
    ```bash
-   yarn prisma-migrate
+   pnpm install
    ```
 
-3. **Generate Prisma Client**:
+3. **Set Up Environment Variables**:
 
    ```bash
-   yarn prisma-generate
+   cp .env.example .env
+   # Edit .env with your local PostgreSQL database credentials
    ```
 
-4. **Spin up local engine & studio concurrent tasks**:
+4. **Initialize Database Schema & Seed Initial Data**:
+
    ```bash
-   yarn dev
+   pnpm prisma generate
+   pnpm prisma db push
+   pnpm db:seed
    ```
 
-   - _Compiles TypeScript instantly using `tsx watch`._
-   - _Launches Prisma Studio concurrently on `http://localhost:5555`._
-# Workly_job_server
+5. **Start Development Server**:
 
-Postman collection => https://lively-shuttle-552888.postman.co/workspace/workly_Job~d6ef4795-8786-4707-b883-da87ea0fd7b9/collection/25354509-e23dd630-b5d0-4e8b-98eb-41e5c8a95526?action=share&creator=25354509
+   ```bash
+   pnpm dev
+   ```
+
+   _Runs `tsx watch` for instant hot-reloading alongside Prisma Studio on `http://localhost:5555`._
+
+6. **Build for Production**:
+   ```bash
+   pnpm build
+   pnpm start
+   ```
+
+---
+
+## =============================================================================
+
+## 🛡️ Enterprise Security & Hardening Features
+
+## =============================================================================
+
+- **Fail-Fast Startup Validation**: Zod schema verifies all environment secrets before database or server startup occurs.
+- **OWASP Bcrypt Hashing**: Passwords hashed with 13 salt rounds (`2^13` iterations).
+- **HTTP Security Headers**: Enforced using `helmet` security suite.
+- **CORS Exact-Origin Protection**: Substring and wildcard origin matching strictly disabled.
+- **Rate Limiting**: Throttles API endpoints via `express-rate-limit` with Redis store or fallback in-memory store.
+- **Query Timeout Guards**: Statement and transaction timeouts set at 15,000ms to prevent stuck database queries.
+
+---
+
+## =============================================================================
+
+## 📄 License
+
+## =============================================================================
+
+This project is proprietary and confidential. Maintained by the **WorklyJob Engineering Team**. All rights reserved.

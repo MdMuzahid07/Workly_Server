@@ -114,13 +114,13 @@ interface UpdatePlanPayload {
   firstTimeDiscountPercent?: number | string;
 }
 
-// ─── Default plan definitions ────────────────────────────────────────────────
+// === Default plan definitions ================================================
 // These values are authoritative. Running syncDefaultPlans() will upsert them
 // into the database, so any price or feature change here is reflected
 // automatically on the next server start.
-// ─────────────────────────────────────────────────────────────────────────────
+// =============================================================================
 const SEED_PLANS = [
-  // ── Employer plans ──────────────────────────────────────────────────────────
+  // == Employer plans =========================================================
   {
     name: 'Free',
     planType: PlanType.EMPLOYER,
@@ -269,7 +269,7 @@ const SEED_PLANS = [
     isActive: false,
   },
 
-  // ── Job Seeker plans ────────────────────────────────────────────────────────
+  // == Job Seeker plans =======================================================
   {
     name: 'Free',
     planType: PlanType.JOB_SEEKER,

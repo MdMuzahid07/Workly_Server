@@ -112,7 +112,7 @@ async function main() {
     await seedDevUsers();
   }
 
-  // ── Background jobs ──────────────────────────────────────────────────────
+  // == Background jobs =======================================================
   // Push receipt checker (every 20 min)
   const pushReceiptJob = startPushReceiptJob();
 
@@ -125,7 +125,7 @@ async function main() {
   // Payment reconciliation sweeper (every 6 hours)
   const paymentReconciliationJob = startPaymentReconciliationJob();
 
-  // ── Graceful shutdown ─────────────────────────────────────────────────────
+  // == Graceful shutdown =====================================================
   // Stop cron tasks before the process exits so no job fires mid-drain.
   const shutdown = async (signal: string) => {
     console.log(`[Server] ${signal} received — shutting down gracefully…`);

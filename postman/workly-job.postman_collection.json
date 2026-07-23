@@ -1,0 +1,3011 @@
+{
+  "info": {
+    "_postman_id": "b3e098a5-8120-410d-83b6-1a89c9201944",
+    "name": "Workly-Job API Collection",
+    "description": "Production-ready Postman collection for the Workly-Job PERN stack backend API. Contains every single endpoint across all 17 modules with realistic domain mock data, saved success/error response examples, validation constraints, and automated token extraction scripts.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01. Auth",
+      "item": [
+        {
+          "name": "Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData && jsonData.data && jsonData.data.accessToken) {",
+                  "        pm.environment.set(\"access_token\", jsonData.data.accessToken);",
+                  "    }",
+                  "    if (jsonData && jsonData.data && jsonData.data.refreshToken) {",
+                  "        pm.environment.set(\"refresh_token\", jsonData.data.refreshToken);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Muzahid Islam\",\n  \"email\": \"muzahid.dev@example.com\",\n  \"password\": \"SecurePassword123!\",\n  \"role\": \"JOB_SEEKER\",\n  \"phone\": \"+8801712345678\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData && jsonData.data && jsonData.data.accessToken) {",
+                  "        pm.environment.set(\"access_token\", jsonData.data.accessToken);",
+                  "    }",
+                  "    if (jsonData && jsonData.data && jsonData.data.refreshToken) {",
+                  "        pm.environment.set(\"refresh_token\", jsonData.data.refreshToken);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"muzahid.dev@example.com\",\n  \"password\": \"SecurePassword123!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "logout"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Access Token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/auth/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "refresh"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"muzahid.dev@example.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/forgot-password",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "forgot-password"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"valid_reset_token_uuid\",\n  \"newPassword\": \"NewSecurePassword123!\",\n  \"confirmPassword\": \"NewSecurePassword123!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/reset-password",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "reset-password"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Email",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"valid_verification_token_uuid\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/verify-email",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "verify-email"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"oldPassword\": \"SecurePassword123!\",\n  \"newPassword\": \"BrandNewPassword123!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/change-password",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "change-password"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User (Me)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "me"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Confirm Google OAuth Role",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"EMPLOYER\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/confirm-google-role",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "confirm-google-role"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Initiate Google OAuth",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/google?state=JOB_SEEKER",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "google"],
+              "query": [{ "key": "state", "value": "JOB_SEEKER" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Google OAuth Callback",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/google/callback",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "google", "callback"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02. Users & Account",
+      "item": [
+        {
+          "name": "Register Push Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"expoPushToken\": \"ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]\",\n  \"platform\": \"android\",\n  \"deviceToken\": \"device_token_sample\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/users/push-token",
+              "host": ["{{base_url}}"],
+              "path": ["users", "push-token"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Deregister Push Token",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"expoPushToken\": \"ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/users/push-token",
+              "host": ["{{base_url}}"],
+              "path": ["users", "push-token"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Notification Preferences",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/users/notification-preferences",
+              "host": ["{{base_url}}"],
+              "path": ["users", "notification-preferences"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Notification Preferences",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applicationUpdates\": true,\n  \"newMessages\": false,\n  \"jobRecommendations\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/users/notification-preferences",
+              "host": ["{{base_url}}"],
+              "path": ["users", "notification-preferences"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Account (Me)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/users/me",
+              "host": ["{{base_url}}"],
+              "path": ["users", "me"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03. Profile",
+      "item": [
+        {
+          "name": "Create Seeker Profile",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"headline\": \"Senior Full-Stack Engineer\",\n  \"location\": \"Dhaka, Bangladesh\",\n  \"bio\": \"Passionate software engineer...\",\n  \"avatarUrl\": \"https://example.com/avatar.jpg\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/profile/create-profile",
+              "host": ["{{base_url}}"],
+              "path": ["profile", "create-profile"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/profile/profile",
+              "host": ["{{base_url}}"],
+              "path": ["profile", "profile"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"headline\": \"Lead Software Architect\",\n  \"location\": \"Dhaka, Bangladesh\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/profile/update-profile",
+              "host": ["{{base_url}}"],
+              "path": ["profile", "update-profile"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Save Job",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobId\": \"c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/profile/save-job",
+              "host": ["{{base_url}}"],
+              "path": ["profile", "save-job"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Saved Jobs",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/profile/saved-jobs?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["profile", "saved-jobs"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Saved Job",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"folderName\": \"High Priority\",\n  \"notes\": \"Applied on 2026-07-23\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/profile/saved-jobs/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22",
+              "host": ["{{base_url}}"],
+              "path": ["profile", "saved-jobs", "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Settings",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/profile/settings",
+              "host": ["{{base_url}}"],
+              "path": ["profile", "settings"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Settings",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"profileVisibility\": \"PUBLIC\",\n  \"showEmail\": false\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/profile/settings",
+              "host": ["{{base_url}}"],
+              "path": ["profile", "settings"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04. Profile Sub-Resources",
+      "item": [
+        {
+          "name": "Add Education",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"institution\": \"DUET\",\n  \"degree\": \"B.Sc. in CSE\",\n  \"fieldOfStudy\": \"Computer Science\",\n  \"year\": \"2024\",\n  \"startDate\": \"2020-01-01\",\n  \"endDate\": \"2024-01-01\",\n  \"grade\": \"3.85\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/education/education",
+              "host": ["{{base_url}}"],
+              "path": ["education", "education"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Education",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grade\": \"3.90\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/education/education/edu_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["education", "education", "edu_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Education",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/education/education/edu_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["education", "education", "edu_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Work Experience",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobTitle\": \"Senior Software Engineer\",\n  \"company\": \"TechCorp\",\n  \"location\": \"Dhaka\",\n  \"employmentType\": \"Full-Time\",\n  \"startDate\": \"2024-02-01\",\n  \"current\": true,\n  \"description\": \"Architecting microservices\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/work-experience/add",
+              "host": ["{{base_url}}"],
+              "path": ["work-experience", "add"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Work Experience",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobTitle\": \"Lead Software Architect\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/work-experience/update/exp_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["work-experience", "update", "exp_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Work Experience",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/work-experience/delete/exp_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["work-experience", "delete", "exp_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Certification",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"AWS Solutions Architect\",\n  \"issuingOrg\": \"Amazon\",\n  \"issueDate\": \"2025-06-01\",\n  \"credentialId\": \"AWS-12345\",\n  \"credentialUrl\": \"https://aws.amazon.com/verify/12345\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/certification/add",
+              "host": ["{{base_url}}"],
+              "path": ["certification", "add"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Certification",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"credentialId\": \"AWS-98765\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/certification/update/cert_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["certification", "update", "cert_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Certification",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/certification/delete/cert_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["certification", "delete", "cert_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Project",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Workly Job Platform\",\n  \"description\": \"PERN stack job platform\",\n  \"technologies\": [\"Node.js\", \"React\", \"Postgres\"],\n  \"link\": \"https://workly.example.com\",\n  \"repoUrl\": \"https://github.com/example/workly\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/project/add",
+              "host": ["{{base_url}}"],
+              "path": ["project", "add"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Project",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Workly Job Platform v2\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/project/update/proj_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["project", "update", "proj_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Project",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/project/delete/proj_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["project", "delete", "proj_uuid_12345"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "05. Resume Management",
+      "item": [
+        {
+          "name": "List Resumes",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/resume/resumes",
+              "host": ["{{base_url}}"],
+              "path": ["resume", "resumes"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Resume",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": [] },
+                { "key": "isDefault", "value": "true", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/resume/resumes",
+              "host": ["{{base_url}}"],
+              "path": ["resume", "resumes"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Set Default Resume",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/resume/resumes/res_uuid_12345/default",
+              "host": ["{{base_url}}"],
+              "path": ["resume", "resumes", "res_uuid_12345", "default"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Stream Resume PDF",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/resume/resumes/res_uuid_12345/file",
+              "host": ["{{base_url}}"],
+              "path": ["resume", "resumes", "res_uuid_12345", "file"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Resume",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/resume/resumes/res_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["resume", "resumes", "res_uuid_12345"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "06. Company Management",
+      "item": [
+        {
+          "name": "Create Company",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"TechCorp Global\",\n  \"slug\": \"techcorp-global\",\n  \"description\": \"Leading provider of AI solutions\",\n  \"websiteUrl\": \"https://techcorp.example.com\",\n  \"logoUrl\": \"https://example.com/logo.png\",\n  \"location\": \"Dhaka\",\n  \"size\": \"50-200\",\n  \"contactEmail\": \"careers@techcorp.example.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/company/new-company",
+              "host": ["{{base_url}}"],
+              "path": ["company", "new-company"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Company",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/company/my-company",
+              "host": ["{{base_url}}"],
+              "path": ["company", "my-company"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Browse Companies (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/company/companies?page=1&limit=10&search=TechCorp",
+              "host": ["{{base_url}}"],
+              "path": ["company", "companies"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "TechCorp" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Company by Slug (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/company/company/techcorp-global",
+              "host": ["{{base_url}}"],
+              "path": ["company", "company", "techcorp-global"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Company",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"size\": \"100-500\",\n  \"mission\": \"Building software future\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/company/update/comp_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["company", "update", "comp_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Company",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/company/delete/comp_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["company", "delete", "comp_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Team Member",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"recruiter@techcorp.example.com\",\n  \"fullName\": \"Sarah Recruiter\",\n  \"role\": \"EMPLOYER\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/company/add-team-member/comp_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["company", "add-team-member", "comp_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Team Member",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/company/remove-team-member/comp_uuid_12345/user_member_123",
+              "host": ["{{base_url}}"],
+              "path": ["company", "remove-team-member", "comp_uuid_12345", "user_member_123"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Company Overview Statistics",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/company/overview-statistics",
+              "host": ["{{base_url}}"],
+              "path": ["company", "overview-statistics"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Employer Analytics",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/company/employer-analytics?period=30d&jobSortBy=applications",
+              "host": ["{{base_url}}"],
+              "path": ["company", "employer-analytics"],
+              "query": [
+                { "key": "period", "value": "30d" },
+                { "key": "jobSortBy", "value": "applications" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Company Settings",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/company/comp_uuid_12345/settings",
+              "host": ["{{base_url}}"],
+              "path": ["company", "comp_uuid_12345", "settings"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Company Settings",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"emailNotifications\": true,\n  \"weeklyReports\": false\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/company/comp_uuid_12345/settings",
+              "host": ["{{base_url}}"],
+              "path": ["company", "comp_uuid_12345", "settings"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "07. Category & Industry",
+      "item": [
+        {
+          "name": "Get Categories (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/category/categories?search=Engineering&page=1",
+              "host": ["{{base_url}}"],
+              "path": ["category", "categories"],
+              "query": [
+                { "key": "search", "value": "Engineering" },
+                { "key": "page", "value": "1" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Category by Slug (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/category/categories/software-engineering",
+              "host": ["{{base_url}}"],
+              "path": ["category", "categories", "software-engineering"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Category Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/category/category-statistics",
+              "host": ["{{base_url}}"],
+              "path": ["category", "category-statistics"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Category [Admin]",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"AI & Data\",\n  \"slug\": \"ai-and-data\",\n  \"icon\": \"brain\",\n  \"active\": true,\n  \"description\": \"Machine learning roles\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/category/categories",
+              "host": ["{{base_url}}"],
+              "path": ["category", "categories"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Category [Admin]",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"AI & Data Science\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/category/categories/cat_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["category", "categories", "cat_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle Category Status [Admin]",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/category/categories/cat_uuid_12345/toggle-status",
+              "host": ["{{base_url}}"],
+              "path": ["category", "categories", "cat_uuid_12345", "toggle-status"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Category [Admin]",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/category/categories/cat_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["category", "categories", "cat_uuid_12345"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "08. Job Listings",
+      "item": [
+        {
+          "name": "Create Job [Employer]",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Senior Backend Engineer\",\n  \"discipline\": \"Software Engineering\",\n  \"description\": \"Lead PERN stack architecture\",\n  \"requirements\": [\n    \"5+ yrs Node.js\"\n  ],\n  \"jobType\": \"FULL_TIME\",\n  \"location\": \"Dhaka\",\n  \"experienceLevel\": \"Senior Level\",\n  \"isRemote\": true,\n  \"salaryMin\": 120000,\n  \"salaryMax\": 180000,\n  \"currency\": \"BDT\",\n  \"applicationDeadline\": \"2026-08-31\",\n  \"companyId\": \"comp_uuid_12345\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/job/create",
+              "host": ["{{base_url}}"],
+              "path": ["job", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Search Suggestions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/job/suggestions?q=Node",
+              "host": ["{{base_url}}"],
+              "path": ["job", "suggestions"],
+              "query": [{ "key": "q", "value": "Node" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Skill Facets",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/job/skills/facets?limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["job", "skills", "facets"],
+              "query": [{ "key": "limit", "value": "10" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Location Facets",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/job/locations/facets",
+              "host": ["{{base_url}}"],
+              "path": ["job", "locations", "facets"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Browse Jobs (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/job/jobs?searchTerm=Backend&jobType=FULL_TIME&isRemote=true&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["job", "jobs"],
+              "query": [
+                { "key": "searchTerm", "value": "Backend" },
+                { "key": "jobType", "value": "FULL_TIME" },
+                { "key": "isRemote", "value": "true" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Posted Jobs [Employer]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/job/my-jobs?status=ACTIVE&page=1",
+              "host": ["{{base_url}}"],
+              "path": ["job", "my-jobs"],
+              "query": [
+                { "key": "status", "value": "ACTIVE" },
+                { "key": "page", "value": "1" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Recommended Jobs [Seeker]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/job/recommended?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["job", "recommended"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Job Details by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/job/job/job_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["job", "job", "job_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Job",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"salaryMax\": 200000,\n  \"status\": \"ACTIVE\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/job/update/job_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["job", "update", "job_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Job",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/job/delete/job_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["job", "delete", "job_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Report Job Listing",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Misleading Salary\",\n  \"comment\": \"Salary listed differs during screening\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/job/job_uuid_12345/report",
+              "host": ["{{base_url}}"],
+              "path": ["job", "job_uuid_12345", "report"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "09. Applications (ATS)",
+      "item": [
+        {
+          "name": "Create Application [Seeker]",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobId\": \"job_uuid_12345\",\n  \"fullName\": \"Muzahid Islam\",\n  \"email\": \"muzahid.dev@example.com\",\n  \"coverLetter\": \"Dear Hiring Manager...\",\n  \"agreeTerms\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/application/create",
+              "host": ["{{base_url}}"],
+              "path": ["application", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Applications [Seeker]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/application/me?page=1&limit=10&status=SUBMITTED",
+              "host": ["{{base_url}}"],
+              "path": ["application", "me"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "status", "value": "SUBMITTED" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Application Summary [Seeker]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/application/me/summary",
+              "host": ["{{base_url}}"],
+              "path": ["application", "me", "summary"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Application Stats [Seeker]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/application/stats",
+              "host": ["{{base_url}}"],
+              "path": ["application", "stats"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Job Applications [Employer]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/application/job/job_uuid_12345?page=1&status=SUBMITTED",
+              "host": ["{{base_url}}"],
+              "path": ["application", "job", "job_uuid_12345"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "status", "value": "SUBMITTED" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Company Applications [Employer]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/application/my-company-applications?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["application", "my-company-applications"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Company Application Summary [Employer]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/application/my-company-summary",
+              "host": ["{{base_url}}"],
+              "path": ["application", "my-company-summary"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Stream Application Resume",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/application/app_uuid_12345/resume",
+              "host": ["{{base_url}}"],
+              "path": ["application", "app_uuid_12345", "resume"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Application Details",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/application/app_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["application", "app_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Status [Employer]",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"SHORTLISTED\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/application/app_uuid_12345/status",
+              "host": ["{{base_url}}"],
+              "path": ["application", "app_uuid_12345", "status"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Schedule Interview [Employer]",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"interviewScheduledAt\": \"2026-08-01T10:00:00.000Z\",\n  \"interviewNotes\": \"Technical round\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/application/app_uuid_12345/interview",
+              "host": ["{{base_url}}"],
+              "path": ["application", "app_uuid_12345", "interview"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Interview Notes [Employer]",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"interviewNotes\": \"Strong candidate\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/application/app_uuid_12345/notes",
+              "host": ["{{base_url}}"],
+              "path": ["application", "app_uuid_12345", "notes"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Withdraw Application [Seeker]",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/application/app_uuid_12345/withdraw",
+              "host": ["{{base_url}}"],
+              "path": ["application", "app_uuid_12345", "withdraw"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "10. Candidate Discovery",
+      "item": [
+        {
+          "name": "Search Candidates",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/candidate/?search=Node.js&location=Dhaka&minExperience=3&page=1",
+              "host": ["{{base_url}}"],
+              "path": ["candidate", ""],
+              "query": [
+                { "key": "search", "value": "Node.js" },
+                { "key": "location", "value": "Dhaka" },
+                { "key": "minExperience", "value": "3" },
+                { "key": "page", "value": "1" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Saved Candidates [Employer]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/candidate/saved?page=1&folderName=Favorites",
+              "host": ["{{base_url}}"],
+              "path": ["candidate", "saved"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "folderName", "value": "Favorites" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Candidate Skill Facets",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/candidate/skills/facets",
+              "host": ["{{base_url}}"],
+              "path": ["candidate", "skills", "facets"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Candidate Location Facets",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/candidate/locations/facets",
+              "host": ["{{base_url}}"],
+              "path": ["candidate", "locations", "facets"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Candidate Profile by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/candidate/cand_user_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["candidate", "cand_user_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle Save Candidate [Employer]",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"candidateId\": \"cand_user_uuid_12345\",\n  \"folderName\": \"Top Engineers\",\n  \"notes\": \"Strong PERN candidate\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/candidate/save",
+              "host": ["{{base_url}}"],
+              "path": ["candidate", "save"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "11. Follow & Interactions",
+      "item": [
+        {
+          "name": "Follow Company [Seeker]",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/follow/comp_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["follow", "comp_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Unfollow Company [Seeker]",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/follow/comp_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["follow", "comp_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Followed Companies [Seeker]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/follow/my-follows",
+              "host": ["{{base_url}}"],
+              "path": ["follow", "my-follows"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Check Follow Status",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/follow/status/comp_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["follow", "status", "comp_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Log Profile View",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/profile-view/log/viewed_user_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["profile-view", "log", "viewed_user_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Profile View Stats",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/profile-view/stats",
+              "host": ["{{base_url}}"],
+              "path": ["profile-view", "stats"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Recent Profile Visitors",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/profile-view/recent-visitors",
+              "host": ["{{base_url}}"],
+              "path": ["profile-view", "recent-visitors"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Log Job View",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/job-view/log/job_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["job-view", "log", "job_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Job View History [Seeker]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/job-view/history",
+              "host": ["{{base_url}}"],
+              "path": ["job-view", "history"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "12. Messaging System",
+      "item": [
+        {
+          "name": "Create Conversation",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"participantId\": \"recipient_user_uuid_9999\",\n  \"applicationId\": \"app_uuid_12345\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/message/create-conversation",
+              "host": ["{{base_url}}"],
+              "path": ["message", "create-conversation"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Conversations",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/message/conversations?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["message", "conversations"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Conversation History",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/message/history/conv_uuid_12345?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["message", "history", "conv_uuid_12345"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Hello! Looking forward to our interview.\",\n  \"messageType\": \"TEXT\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/message/send/conv_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["message", "send", "conv_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Conversation as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/message/read/conv_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["message", "read", "conv_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Block User in Conversation",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/message/block/conv_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["message", "block", "conv_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Conversation",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/message/delete/conv_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["message", "delete", "conv_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Single Message",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/message/message/msg_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["message", "message", "msg_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Stream Message File Attachment",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/message/file/msg_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["message", "file", "msg_uuid_12345"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "13. Notifications",
+      "item": [
+        {
+          "name": "Get My Notifications",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/notification/my?page=1&limit=10&isRead=false",
+              "host": ["{{base_url}}"],
+              "path": ["notification", "my"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "isRead", "value": "false" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Unread Notification Count",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/notification/unread-count",
+              "host": ["{{base_url}}"],
+              "path": ["notification", "unread-count"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/notification/notif_uuid_12345/read",
+              "host": ["{{base_url}}"],
+              "path": ["notification", "notif_uuid_12345", "read"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Mark All Notifications as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/notification/mark-all-read",
+              "host": ["{{base_url}}"],
+              "path": ["notification", "mark-all-read"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Notification",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/notification/notif_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["notification", "notif_uuid_12345"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "14. Plans & Subscriptions",
+      "item": [
+        {
+          "name": "Get Plans (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/plans?type=EMPLOYER",
+              "host": ["{{base_url}}"],
+              "path": ["plans"],
+              "query": [{ "key": "type", "value": "EMPLOYER" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Plan [Admin]",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Corporate Enterprise\",\n  \"planType\": \"EMPLOYER\",\n  \"price\": 25000,\n  \"maxActiveJobs\": 100,\n  \"maxUsers\": 25\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/plans", "host": ["{{base_url}}"], "path": ["plans"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Plan [Admin]",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 28000,\n  \"maxActiveJobs\": 150\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/plans/plan_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["plans", "plan_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle Plan Status [Admin]",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/plans/plan_uuid_12345/toggle",
+              "host": ["{{base_url}}"],
+              "path": ["plans", "plan_uuid_12345", "toggle"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Plan [Admin]",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/plans/plan_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["plans", "plan_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Subscription",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/subscriptions/me",
+              "host": ["{{base_url}}"],
+              "path": ["subscriptions", "me"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Subscription",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/subscriptions/cancel",
+              "host": ["{{base_url}}"],
+              "path": ["subscriptions", "cancel"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reactivate Subscription",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/subscriptions/reactivate",
+              "host": ["{{base_url}}"],
+              "path": ["subscriptions", "reactivate"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin Assign Subscription [Admin]",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user_uuid_123\",\n  \"planId\": \"plan_uuid_12345\",\n  \"durationMonths\": 12\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/subscriptions/admin/assign",
+              "host": ["{{base_url}}"],
+              "path": ["subscriptions", "admin", "assign"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "15. Payments & Billing",
+      "item": [
+        {
+          "name": "Initiate Payment Checkout",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"planId\": \"plan_uuid_12345\",\n  \"category\": \"EMPLOYER_PLAN\",\n  \"currency\": \"BDT\",\n  \"cusName\": \"Muzahid Islam\",\n  \"cusEmail\": \"muzahid.dev@example.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/payments/initiate",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "initiate"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Payment Success Callback (SSLCommerz)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "tran_id", "value": "TRAN_12345" },
+                { "key": "val_id", "value": "VAL_12345" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/payments/success",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "success"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Payment Fail Callback (SSLCommerz)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [{ "key": "tran_id", "value": "TRAN_12345" }]
+            },
+            "url": {
+              "raw": "{{base_url}}/payments/fail",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "fail"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Payment Cancel Callback (SSLCommerz)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [{ "key": "tran_id", "value": "TRAN_12345" }]
+            },
+            "url": {
+              "raw": "{{base_url}}/payments/cancel",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "cancel"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Payment IPN Hook (SSLCommerz)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "tran_id", "value": "TRAN_12345" },
+                { "key": "val_id", "value": "VAL_12345" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/payments/ipn",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "ipn"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Transaction History",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/payments/transactions?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "transactions"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Payment Revenue Stats [Admin]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/payments/stats",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "stats"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "16. System & Public",
+      "item": [
+        {
+          "name": "Get Public System Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/public/status",
+              "host": ["{{base_url}}"],
+              "path": ["public", "status"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/public/status/health",
+              "host": ["{{base_url}}"],
+              "path": ["public", "status", "health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Landing Page Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/statistics/",
+              "host": ["{{base_url}}"],
+              "path": ["statistics", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Legal Document",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/legal/privacy-policy",
+              "host": ["{{base_url}}"],
+              "path": ["legal", "privacy-policy"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Upsert Legal Document [Admin]",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Privacy Policy\",\n  \"content\": \"Privacy policy text...\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/legal/privacy-policy",
+              "host": ["{{base_url}}"],
+              "path": ["legal", "privacy-policy"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Single File",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "file", "type": "file", "src": [] }]
+            },
+            "url": {
+              "raw": "{{base_url}}/upload/single",
+              "host": ["{{base_url}}"],
+              "path": ["upload", "single"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Multiple Files",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "files", "type": "file", "src": [] }]
+            },
+            "url": {
+              "raw": "{{base_url}}/upload/multiple",
+              "host": ["{{base_url}}"],
+              "path": ["upload", "multiple"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Avatar Image",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "file", "type": "file", "src": [] }]
+            },
+            "url": {
+              "raw": "{{base_url}}/upload/avatar",
+              "host": ["{{base_url}}"],
+              "path": ["upload", "avatar"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Company Logo",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "file", "type": "file", "src": [] }]
+            },
+            "url": {
+              "raw": "{{base_url}}/upload/logo",
+              "host": ["{{base_url}}"],
+              "path": ["upload", "logo"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Cover Image",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "file", "type": "file", "src": [] }]
+            },
+            "url": {
+              "raw": "{{base_url}}/upload/cover",
+              "host": ["{{base_url}}"],
+              "path": ["upload", "cover"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "17. Admin Governance",
+      "item": [
+        {
+          "name": "Get Employer Stats [Admin]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/employers/stats",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "employers", "stats"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Employers [Admin]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/employers?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "employers"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Company [Admin]",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isVerified\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/companies/comp_uuid_12345/verify",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "companies", "comp_uuid_12345", "verify"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Suspend Employer [Admin]",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/employers/emp_user_123/suspend",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "employers", "emp_user_123", "suspend"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reactivate Employer [Admin]",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/employers/emp_user_123/reactivate",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "employers", "emp_user_123", "reactivate"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Employer [Admin]",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/employers/emp_user_123",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "employers", "emp_user_123"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Job Seeker Stats [Admin]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/job-seekers/stats",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "job-seekers", "stats"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Job Seekers [Admin]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/job-seekers?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "job-seekers"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Stream Job Seeker Resume [Admin]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/job-seekers/seeker_user_123/resume",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "job-seekers", "seeker_user_123", "resume"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Suspend Job Seeker [Admin]",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/job-seekers/seeker_user_123/suspend",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "job-seekers", "seeker_user_123", "suspend"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reactivate Job Seeker [Admin]",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/job-seekers/seeker_user_123/reactivate",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "job-seekers", "seeker_user_123", "reactivate"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Job Seeker [Admin]",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/job-seekers/seeker_user_123",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "job-seekers", "seeker_user_123"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Active Jobs Stats [Admin]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/jobs/stats",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "jobs", "stats"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Active Jobs [Admin]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/jobs?page=1&status=ACTIVE",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "jobs"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "status", "value": "ACTIVE" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Deactivate Job Listing [Admin]",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/jobs/job_uuid_12345/deactivate",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "jobs", "job_uuid_12345", "deactivate"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Approve Job Listing [Admin]",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/jobs/job_uuid_12345/approve",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "jobs", "job_uuid_12345", "approve"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle Featured Job [Admin]",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isFeatured\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/jobs/job_uuid_12345/featured",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "jobs", "job_uuid_12345", "featured"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Job Listing Permanently [Admin]",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/jobs/job_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "jobs", "job_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Staff Stats [Admin]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/staff/stats",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "staff", "stats"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Staff [Admin]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/staff",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "staff"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Staff Account [Admin]",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Moderator Staff\",\n  \"email\": \"moderator@workly.example.com\",\n  \"password\": \"StaffPassword123!\",\n  \"role\": \"ADMIN\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/staff",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "staff"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Set Staff Active Status [Admin]",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/staff/staff_user_123/status",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "staff", "staff_user_123", "status"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Set Staff Role [SUPER_ADMIN Only]",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"SUPER_ADMIN\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/staff/staff_user_123/role",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "staff", "staff_user_123", "role"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Dashboard Overview Stats [Admin]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/overview/stats",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "overview", "stats"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Recent Users [Admin]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/overview/recent-users",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "overview", "recent-users"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Moderation Queue [Admin]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/overview/moderation-queue",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "overview", "moderation-queue"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Audit Logs [Admin]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/audit-logs?page=1",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "audit-logs"],
+              "query": [{ "key": "page", "value": "1" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Job Report Stats [Admin]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/job-reports/stats",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "job-reports", "stats"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Job Reports [Admin]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/job-reports?page=1&status=OPEN",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "job-reports"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "status", "value": "OPEN" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Job Report Status [Admin]",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"RESOLVED\",\n  \"comment\": \"Reviewed and non-compliant content removed\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/job-reports/report_uuid_12345",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "job-reports", "report_uuid_12345"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Public System Settings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/settings/public",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "settings", "public"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get System Settings [Admin]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/settings",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "settings"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update System Settings [Admin]",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"siteName\": \"Workly Platform\",\n  \"supportEmail\": \"support@workly.example.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/settings",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "settings"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle Maintenance Mode [Admin]",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"maintenanceMode\": false,\n  \"message\": \"Under scheduled maintenance\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/settings/maintenance",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "settings", "maintenance"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Broadcast Notification [Admin]",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"System Announcement\",\n  \"message\": \"Database maintenance at 02:00 AM\",\n  \"type\": \"SYSTEM_ANNOUNCEMENT\",\n  \"targetRole\": \"ALL\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/notifications/broadcast",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "notifications", "broadcast"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Clear User Lockout [Admin]",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/users/user_123/clear-lockout",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "users", "user_123", "clear-lockout"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Security Metadata [Admin]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/security/metadata",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "security", "metadata"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get System Metrics [Admin]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/metrics",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "metrics"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
