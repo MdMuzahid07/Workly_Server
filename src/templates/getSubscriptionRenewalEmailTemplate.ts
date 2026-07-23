@@ -24,12 +24,12 @@ export function getSubscriptionRenewalEmailTemplate(params: {
 
   const urgencyLabel =
     daysLeft === 1
-      ? "⚡ Expires Tomorrow"
+      ? '⚡ Expires Tomorrow'
       : daysLeft === 2
-        ? "⏳ Expiring in 2 Days"
-        : "📅 Expiring in 3 Days";
+        ? '⏳ Expiring in 2 Days'
+        : '📅 Expiring in 3 Days';
 
-  const urgencyColor = daysLeft === 1 ? "#dc2626" : "#d97706";
+  const urgencyColor = daysLeft === 1 ? '#dc2626' : '#d97706';
 
   return `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
@@ -60,7 +60,7 @@ export function getSubscriptionRenewalEmailTemplate(params: {
                       box-shadow:0 4px 24px rgba(30,125,71,0.10);
                       border:1px solid #d8f3de;overflow:hidden;">
 
-          <!-- ── Header ── -->
+          <!-- == Header == -->
           <tr>
             <td style="background:linear-gradient(135deg,#1e7d47 0%,#2da05a 100%);
                        padding:40px 32px 32px;text-align:center;">
@@ -79,12 +79,12 @@ export function getSubscriptionRenewalEmailTemplate(params: {
               </div>
               <h1 style="margin:0;font-size:22px;font-weight:700;color:#ffffff;line-height:1.35;">
                 Your <em style="font-style:normal;color:#a7f3c0;">${planName}</em> plan<br/>
-                expires in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}
+                expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}
               </h1>
             </td>
           </tr>
 
-          <!-- ── Body ── -->
+          <!-- == Body == -->
           <tr>
             <td style="padding:32px;">
 
@@ -179,7 +179,7 @@ export function getSubscriptionRenewalEmailTemplate(params: {
             </td>
           </tr>
 
-          <!-- ── Footer ── -->
+          <!-- == Footer == -->
           <tr>
             <td style="background:#f9fafb;border-top:1px solid #d8f3de;
                        padding:20px 32px;text-align:center;">

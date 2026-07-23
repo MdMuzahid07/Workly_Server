@@ -19,3 +19,8 @@ src/generated/
 .agent
 api/**/*.js
 api/**/*.js.map
+
+# Postman Generated Reports
+postman/reports/*.html
+postman/reports/*.json
+!postman/reports/.gitkeep

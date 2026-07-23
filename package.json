@@ -23,7 +23,8 @@
     "vercel-build": "prisma generate && tsc",
     "db:seed": "tsx prisma/seed.ts",
     "test:equivalence": "tsx src/tests/queryEquivalence.test.ts",
-    "test:custom-plan": "tsx src/tests/customPlanVerification.test.ts"
+    "test:custom-plan": "tsx src/tests/customPlanVerification.test.ts",
+    "test:api": "node postman/run-tests.js"
   },
   "packageManager": "pnpm@11.11.0+sha512.4463f65fd80ed80d69bc1d4bf163ee94f605c7380fc318bb5b2ebe15f8cd12d49c51a4d59e951b401e764d3b6ca751cbf51bc50ed7001a6bcb4935e684c34882",
   "pnpm": {
@@ -35,6 +36,7 @@
     ]
   },
   "devDependencies": {
+    "@eslint/js": "^9.33.0",
     "@types/bcrypt": "^6",
     "@types/cookie-parser": "^1.4.9",
     "@types/cors": "^2",
@@ -48,20 +50,21 @@
     "@types/pg": "^8.15.6",
     "@typescript-eslint/eslint-plugin": "^8.40.0",
     "@typescript-eslint/parser": "^8.40.0",
-    "@eslint/js": "^9.33.0",
-    "globals": "^15.14.0",
     "concurrently": "^9.2.1",
     "eslint": "^9.33.0",
     "eslint-config-prettier": "^10.0.1",
+    "globals": "^15.14.0",
     "lint-staged": "^16.1.5",
+    "newman": "^6.2.2",
+    "newman-reporter-htmlextra": "^1.23.1",
     "prettier": "^3.6.2",
-    "prisma": "^7.8.0",
+    "prisma": "^7.9.0",
     "tsx": "^4.20.4",
     "typescript": "^5.9.2"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.0.1",
-    "@prisma/client": "^7.8.0",
+    "@prisma/client": "^7.9.0",
     "@types/passport-google-oauth20": "^2.0.17",
     "bcrypt": "^6.0.0",
     "chalk": "^5.6.0",
