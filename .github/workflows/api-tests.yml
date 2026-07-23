@@ -1,0 +1,127 @@
+# =============================================================================
+# Workly-Job Server — API Integration & E2E Test Pipeline
+# =============================================================================
+# Runs the full Postman/Newman API test suite against a fresh PostgreSQL
+# instance on every push / PR to protected branches.
+#
+# Standards applied (July 2026):
+#   • Actions pinned to full commit SHAs (supply-chain hardening)
+#   • Explicit least-privilege permissions
+#   • Concurrency control — cancels redundant in-progress runs
+#   • Job timeout — prevents runaway billing on the free tier
+#   • Built-in pnpm cache via actions/setup-node
+#   • Health-check polling loop (replaces fragile `sleep`)
+# =============================================================================
+
+name: API Integration & E2E Tests
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+# == Least-privilege token ====================================================
+permissions:
+  contents: read
+
+# == Cancel redundant runs (saves free-tier minutes) ==========================
+concurrency:
+  group: api-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api-test:
+    name: Newman API Test Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgrespassword
+          POSTGRES_DB: workly_test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      # == 1. Checkout ========================================================
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      # == 2. Install pnpm (matches packageManager field in package.json) ====
+      - name: Install pnpm
+        uses: pnpm/action-setup@fe02b34f77f8bc703c22f603f0f927ea15f946d4 # v4.0.0
+
+      # == 3. Setup Node.js 24 with built-in pnpm cache ======================
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      # == 4. Install dependencies ============================================
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # == 5. Generate Prisma client & push schema to test DB =================
+      - name: Prepare database
+        env:
+          DATABASE_URL: postgresql://postgres:postgrespassword@localhost:5432/workly_test_db?schema=public
+        run: |
+          pnpm prisma generate
+          pnpm prisma db push --skip-generate
+          pnpm db:seed || true
+
+      # == 6. Build TypeScript → dist/ (required by `pnpm start`) ============
+      - name: Build server
+        env:
+          DATABASE_URL: postgresql://postgres:postgrespassword@localhost:5432/workly_test_db?schema=public
+        run: pnpm build
+
+      # == 7. Start server in background & health-check poll =================
+      - name: Start server
+        env:
+          PORT: 5000
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgrespassword@localhost:5432/workly_test_db?schema=public
+          JWT_SECRET: ci-test-jwt-secret-must-be-32-chars-long!
+          JWT_REFRESH_SECRET: ci-test-jwt-refresh-secret-32-chars!!
+          JWT_EXPIRES_IN: 1d
+          JWT_REFRESH_EXPIRES_IN: 7d
+        run: |
+          pnpm start &
+
+          # Poll health endpoint — up to 30 seconds (industry standard: no blind sleep)
+          echo "⏳ Waiting for server to become healthy..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:5000/api/v1/public/status/health > /dev/null 2>&1; then
+              echo "✅ Server is healthy (attempt $i)"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "❌ Server failed to start within 30 seconds"
+              exit 1
+            fi
+            sleep 1
+          done
+
+      # == 8. Run Newman API test suite =======================================
+      - name: Run API tests
+        run: pnpm test:api
+
+      # == 9. Upload reports (always — even on failure) =======================
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: postman-api-test-report-${{ github.run_number }}
+          path: postman/reports/
+          retention-days: 14

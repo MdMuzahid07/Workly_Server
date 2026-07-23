@@ -21,12 +21,12 @@
  *  - ROBUST CACHE CLEARING: Invalidates Redis/Memory entitlement caches immediately.
  */
 
-import cron, { type ScheduledTask } from "node-cron";
-import prisma from "../utils/prismaClient.js";
-import { EntitlementService } from "../services/entitlement.service.js";
+import cron, { type ScheduledTask } from 'node-cron';
+import prisma from '../utils/prismaClient.js';
+import { EntitlementService } from '../services/entitlement.service.js';
 
 const BATCH_SIZE = 50;
-const CRON_EXPRESSION = "0 2 * * *"; // Daily at 02:00 AM
+const CRON_EXPRESSION = '0 2 * * *'; // Daily at 02:00 AM
 
 /**
  * Handles batch transitions for expired Job Seeker subscriptions
@@ -37,7 +37,7 @@ async function sweepExpiredJobSeekers(
 ): Promise<{ processed: number; nextCursor: string | null }> {
   const records = await prisma.userSubscription.findMany({
     where: {
-      status: "ACTIVE",
+      status: 'ACTIVE',
       endDate: { lt: now },
     },
     select: {
@@ -45,7 +45,7 @@ async function sweepExpiredJobSeekers(
       userId: true,
       plan: { select: { name: true } },
     },
-    orderBy: { id: "asc" },
+    orderBy: { id: 'asc' },
     take: BATCH_SIZE,
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
   });
@@ -63,7 +63,7 @@ async function sweepExpiredJobSeekers(
       await prisma.$transaction([
         prisma.userSubscription.update({
           where: { id },
-          data: { status: "EXPIRED" },
+          data: { status: 'EXPIRED' },
         }),
         prisma.user.update({
           where: { id: userId },
@@ -97,7 +97,7 @@ async function sweepExpiredEmployers(
 ): Promise<{ processed: number; nextCursor: string | null }> {
   const records = await prisma.subscription.findMany({
     where: {
-      status: "ACTIVE",
+      status: 'ACTIVE',
       endDate: { lt: now },
     },
     select: {
@@ -105,7 +105,7 @@ async function sweepExpiredEmployers(
       companyId: true,
       plan: { select: { name: true } },
     },
-    orderBy: { id: "asc" },
+    orderBy: { id: 'asc' },
     take: BATCH_SIZE,
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
   });
@@ -129,7 +129,7 @@ async function sweepExpiredEmployers(
       await prisma.$transaction([
         prisma.subscription.update({
           where: { id },
-          data: { status: "EXPIRED" },
+          data: { status: 'EXPIRED' },
         }),
         prisma.user.updateMany({
           where: { companyId },
@@ -168,7 +168,7 @@ async function runExpirySweep(): Promise<void> {
   console.info(`[ExpiryJob] 🔄 Starting expired subscriptions sweep sweep at ${now.toISOString()}`);
   let totalExpired = 0;
 
-  // ── Job Seeker Sweeper ──
+  // == Job Seeker Sweeper ==
   let cursor: string | null = null;
   let page = 0;
   do {
@@ -177,12 +177,12 @@ async function runExpirySweep(): Promise<void> {
     totalExpired += processed;
     cursor = nextCursor;
     if (page > 10_000) {
-      console.warn("[ExpiryJob] ⚠️ Job seeker pagination limit reached.");
+      console.warn('[ExpiryJob] ⚠️ Job seeker pagination limit reached.');
       break;
     }
   } while (cursor !== null);
 
-  // ── Employer Sweeper ──
+  // == Employer Sweeper ==
   cursor = null;
   page = 0;
   do {
@@ -191,7 +191,7 @@ async function runExpirySweep(): Promise<void> {
     totalExpired += processed;
     cursor = nextCursor;
     if (page > 10_000) {
-      console.warn("[ExpiryJob] ⚠️ Employer pagination limit reached.");
+      console.warn('[ExpiryJob] ⚠️ Employer pagination limit reached.');
       break;
     }
   } while (cursor !== null);
@@ -210,7 +210,7 @@ export function startSubscriptionExpiryJob(): ScheduledTask {
     try {
       await runExpirySweep();
     } catch (err) {
-      console.error("[ExpiryJob] 💥 Unhandled exception during expiry sweep:", err);
+      console.error('[ExpiryJob] 💥 Unhandled exception during expiry sweep:', err);
     }
   });
 

@@ -27,10 +27,10 @@
  *  - NO FLOATING PROMISES: all async work is awaited inside the cron callback.
  */
 
-import cron, { type ScheduledTask } from "node-cron";
-import prisma from "../utils/prismaClient.js";
-import { sendSubscriptionRenewalEmail } from "../utils/emailService.js";
-import { env } from "../config/index.js";
+import cron, { type ScheduledTask } from 'node-cron';
+import prisma from '../utils/prismaClient.js';
+import { sendSubscriptionRenewalEmail } from '../utils/emailService.js';
+import { env } from '../config/index.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -43,7 +43,7 @@ const BATCH_SIZE = 50;
 const REMINDER_WINDOW_DAYS = 3;
 
 /** Cron expression: every day at 08:00 AM server time. */
-const CRON_EXPRESSION = "0 8 * * *";
+const CRON_EXPRESSION = '0 8 * * *';
 
 /**
  * Deep-link to the billing page that is embedded in the reminder email.
@@ -87,11 +87,11 @@ function daysUntil(endDate: Date): number {
  * Formats a Date as a human-readable string, e.g. "July 29, 2026".
  */
 function formatExpiryDate(date: Date): string {
-  return date.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    timeZone: "UTC",
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'UTC',
   });
 }
 
@@ -110,7 +110,7 @@ async function processJobSeekerPage(
 ): Promise<{ dispatched: number; nextCursor: string | null }> {
   const records = await prisma.userSubscription.findMany({
     where: {
-      status: "ACTIVE",
+      status: 'ACTIVE',
       endDate: { gte: windowStart, lte: windowEnd },
       renewalReminderSentAt: null,
     },
@@ -124,7 +124,7 @@ async function processJobSeekerPage(
         },
       },
     },
-    orderBy: { id: "asc" },
+    orderBy: { id: 'asc' },
     take: BATCH_SIZE,
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
   });
@@ -196,7 +196,7 @@ async function processEmployerPage(
   // have not yet had a reminder dispatched.
   const records = await prisma.subscription.findMany({
     where: {
-      status: "ACTIVE",
+      status: 'ACTIVE',
       endDate: { gte: windowStart, lte: windowEnd },
       renewalReminderSentAt: null,
     },
@@ -207,14 +207,14 @@ async function processEmployerPage(
           name: true,
           // Resolve owner: the EMPLOYER user whose companyId points here.
           employees: {
-            where: { role: "EMPLOYER", deletedAt: null },
+            where: { role: 'EMPLOYER', deletedAt: null },
             select: { id: true, fullName: true, email: true },
             take: 1,
           },
         },
       },
     },
-    orderBy: { id: "asc" },
+    orderBy: { id: 'asc' },
     take: BATCH_SIZE,
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
   });
@@ -294,7 +294,7 @@ async function runRenewalReminders(): Promise<void> {
 
   let totalDispatched = 0;
 
-  // ── Job Seeker pass ──
+  // == Job Seeker pass ==
   let cursor: string | null = null;
   let page = 0;
   do {
@@ -305,13 +305,13 @@ async function runRenewalReminders(): Promise<void> {
     if (page > 10_000) {
       // Safety valve: prevent an infinite loop if cursor logic ever degrades.
       console.warn(
-        "[SubReminderJob] ⚠️ Job seeker pagination safety limit reached — aborting pass.",
+        '[SubReminderJob] ⚠️ Job seeker pagination safety limit reached — aborting pass.',
       );
       break;
     }
   } while (cursor !== null);
 
-  // ── Employer pass ──
+  // == Employer pass ==
   cursor = null;
   page = 0;
   do {
@@ -320,7 +320,7 @@ async function runRenewalReminders(): Promise<void> {
     totalDispatched += dispatched;
     cursor = nextCursor;
     if (page > 10_000) {
-      console.warn("[SubReminderJob] ⚠️ Employer pagination safety limit reached — aborting pass.");
+      console.warn('[SubReminderJob] ⚠️ Employer pagination safety limit reached — aborting pass.');
       break;
     }
   } while (cursor !== null);
@@ -350,7 +350,7 @@ export function startSubscriptionReminderJob(): ScheduledTask {
     } catch (err) {
       // Top-level catch: ensures an unexpected crash never silently kills the
       // cron process — it stays registered and will fire again tomorrow.
-      console.error("[SubReminderJob] 💥 Unhandled error during reminder sweep:", err);
+      console.error('[SubReminderJob] 💥 Unhandled error during reminder sweep:', err);
     }
   });
 

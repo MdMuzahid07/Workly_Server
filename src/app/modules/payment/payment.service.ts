@@ -43,7 +43,7 @@ const initiatePayment = async (
     throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
 
-  // ── First-time package discount calculated 100% from backend ────────────────
+  // == First-time package discount calculated 100% from backend =================
   // Lookup target plan configuration in database to obtain price & discount configs
   const mappedPlanId =
     payload.planId === 'cand_starter'
@@ -67,7 +67,7 @@ const initiatePayment = async (
     },
   });
 
-  // ── Production-grade safety check: Validate target plan purchase eligibility ──
+  // == Production-grade safety check: Validate target plan purchase eligibility ==
   if (payload.category === PaymentCategory.EMPLOYER_PLAN) {
     if (!companyId) {
       throw new AppError(
@@ -192,7 +192,7 @@ const initiatePayment = async (
         data: { sessionKey: apiResponse.sessionkey },
       });
 
-      // ── Resolve Direct Gateway URL ──
+      // == Resolve Direct Gateway URL ==
       let finalGatewayUrl = apiResponse.GatewayPageURL;
 
       if (sslCardName) {
