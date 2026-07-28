@@ -320,10 +320,21 @@ const getJobs = async (
   );
 
   if (location && (location as string).trim()) {
-    where.location = {
-      contains: (location as string).trim(),
-      mode: 'insensitive',
-    };
+    const locStr = (location as string).trim();
+    const locParts = locStr
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 1);
+
+    if (!where.AND) {
+      where.AND = [];
+    }
+    (where.AND as any[]).push({
+      OR: [
+        { location: { contains: locStr, mode: 'insensitive' } },
+        ...locParts.map((part) => ({ location: { contains: part, mode: 'insensitive' } })),
+      ],
+    });
   }
 
   const skillsList = parseArray(skills as string | string[] | undefined | null);
@@ -335,16 +346,19 @@ const getJobs = async (
     };
   }
 
-  // Industry filter (relation with company or direct on Job)
+  // Industry filter (relation with company, direct industry relation, or discipline on Job)
   const industries = parseArray(industry as string | string[] | undefined | null);
   if (industries?.length) {
     if (!where.AND) {
       where.AND = [];
     }
-    where.AND.push({
+    (where.AND as any[]).push({
       OR: [
         { industry: { name: { in: industries, mode: 'insensitive' } } },
         { company: { industry: { name: { in: industries, mode: 'insensitive' } } } },
+        { industryId: { in: industries } },
+        { discipline: { in: industries, mode: 'insensitive' } },
+        ...industries.map((ind) => ({ discipline: { contains: ind, mode: 'insensitive' } })),
       ],
     });
   }

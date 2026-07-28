@@ -122,7 +122,7 @@ const createApplication = async (userId: string, payload: any) => {
         phone: payload.phone,
         resumeUrl: payload.resumeFile,
         currentLocation: payload.location,
-        yearsOfExperience: payload.experience ? Number(payload.experience) : 0,
+        yearsOfExperience: payload.experience ? parseInt(String(payload.experience), 10) || 0 : 0,
         agreedTerms: payload.agreeTerms ?? true,
         coverLetter: payload.coverLetter,
         preferredContactMethod: (payload.preferredContactMethod?.toUpperCase() as any) || 'EMAIL',
