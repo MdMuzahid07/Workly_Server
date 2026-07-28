@@ -18,11 +18,9 @@ import { globalLimiter } from './lib/rateLimiters.js';
 //  3. No duplicate frontend_url check (folded into ALLOWED_ORIGINS array)
 //  4. SSLCommerz real origins must be added to ALLOWED_ORIGINS env var
 // ---------------------------------------------------------------------------
-const allowedOrigins = [
-  ...env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()),
-  env.BACKEND_URL,
-  env.FRONTEND_URL,
-].filter(Boolean);
+const allowedOrigins = [...env.ALLOWED_ORIGINS.split(','), env.BACKEND_URL, env.FRONTEND_URL]
+  .map((o) => (o ? o.trim().replace(/\/+$/, '') : ''))
+  .filter(Boolean);
 
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {

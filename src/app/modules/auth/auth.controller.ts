@@ -1,27 +1,27 @@
-import type { RequestHandler } from "express";
-import httpStatus from "http-status";
-import { env } from "../../../config/index.js";
-import asyncHandler from "../../../utils/asyncHandler.js";
-import prisma from "../../../utils/prismaClient.js";
-import sendApiResponse from "../../../utils/sendApiResponse.js";
-import AppError from "../../error/AppError.js";
-import authService from "./auth.service.js";
+import type { RequestHandler } from 'express';
+import httpStatus from 'http-status';
+import { env } from '../../../config/index.js';
+import asyncHandler from '../../../utils/asyncHandler.js';
+import prisma from '../../../utils/prismaClient.js';
+import sendApiResponse from '../../../utils/sendApiResponse.js';
+import AppError from '../../error/AppError.js';
+import authService from './auth.service.js';
 
 const register: RequestHandler = asyncHandler(async (req, res) => {
   const result = await authService.register(req.body);
 
   const refreshToken = result.refreshToken;
-  res.cookie("refreshToken", refreshToken, {
+  res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
-    secure: env.NODE_ENV === "production",
-    sameSite: "strict",
+    secure: env.NODE_ENV === 'production',
+    sameSite: env.NODE_ENV === 'production' ? 'none' : 'strict',
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
   sendApiResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,
-    message: "User registered successfully. Please check your email to verify your account.",
+    message: 'User registered successfully. Please check your email to verify your account.',
     data: {
       fullName: result.safeUser.fullName,
       phone: result.safeUser.phone,
@@ -38,17 +38,17 @@ const login: RequestHandler = asyncHandler(async (req, res) => {
   const result = await authService.login(req.body);
 
   const refreshToken = result.refreshToken;
-  res.cookie("refreshToken", refreshToken, {
+  res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
-    secure: env.NODE_ENV === "production",
-    sameSite: "strict",
+    secure: env.NODE_ENV === 'production',
+    sameSite: env.NODE_ENV === 'production' ? 'none' : 'strict',
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "User logged in successfully",
+    message: 'User logged in successfully',
     data: {
       fullName: result.safeUser.fullName,
       email: result.safeUser.email,
@@ -64,20 +64,20 @@ const login: RequestHandler = asyncHandler(async (req, res) => {
 const logout: RequestHandler = asyncHandler(async (req, res) => {
   // await authService.logout();
 
-  res.clearCookie("refreshToken", {
+  res.clearCookie('refreshToken', {
     httpOnly: true,
-    secure: env.NODE_ENV === "production",
-    sameSite: "strict",
+    secure: env.NODE_ENV === 'production',
+    sameSite: 'strict',
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
-  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-  res.setHeader("Pragma", "no-cache");
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
 
   sendApiResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,
-    message: "User registered successfully",
+    message: 'User registered successfully',
   });
 });
 
@@ -88,7 +88,7 @@ const refresh: RequestHandler = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Token refresh successfully",
+    message: 'Token refresh successfully',
     data: {
       accessToken: result.accessToken,
     },
@@ -114,7 +114,7 @@ const resetPassword: RequestHandler = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Password reset successfully",
+    message: 'Password reset successfully',
   });
 });
 
@@ -122,10 +122,10 @@ const verifyEmail: RequestHandler = asyncHandler(async (req, res) => {
   const result = await authService.verifyEmail(req.body);
 
   if (result.refreshToken) {
-    res.cookie("refreshToken", result.refreshToken, {
+    res.cookie('refreshToken', result.refreshToken, {
       httpOnly: true,
-      secure: env.NODE_ENV === "production",
-      sameSite: "strict",
+      secure: env.NODE_ENV === 'production',
+      sameSite: env.NODE_ENV === 'production' ? 'none' : 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
   }
@@ -156,7 +156,7 @@ const getCurrentUser: RequestHandler = asyncHandler(async (req, res) => {
   const tokenUser = req.user as any;
 
   if (!tokenUser?.userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Unauthorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Unauthorized');
   }
 
   const user = await prisma.user.findUnique({
@@ -164,15 +164,15 @@ const getCurrentUser: RequestHandler = asyncHandler(async (req, res) => {
   });
 
   if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
 
   let isPremium = user.isPremium;
-  if (!isPremium && user.role === "EMPLOYER" && user.companyId) {
+  if (!isPremium && user.role === 'EMPLOYER' && user.companyId) {
     const activeSub = await prisma.subscription.findUnique({
       where: { companyId: user.companyId },
     });
-    if (activeSub && activeSub.status === "ACTIVE") {
+    if (activeSub && activeSub.status === 'ACTIVE') {
       isPremium = true;
     }
   }
@@ -181,13 +181,13 @@ const getCurrentUser: RequestHandler = asyncHandler(async (req, res) => {
 
   const data = {
     ...rest,
-    isPremium: env.NODE_ENV !== "production" ? true : isPremium,
+    isPremium: env.NODE_ENV !== 'production' ? true : isPremium,
   };
 
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "User retrieved successfully",
+    message: 'User retrieved successfully',
     data,
   });
 });
@@ -201,36 +201,36 @@ const googleOAuth = asyncHandler(async (req, res) => {
   };
 
   // Extract role from state parameter (passed through OAuth flow)
-  let role: "EMPLOYER" | "JOB_SEEKER" = "JOB_SEEKER"; // Default role
+  let role: 'EMPLOYER' | 'JOB_SEEKER' = 'JOB_SEEKER'; // Default role
   try {
     const stateParam = req.query.state as string | undefined;
     if (stateParam) {
       const state = JSON.parse(decodeURIComponent(stateParam));
-      if (state.role && (state.role === "EMPLOYER" || state.role === "JOB_SEEKER")) {
+      if (state.role && (state.role === 'EMPLOYER' || state.role === 'JOB_SEEKER')) {
         role = state.role;
       }
     }
   } catch (error) {
-    console.warn("Failed to parse state parameter, using default role:", error);
+    console.warn('Failed to parse state parameter, using default role:', error);
   }
 
   const result = await authService.googleOAuth(googleProfile, role);
 
   // Set refresh token in httpOnly cookie (same pattern as login/register)
-  res.cookie("refreshToken", result.refreshToken, {
+  res.cookie('refreshToken', result.refreshToken, {
     httpOnly: true,
-    secure: env.NODE_ENV === "production",
-    sameSite: "strict",
+    secure: env.NODE_ENV === 'production',
+    sameSite: env.NODE_ENV === 'production' ? 'none' : 'strict',
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
   // Redirect back to frontend callback page with accessToken + user data
   const redirectUrl = new URL(`${env.FRONTEND_URL}/auth/google/callback`);
-  redirectUrl.searchParams.set("accessToken", result.accessToken);
-  redirectUrl.searchParams.set("user", JSON.stringify(result.safeUser));
+  redirectUrl.searchParams.set('accessToken', result.accessToken);
+  redirectUrl.searchParams.set('user', JSON.stringify(result.safeUser));
   // Signal to the callback page that this is a brand-new account needing role confirmation
   if (result.isNewUser) {
-    redirectUrl.searchParams.set("isNewUser", "true");
+    redirectUrl.searchParams.set('isNewUser', 'true');
   }
 
   return res.redirect(redirectUrl.toString());
@@ -250,13 +250,13 @@ const confirmGoogleRole: RequestHandler = asyncHandler(async (req, res) => {
   const tokenUser = req.user as any;
 
   if (!tokenUser?.userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Unauthorized");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Unauthorized');
   }
 
   const { role } = req.body as { role: string };
 
-  if (!role || !(["EMPLOYER", "JOB_SEEKER"] as const).includes(role as any)) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Role must be EMPLOYER or JOB_SEEKER");
+  if (!role || !(['EMPLOYER', 'JOB_SEEKER'] as const).includes(role as any)) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Role must be EMPLOYER or JOB_SEEKER');
   }
 
   const user = await prisma.user.findUnique({
@@ -272,7 +272,7 @@ const confirmGoogleRole: RequestHandler = asyncHandler(async (req, res) => {
   });
 
   if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
 
   // Security: only allow role change if the account was just created
@@ -284,13 +284,13 @@ const confirmGoogleRole: RequestHandler = asyncHandler(async (req, res) => {
   if (!isNewAccount) {
     throw new AppError(
       httpStatus.FORBIDDEN,
-      "Role can only be set immediately after account creation.",
+      'Role can only be set immediately after account creation.',
     );
   }
 
   const updatedUser = await prisma.user.update({
     where: { id: user.id },
-    data: { role: role as "EMPLOYER" | "JOB_SEEKER" },
+    data: { role: role as 'EMPLOYER' | 'JOB_SEEKER' },
   });
 
   const { passwordHash: _, ...safeUser } = updatedUser as any;
@@ -298,7 +298,7 @@ const confirmGoogleRole: RequestHandler = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Role confirmed successfully.",
+    message: 'Role confirmed successfully.',
     data: safeUser,
   });
 });
