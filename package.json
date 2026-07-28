@@ -58,13 +58,13 @@
     "newman": "^6.2.2",
     "newman-reporter-htmlextra": "^1.23.1",
     "prettier": "^3.6.2",
-    "prisma": "^7.9.0",
+    "prisma": "^7.9.1",
     "tsx": "^4.20.4",
     "typescript": "^5.9.2"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.0.1",
-    "@prisma/client": "^7.9.0",
+    "@prisma/client": "^7.9.1",
     "@types/passport-google-oauth20": "^2.0.17",
     "bcrypt": "^6.0.0",
     "chalk": "^5.6.0",
