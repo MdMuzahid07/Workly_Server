@@ -81,7 +81,7 @@ const createProfile = async (userId: string, payload: IProfile) => {
     }
 
     return userProfile;
-  });
+  }, { maxWait: 10000, timeout: 20000 });
 
   return result;
 };
@@ -587,7 +587,7 @@ const updateMyProfile = async (
     }
 
     return userProfile;
-  });
+  }, { maxWait: 10000, timeout: 20000 });
 
   return result;
 };
