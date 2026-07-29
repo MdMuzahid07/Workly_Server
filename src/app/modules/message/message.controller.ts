@@ -1,22 +1,22 @@
-import httpStatus from "http-status";
-import { getIO } from "../../../socket/index.js";
-import asyncHandler from "../../../utils/asyncHandler.js";
-import sendApiResponse from "../../../utils/sendApiResponse.js";
-import AppError from "../../error/AppError.js";
-import messageService from "./message.service.js";
-import { streamFileToClient } from "../../../services/file/fileStream.service.js";
+import httpStatus from 'http-status';
+import { getIO } from '../../../socket/index.js';
+import asyncHandler from '../../../utils/asyncHandler.js';
+import sendApiResponse from '../../../utils/sendApiResponse.js';
+import AppError from '../../error/AppError.js';
+import messageService from './message.service.js';
+import { streamFileToClient } from '../../../services/file/fileStream.service.js';
 
 const getConversations = asyncHandler(async (req, res) => {
   const userId = (req as any).user?.userId;
   if (!userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'User not authenticated');
   }
   const result = await messageService.getConversations(userId);
 
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Conversations fetched successfully",
+    message: 'Conversations fetched successfully',
     data: result,
   });
 });
@@ -25,16 +25,18 @@ const getMessages = asyncHandler(async (req, res) => {
   const userId = (req as any).user?.userId;
   const { conversationId } = req.params as { conversationId: string };
 
+  const since = req.query.since as string | undefined;
+
   if (!userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'User not authenticated');
   }
 
-  const result = await messageService.getMessages(conversationId, userId);
+  const result = await messageService.getMessages(conversationId, userId, since);
 
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Messages fetched successfully",
+    message: 'Messages fetched successfully',
     data: result,
   });
 });
@@ -45,7 +47,7 @@ const sendMessage = asyncHandler(async (req, res) => {
   const { content, recipientId, messageType, fileUrl, fileName, fileSize } = req.body;
 
   if (!userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'User not authenticated');
   }
 
   const result = await messageService.sendMessage(conversationId, userId, {
@@ -60,11 +62,11 @@ const sendMessage = asyncHandler(async (req, res) => {
   const io = getIO();
   if (io) {
     // 1. Send to the specific conversation room
-    io.to(`conversation:${conversationId}`).emit("new_message", result);
+    io.to(`conversation:${conversationId}`).emit('new_message', result);
 
     // 2. Notify the recipient in their personal room (for sidebar/notifications)
     if (recipientId) {
-      io.to(`user:${recipientId}`).emit("new_conversation_message", {
+      io.to(`user:${recipientId}`).emit('new_conversation_message', {
         conversationId,
         message: result,
       });
@@ -74,7 +76,7 @@ const sendMessage = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,
-    message: "Message sent successfully",
+    message: 'Message sent successfully',
     data: result,
   });
 });
@@ -84,7 +86,7 @@ const createConversation = asyncHandler(async (req, res) => {
   const { participantId, applicationId } = req.body;
 
   if (!userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'User not authenticated');
   }
 
   const result = await messageService.createConversation([userId, participantId], applicationId);
@@ -92,7 +94,7 @@ const createConversation = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,
-    message: "Conversation created successfully",
+    message: 'Conversation created successfully',
     data: result,
   });
 });
@@ -102,7 +104,7 @@ const blockUser = asyncHandler(async (req, res) => {
   const { conversationId } = req.params as { conversationId: string };
 
   if (!userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'User not authenticated');
   }
 
   const result = await messageService.blockUser(conversationId, userId);
@@ -110,7 +112,7 @@ const blockUser = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: result.isBlocked ? "User blocked" : "User unblocked",
+    message: result.isBlocked ? 'User blocked' : 'User unblocked',
     data: result,
   });
 });
@@ -120,7 +122,7 @@ const deleteConversation = asyncHandler(async (req, res) => {
   const { conversationId } = req.params as { conversationId: string };
 
   if (!userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'User not authenticated');
   }
 
   const result = await messageService.deleteConversation(conversationId, userId);
@@ -128,7 +130,7 @@ const deleteConversation = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Conversation deleted",
+    message: 'Conversation deleted',
     data: result,
   });
 });
@@ -138,7 +140,7 @@ const markAsRead = asyncHandler(async (req, res) => {
   const { conversationId } = req.params as { conversationId: string };
 
   if (!userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'User not authenticated');
   }
 
   const result = await messageService.markAsRead(conversationId, userId);
@@ -146,7 +148,7 @@ const markAsRead = asyncHandler(async (req, res) => {
   // Notify other participants that messages were read
   const io = getIO();
   if (io) {
-    io.to(`conversation:${conversationId}`).emit("messages_read", {
+    io.to(`conversation:${conversationId}`).emit('messages_read', {
       conversationId,
       userId,
     });
@@ -155,7 +157,7 @@ const markAsRead = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Messages marked as read",
+    message: 'Messages marked as read',
     data: result,
   });
 });
@@ -165,7 +167,7 @@ const deleteMessage = asyncHandler(async (req, res) => {
   const { messageId } = req.params as { messageId: string };
 
   if (!userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'User not authenticated');
   }
 
   const result = await messageService.deleteMessage(messageId, userId);
@@ -173,7 +175,7 @@ const deleteMessage = asyncHandler(async (req, res) => {
   // Real-time broadcast
   const io = getIO();
   if (io) {
-    io.to(`conversation:${result.conversationId}`).emit("message_deleted", {
+    io.to(`conversation:${result.conversationId}`).emit('message_deleted', {
       messageId: result.id,
       conversationId: result.conversationId,
     });
@@ -182,7 +184,7 @@ const deleteMessage = asyncHandler(async (req, res) => {
   sendApiResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Message deleted successfully",
+    message: 'Message deleted successfully',
     data: result,
   });
 });
@@ -192,7 +194,7 @@ const streamMessageFile = asyncHandler(async (req, res) => {
   const { messageId } = req.params as { messageId: string };
 
   if (!userId) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated");
+    throw new AppError(httpStatus.UNAUTHORIZED, 'User not authenticated');
   }
 
   const message = await messageService.getMessageFile(messageId, userId);
@@ -200,7 +202,7 @@ const streamMessageFile = asyncHandler(async (req, res) => {
   await streamFileToClient({
     res,
     fileUrl: message.fileUrl!,
-    filename: message.fileName || "file",
+    filename: message.fileName || 'file',
   });
 });
 

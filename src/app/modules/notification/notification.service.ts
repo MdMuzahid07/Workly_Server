@@ -296,6 +296,10 @@ const getMyNotifications = async (userId: string, query: Record<string, unknown>
 
   const { where, orderBy, skip, take, pagination } = await notificationFilter.filter(filterOptions);
 
+  if (query.since) {
+    (where as any).createdAt = { gt: new Date(query.since as string) };
+  }
+
   const data = await prisma.notification.findMany({
     where,
     orderBy,

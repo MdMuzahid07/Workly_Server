@@ -157,7 +157,7 @@ const getConversations = async (userId: string) => {
   return result;
 };
 
-const getMessages = async (conversationId: string, userId: string) => {
+const getMessages = async (conversationId: string, userId: string, since?: string) => {
   await checkPremiumStatus(userId);
   // Check if user is participant
   const participant = await prisma.conversationParticipant.findFirst({
@@ -171,10 +171,13 @@ const getMessages = async (conversationId: string, userId: string) => {
     throw new AppError(httpStatus.FORBIDDEN, 'You are not a participant of this conversation');
   }
 
+  const whereClause: any = { conversationId };
+  if (since) {
+    whereClause.createdAt = { gt: new Date(since) };
+  }
+
   const result = await prisma.message.findMany({
-    where: {
-      conversationId,
-    },
+    where: whereClause,
     include: {
       sender: {
         select: {

@@ -103,7 +103,9 @@ async function main() {
   await initRateLimiters();
 
   const server: Server = http.createServer(app);
-  initSocket(server);
+  if (env.ENABLE_SOCKET_IO) {
+    initSocket(server);
+  }
 
   // P0.1 + P0.2 fix: both guards now use env.NODE_ENV (the single zod-validated
   // source of truth). The old split between process.env.NODE_ENV and

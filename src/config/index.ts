@@ -75,6 +75,11 @@ const envSchema = z.object({
   SMTP_PORT: z.coerce.number().default(587),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
+
+  // Features
+  ENABLE_SOCKET_IO: z
+    .preprocess((val) => val === 'true' || val === '1' || val === true, z.boolean())
+    .default(false),
 });
 
 const parsed = envSchema.safeParse(process.env);
