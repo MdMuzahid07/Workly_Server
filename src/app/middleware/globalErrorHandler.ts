@@ -54,6 +54,11 @@ const globalErrorHandler = (error: IError, req: Request, res: Response, _next: N
     return;
   }
 
+  // Log the error to stdout/stderr so it appears in Vercel logs
+  if (statusCode >= 500) {
+    console.error(`[Error] ${req.method} ${req.originalUrl} >>`, error);
+  }
+
   // In production: sanitise 5xx messages and all Prisma errors.
   // In development: pass through the real message for debuggability.
   const safeMessage =
